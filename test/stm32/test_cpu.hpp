@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <stm32/cpu.hpp>
+#include <stm32/cpu_register_set.hpp>
 
 TEST(cpu, APSR_alignment)
 {
