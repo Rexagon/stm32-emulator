@@ -5,53 +5,17 @@
 
 namespace stm32
 {
-void InterruptProgramStatusRegister::reset()
-{
-    exceptionNumber = 0x0u;
-}
-
-
-void ExecutionProgramStatusRegister::reset()
-{
-    T = true;
-}
-
-
-void ExceptionMaskRegister::reset()
-{
-    PM = false;
-}
-
-
-void BasePriorityMaskRegister::reset()
-{
-    level = 0x0u;
-}
-
-
-void FaultMaskRegister::reset()
-{
-    FM = false;
-}
-
-
-void ControlRegister::reset()
-{
-    nPRIV = false;
-    SPSEL = false;
-}
-
-
 void CpuRegisterSet::reset()
 {
-    m_interruptProgramStatusRegister.reset();
-    m_executionProgramStatusRegister.reset();
+    m_interruptProgramStatusRegister.exceptionNumber = 0x0u;
+    m_executionProgramStatusRegister.T = true;
 
-    m_exceptionMaskRegister.reset();
-    m_basePriorityMaskRegister.reset();
-    m_faultMaskRegister.reset();
+    m_exceptionMaskRegister.PM = false;
+    m_basePriorityMaskRegister.level = 0x0u;
+    m_faultMaskRegister.FM = false;
 
-    m_controlRegister.reset();
+    m_controlRegister.nPRIV = false;
+    m_controlRegister.SPSEL = false;
 }
 
 

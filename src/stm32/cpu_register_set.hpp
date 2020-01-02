@@ -42,8 +42,6 @@ struct ApplicationProgramStatusRegister
                  // Negative condition code flag. Set to bit[31] of the result of the instruction. If the result is
                  // regarded as a two's complement signed integer, then N == 1 if the result is negative and N == 0 if
                  // it is positive or zero.
-
-    // register shouldn't have reset function
 };
 
 struct InterruptProgramStatusRegister
@@ -55,8 +53,6 @@ struct InterruptProgramStatusRegister
     uint16_t : 7;   // bits[15:9]
     uint16_t : 16;  // bits[31:16]
                     // Reserved
-
-    void reset();
 };
 
 struct ExecutionProgramStatusRegister
@@ -69,8 +65,6 @@ struct ExecutionProgramStatusRegister
     static constexpr uint8_t FlagTBitNumber = 24;
     bool T : 1;  // bit[24]
                  // T bit, that is set to 1 to indicate that the processor executes Thumb instructions
-
-    void reset();
 };
 
 // The special-purpose mask registers
@@ -86,8 +80,6 @@ struct ExceptionMaskRegister
     uint8_t : 8;  // bits[23:16]
     uint8_t : 8;  // bits[31:24]
                   // Reserved
-
-    void reset();
 };
 
 struct BasePriorityMaskRegister
@@ -100,8 +92,6 @@ struct BasePriorityMaskRegister
     uint8_t : 8;  // bits[23:16]
     uint8_t : 8;  // bits[31:24]
                   // Reserved
-
-    void reset();
 };
 
 struct FaultMaskRegister
@@ -117,8 +107,6 @@ struct FaultMaskRegister
     uint8_t : 8;  // bits[23:16]
     uint8_t : 8;  // bits[31:24]
                   // Reserved
-
-    void reset();
 };
 
 // The special-purpose CONTROL register
@@ -136,8 +124,6 @@ struct ControlRegister
                      // false - Use SP_main as the current stack.
                      // true - In Thread mode, use SP_process as the current stack.
                      //        In Handler mode, this value is reserved
-
-    void reset();
 };
 
 // Register set
