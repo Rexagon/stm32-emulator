@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "test_cpu.hpp"
+#include "test_memory.hpp"
 
 int main(int argc, char **argv)
 {

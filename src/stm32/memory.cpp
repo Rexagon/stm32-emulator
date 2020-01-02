@@ -15,7 +15,7 @@ inline std::pair<uint32_t, uint8_t> decodeBitBand(uint32_t address,
     // bit_word_address = bit_band_offset + bit_word_offset
 
     const auto bitAddress = address - bitBandAliasStart;
-    const auto bitNumber = bitAddress >> 2u;
+    const auto bitNumber = (bitAddress >> 2u) & 0b111u;
     const auto referencedByte = bitAddress >> 5u;
 
     return {bitBandRegionStart + referencedByte, bitNumber};
@@ -101,7 +101,7 @@ void Memory::write(uint32_t address, uint8_t data)
 
         if (referencedAddress >= m_config.sramStart && referencedAddress < m_config.sramEnd)
         {
-            auto &sramCell = m_sram[referencedAddress];
+            auto &sramCell = m_sram[referencedAddress - m_config.sramStart];
             sramCell = setBit(sramCell, bitNumber, data);
         }
     }
@@ -152,7 +152,10 @@ uint8_t Memory::read(uint32_t address) const
         const auto [referencedAddress, bitNumber] =
             decodeBitBand(address, AddressSpace::SramBitBandAliasStart, AddressSpace::SramBitBandRegionStart);
 
-        return static_cast<uint8_t>(m_sram[referencedAddress] >> bitNumber) & 0x1u;
+        if (referencedAddress >= m_config.sramStart && referencedAddress < m_config.sramEnd)
+        {
+            return static_cast<uint8_t>(m_sram[referencedAddress - m_config.sramStart] >> bitNumber) & 0x1u;
+        }
     }
     else if (address >= AddressSpace::PeripheralBitBandAliasStart && address < AddressSpace::PeripheralBitBandAliasEnd)
     {
