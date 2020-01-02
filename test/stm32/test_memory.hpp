@@ -102,3 +102,51 @@ TEST(memory, bit_band_region_test)
         }
     }
 }
+
+TEST(memory, bit_band_alias_test)
+{
+    using namespace stm32;
+
+    using Data = std::pair<uint32_t, uint8_t>;
+    using ByteData = std::pair<Data, std::vector<Data>>;
+
+    auto memory = details::createMemory();
+
+    const std::vector<ByteData> testData = {
+        {
+            {0x20000000u, 0b00001011u},  //
+            {
+                {0x22000000u, 0x03u},  // bit[0] = 1
+                {0x22000004u, 0x01u},  // bit[1] = 1
+                {0x22000008u, 0x00u},  // bit[2] = 0
+                {0x2200000Cu, 0xFFu},  // bit[3] = 1
+            }                          //
+        },
+        {
+            {0x20000201u, 0b10100001u},  //
+            {
+                {0x22004020u, 0x03u},  // bit[0] = 1
+                {0x22004034u, 0x01u},  // bit[5] = 1
+                {0x2200403Cu, 0xFFu},  // bit[7] = 1
+            }                          //
+        },
+        {
+            {0x20000201u, 0b00000001u},  // repeat, but set some bits to zero
+            {
+                {0x22004034u, 0x0u},  // bit[5] = 0
+                {0x2200403Cu, 0x0u},  // bit[7] = 0
+            }                         //
+        },
+    };
+
+    for (const auto &[targetData, bits] : testData)
+    {
+        for (const auto &[address, data] : bits)
+        {
+            memory.write(address, data);
+        }
+
+        const auto &[address, data] = targetData;
+        ASSERT_EQ(memory.read(address), data);
+    }
+}
