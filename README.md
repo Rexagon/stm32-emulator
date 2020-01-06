@@ -1,4 +1,4 @@
-# STM32G0 emulator
+# STM32F103 emulator
 
 ### Used datasheets:
 * [Instruction set](https://static.docs.arm.com/ddi0403/eb/DDI0403E_B_armv7m_arm.pdf)
