@@ -13,12 +13,14 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 set(${SUBPROJ_NAME}_HEADERS
         "cpu_register_set.hpp"
         "memory.hpp"
-        "stm32.hpp")
+        "stm32.hpp"
+        "system_control_registers.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "cpu_register_set.cpp"
         "memory.cpp"
-        "stm32.cpp")
+        "stm32.cpp"
+        "system_control_registers.cpp")
 
 # ############################################################### #
 # Options ####################################################### #

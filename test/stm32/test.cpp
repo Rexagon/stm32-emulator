@@ -5,6 +5,7 @@
 
 #include "test_cpu.hpp"
 #include "test_memory.hpp"
+#include "test_system_control_registers.hpp"
 
 int main(int argc, char **argv)
 {

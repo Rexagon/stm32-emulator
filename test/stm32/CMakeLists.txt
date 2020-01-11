@@ -8,7 +8,8 @@ set(${SUBPROJ_NAME}_CXX_STANDARD_REQUIRED YES)
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
         "test_cpu.hpp"
-        "test_memory.hpp")
+        "test_memory.hpp"
+        "test_system_control_registers.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "test.cpp")
