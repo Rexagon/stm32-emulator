@@ -11,5 +11,5 @@ TEST(cpu, APSR_alignment)
     stm32::ApplicationProgramStatusRegister APSR{};
 
     APSR.Z = true;
-    ASSERT_EQ(*reinterpret_cast<uint32_t *>(&APSR), static_cast<uint32_t>(0x1u << APSR.FlagZBitNumber));
+    ASSERT_EQ(*reinterpret_cast<uint32_t*>(&APSR), static_cast<uint32_t>(0x1u << APSR.FlagZBitNumber));
 }

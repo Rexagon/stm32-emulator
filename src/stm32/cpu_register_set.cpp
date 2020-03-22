@@ -19,7 +19,7 @@ void CpuRegisterSet::reset()
 }
 
 
-uint32_t &CpuRegisterSet::reg(const RegisterType &reg)
+auto CpuRegisterSet::reg(const RegisterType& reg) -> uint32_t&
 {
     switch (reg)
     {
@@ -59,49 +59,49 @@ uint32_t &CpuRegisterSet::reg(const RegisterType &reg)
 }
 
 
-uint32_t &CpuRegisterSet::xPSR()
+auto CpuRegisterSet::xPSR() -> uint32_t&
 {
     return m_programStatusRegister;
 }
 
 
-ApplicationProgramStatusRegister &CpuRegisterSet::APSR()
+auto CpuRegisterSet::APSR() -> ApplicationProgramStatusRegister&
 {
     return m_applicationProgramStatusRegister;
 }
 
 
-InterruptProgramStatusRegister &CpuRegisterSet::IPSR()
+auto CpuRegisterSet::IPSR() -> InterruptProgramStatusRegister&
 {
     return m_interruptProgramStatusRegister;
 }
 
 
-ExecutionProgramStatusRegister &CpuRegisterSet::EPSR()
+auto CpuRegisterSet::EPSR() -> ExecutionProgramStatusRegister&
 {
     return m_executionProgramStatusRegister;
 }
 
 
-ExceptionMaskRegister &CpuRegisterSet::PRIMASK()
+auto CpuRegisterSet::PRIMASK() -> ExceptionMaskRegister&
 {
     return m_exceptionMaskRegister;
 }
 
 
-BasePriorityMaskRegister &CpuRegisterSet::BASEPRI()
+auto CpuRegisterSet::BASEPRI() -> BasePriorityMaskRegister&
 {
     return m_basePriorityMaskRegister;
 }
 
 
-FaultMaskRegister &CpuRegisterSet::FAULTMASK()
+auto CpuRegisterSet::FAULTMASK() -> FaultMaskRegister&
 {
     return m_faultMaskRegister;
 }
 
 
-ControlRegister &CpuRegisterSet::CONTROL()
+auto CpuRegisterSet::CONTROL() -> ControlRegister&
 {
     return m_controlRegister;
 }

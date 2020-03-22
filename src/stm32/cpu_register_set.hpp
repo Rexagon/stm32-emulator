@@ -7,14 +7,10 @@ namespace stm32
 // The special-purpose program status registers, xPSR
 //
 
-struct ApplicationProgramStatusRegister
+struct __attribute__((__packed__)) ApplicationProgramStatusRegister
 {
-    uint8_t : 8;  // bits[7:0]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 3;  // bits[26:24]
-                  // Reserved
-                  // (multiple uint8_t used to prevent strange uint32_t alignment)
+    uint32_t : 27;  // bits[26:0]
+                    // Reserved
 
     static constexpr uint8_t FlagQBitNumber = 27;
     bool Q : 1;  // bit[27]
@@ -44,57 +40,52 @@ struct ApplicationProgramStatusRegister
                  // it is positive or zero.
 };
 
-struct InterruptProgramStatusRegister
+struct __attribute__((__packed__)) InterruptProgramStatusRegister
 {
     uint16_t exceptionNumber : 9;  // bits[8:0]
                                    // When the processor is executing an exception handler, holds the exception number
                                    // of the exception being processed. Otherwise, the IPSR value is zero.
 
-    uint16_t : 7;   // bits[15:9]
-    uint16_t : 16;  // bits[31:16]
+    uint32_t : 23;  // bits[31:9]
                     // Reserved
 };
 
-struct ExecutionProgramStatusRegister
+struct __attribute__((__packed__)) ExecutionProgramStatusRegister
 {
-    uint8_t : 8;  // bits[7:0]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-                  // Reserved
+    uint32_t : 24;  // bits[23:0]
+                    // Reserved
 
     static constexpr uint8_t FlagTBitNumber = 24;
     bool T : 1;  // bit[24]
                  // T bit, that is set to 1 to indicate that the processor executes Thumb instructions
+
+    uint8_t : 7;  // bits[31:25]
+                  // Reserved
 };
 
 // The special-purpose mask registers
 //
 
-struct ExceptionMaskRegister
+struct __attribute__((__packed__)) ExceptionMaskRegister
 {
     bool PM : 1;  // bit[0]
                   // Setting PRIMASK to 1 raises the execution priority to 0.
 
-    uint8_t : 7;  // bits[7:1]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint32_t : 31;  // bits[31:1]
+                    // Reserved
 };
 
-struct BasePriorityMaskRegister
+struct __attribute__((__packed__)) BasePriorityMaskRegister
 {
     uint8_t level : 8;  // bit[7:0]
                         // Changes the priority level required for exception preemption. It has an effect only when
                         // it has a lower value than the unmasked priority level of the currently executing software.
 
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint32_t : 24;  // bits[31:8]
+                    // Reserved
 };
 
-struct FaultMaskRegister
+struct __attribute__((__packed__)) FaultMaskRegister
 {
     uint8_t FM : 1;  // bit[0]
                      // Setting FM to 1 raises the execution priority to -1, the priority of HardFault. Only
@@ -102,17 +93,14 @@ struct FaultMaskRegister
                      // HardFault and NMI handlers cannot set FM to 1.  Returning from any exception except NMI
                      // clears FM to 0.
 
-    uint8_t : 7;  // bits[7:1]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint32_t : 31;  // bits[31:1]
+                    // Reserved
 };
 
 // The special-purpose CONTROL register
 //
 
-struct ControlRegister
+struct __attribute__((__packed__)) ControlRegister
 {
     bool nPRIV : 1;  // bit[0]
                      // Defines the execution privilege in Thread mode
@@ -124,6 +112,8 @@ struct ControlRegister
                      // false - Use SP_main as the current stack.
                      // true - In Thread mode, use SP_process as the current stack.
                      //        In Handler mode, this value is reserved
+
+    // TODO: check reserved space
 };
 
 // Register set
@@ -163,18 +153,18 @@ class CpuRegisterSet
 public:
     void reset();
 
-    inline uint32_t &reg(const RegisterType &reg);
+    inline auto reg(const RegisterType& reg) -> uint32_t&;
 
-    inline uint32_t &xPSR();
-    inline ApplicationProgramStatusRegister &APSR();
-    inline InterruptProgramStatusRegister &IPSR();
-    inline ExecutionProgramStatusRegister &EPSR();
+    inline auto xPSR() -> uint32_t&;
+    inline auto APSR() -> ApplicationProgramStatusRegister&;
+    inline auto IPSR() -> InterruptProgramStatusRegister&;
+    inline auto EPSR() -> ExecutionProgramStatusRegister&;
 
-    inline ExceptionMaskRegister &PRIMASK();
-    inline BasePriorityMaskRegister &BASEPRI();
-    inline FaultMaskRegister &FAULTMASK();
+    inline auto PRIMASK() -> ExceptionMaskRegister&;
+    inline auto BASEPRI() -> BasePriorityMaskRegister&;
+    inline auto FAULTMASK() -> FaultMaskRegister&;
 
-    inline ControlRegister &CONTROL();
+    inline auto CONTROL() -> ControlRegister&;
 
 private:
     uint32_t m_generalPurposeRegisters[13]{};

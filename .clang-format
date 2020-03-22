@@ -27,7 +27,7 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
 PenaltyBreakFirstLessLess: 0
-PointerAlignment: Right
+PointerAlignment: Left
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
 Standard: Cpp11

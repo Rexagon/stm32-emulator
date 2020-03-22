@@ -11,10 +11,10 @@ public:
     explicit MemoryRegion(uint32_t regionStart, uint32_t regionEnd);
 
     virtual void write(uint32_t address, uint8_t data) = 0;
-    virtual uint8_t read(uint32_t address) = 0;
+    virtual auto read(uint32_t address) -> uint8_t = 0;
 
-    inline uint32_t regionStart() const;
-    inline uint32_t regionEnd() const;
+    inline auto regionStart() const -> uint32_t;
+    inline auto regionEnd() const -> uint32_t;
 
 private:
     uint32_t m_regionStart;
@@ -142,10 +142,10 @@ public:
     void attachRegion(MemoryRegion &region);
 
     void write(uint32_t address, uint8_t data);
-    uint8_t read(uint32_t address) const;
+    auto read(uint32_t address) const -> uint8_t;
 
 private:
-    MemoryRegion *findRegion(uint32_t address) const;
+    auto findRegion(uint32_t address) const -> MemoryRegion *;
 
     Config m_config;
 

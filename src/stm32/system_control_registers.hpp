@@ -14,29 +14,28 @@ namespace stm32
  *
  * @note This register is available in all processor configurations.
  */
-struct CpuIdBaseRegister
+struct __attribute__((__packed__)) CpuIdBaseRegister
 {
-    uint16_t REVISION : 4;  // bits[3:0]
-                            // Indicates patch release: 0x1 = Patch 1.
+    uint8_t REVISION : 4;  // bits[3:0]
+                           // Indicates patch release: 0x1 = Patch 1.
 
     uint16_t PARTNO : 12;  // bits[15:4]
                            // Indicates part number: 0xC24 = Cortex-M3
 
-    uint16_t constant : 4;  // bits[19:16]
-                            // Reads as 0xF
+    uint8_t constant : 4;  // bits[19:16]
+                           // Reads as 0xF
 
-    uint16_t VARIANT : 4;  // bits[23:20]
-                           // Indicates processor revision: 0x0 = Revision 0
+    uint8_t VARIANT : 4;  // bits[23:20]
+                          // Indicates processor revision: 0x0 = Revision 0
 
-    uint16_t IMPLEMENTER : 8;  // bits[31:24]
-                               // Indicates implementer: 0x41 = ARM
+    uint8_t IMPLEMENTER : 8;  // bits[31:24]
+                              // Indicates implementer: 0x41 = ARM
 };
 
-#pragma pack(push, 1)
 /**
  * Provides software control of the NMI, PendSV, and SysTick exceptions, and provides interrupt status information.
  */
-struct InterruptControlAndStateRegister
+struct __attribute__((__packed__)) InterruptControlAndStateRegister
 {
     uint16_t VECTACTIVE : 9;  // bits[8:0], read only for memory
                               // The exception number of the current executing exception. A value of 0 indicates that
@@ -95,7 +94,6 @@ struct InterruptControlAndStateRegister
     bool NMIPENDSET : 1;  // bit[31]
                           // On writes, makes the NMI exception active if true, has no effect otherwise
 };
-#pragma pack(pop)
 
 /**
  * Holds the vector table address.
@@ -107,10 +105,10 @@ struct InterruptControlAndStateRegister
  * @note Software can write all 1s to the TBLOFF field and then read the register to find the maximum supported offset
  * value.
  */
-struct VectorTableOffsetRegister
+struct __attribute__((__packed__)) VectorTableOffsetRegister
 {
-    uint32_t : 7;  // bits[6:0]
-                   // Reserved
+    uint8_t : 7;  // bits[6:0]
+                  // Reserved
 
     uint32_t TBLOFF : 25;  // bits[31:7]
                            // Bits[31:7] of the vector table address
@@ -119,7 +117,7 @@ struct VectorTableOffsetRegister
 /**
  * Sets or returns interrupt control data.
  */
-struct ApplicationInterruptAndResetControlRegister
+struct __attribute__((__packed__)) ApplicationInterruptAndResetControlRegister
 {
     bool VECTRESET : 1;  // bit[0], write only for memory
                          // Writing 1 to this bit causes a local system reset
@@ -165,7 +163,7 @@ struct ApplicationInterruptAndResetControlRegister
 /**
  * Sets or returns system control data
  */
-struct SystemControlRegister
+struct __attribute__((__packed__)) SystemControlRegister
 {
     uint8_t : 1;  // bit[0]
                   // Reserved
@@ -194,17 +192,14 @@ struct SystemControlRegister
                          // false - transitions from inactive to pending are not wakeup events
                          // true - transitions from inactive to pending are wakeup events
 
-    uint8_t : 3;  // bits[7:5]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint32_t : 27;  // bits[31:5]
+                    // Reserved
 };
 
 /**
  * Sets or returns configuration and control data, and provides control over caching and branch prediction.
  */
-struct ConfigurationAndControlRegister
+struct __attribute__((__packed__)) ConfigurationAndControlRegister
 {
     bool NONBASETHRDENA : 1;  // bit[0]
                               // Controls whether the processor can enter Thread mode with exceptions active:
@@ -285,15 +280,14 @@ struct ConfigurationAndControlRegister
                   //
                   // If the implementation does not support program flow prediction, this bit is RAZ/WI.
 
-    uint8_t : 5;  // bits[23:19]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint16_t : 13;  // bits[31:19]
+                    // Reserved
 };
 
 /**
  * Sets or returns priority for system handlers
  */
-struct SystemHandlerPriorityRegister
+struct __attribute__((__packed__)) SystemHandlerPriorityRegister
 {
     uint8_t PRI[4];
 };
@@ -309,7 +303,7 @@ struct SystemHandlerPriorityRegister
  * return consistency checks. If software removes the active state, causing a change in current execution priority, this
  * can defeat the architectural behavior that prevents an exception from preempting its own handler
  */
-struct SystemHandlerControlAndStateRegister
+struct __attribute__((__packed__)) SystemHandlerControlAndStateRegister
 {
     bool MEMFAULTACT : 1;  // bit[0]
                            // MemManage is active if true
@@ -362,15 +356,14 @@ struct SystemHandlerControlAndStateRegister
     bool USGFAULTENA : 1;  // bit[18]
                            // UsageFault enabled if true
 
-    uint8_t : 5;  // bits[23:19]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint16_t : 13;  // bits[31:19]
+                    // Reserved
 };
 
 /**
  * Shows the status of MPU faults.
  */
-struct MemManageStatusRegister
+struct __attribute__((__packed__)) MemManageStatusRegister
 {
     bool IACCVIOL : 1;  // bit[0]
                         // If true: MPU or Execute Never (XN) default memory map access violation on an
@@ -403,7 +396,7 @@ struct MemManageStatusRegister
 /**
  * Shows the status of bus errors resulting from instruction prefetches and data accesses.
  */
-struct BusFaultStatusRegister
+struct __attribute__((__packed__)) BusFaultStatusRegister
 {
     bool IBUSERR : 1;  // bit[0]
                        // If true: A bus fault on an instruction prefetch has occurred. The fault is signaled only if
@@ -435,7 +428,7 @@ struct BusFaultStatusRegister
 /**
  * Contains the status for some instruction execution faults, and for data access faults.
  */
-struct UsageFaultStatusRegister
+struct __attribute__((__packed__)) UsageFaultStatusRegister
 {
     bool UNDEFINSTR : 1;  // bit[0]
                           // If true: The processor has attempted to execute an undefined instruction. This might be  an
@@ -473,7 +466,7 @@ struct UsageFaultStatusRegister
 /**
  * Contains the three Configurable Fault Status Registers.
  */
-struct ConfigurableFaultStatusRegister
+struct __attribute__((__packed__)) ConfigurableFaultStatusRegister
 {
     MemManageStatusRegister memManage;  // bits[7:0]
                                         // Provides information on MemManage exceptions
@@ -488,7 +481,7 @@ struct ConfigurableFaultStatusRegister
 /**
  * Shows the cause of any HardFault
  */
-struct HardFaultStatusRegister
+struct __attribute__((__packed__)) HardFaultStatusRegister
 {
     uint8_t : 1;  // bit[0]
                   // Reserved
@@ -499,10 +492,8 @@ struct HardFaultStatusRegister
                        // false - no vector table read fault has occurred
                        // true - vector table read fault has occurred
 
-    uint8_t : 6;  // bits[7:2]
-    uint8_t : 8;  // bits[15:8]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 6;  // bits[29:24]
+    uint32_t : 28;  // bits[7:2]
+                    // Reserved
 
     bool FORCED : 1;  // bit[30]
                       // Indicates that a fault with configurable priority has been escalated to a HardFault exception,
@@ -523,7 +514,7 @@ struct HardFaultStatusRegister
  *
  * @note Valid only when MMFSR.MMARVALID is set
  */
-struct MemManageFaultAddressRegister
+struct __attribute__((__packed__)) MemManageFaultAddressRegister
 {
     uint32_t ADDRESS;  // bits[31:0]
                        // Data address for an MPU fault. This is the location addressed by an attempted load or store
@@ -538,7 +529,7 @@ struct MemManageFaultAddressRegister
  *
  * @note Valid only when BFSR.BFARVALID is set, otherwise reads as UNKNOWN
  */
-struct BusFaultAddressRegister
+struct __attribute__((__packed__)) BusFaultAddressRegister
 {
     uint32_t ADDRESS;  // bits[31:0]
                        // Data address for a precise bus fault. This is the location addressed by an attempted data
@@ -562,16 +553,16 @@ struct BusFaultAddressRegister
  *
  * @note This register is available in all processor configurations.
  */
-struct AuxiliaryFaultStatusRegister
+struct __attribute__((__packed__)) AuxiliaryFaultStatusRegister
 {
     uint32_t AUXFAULT;  // bits[31:0]
-    // Latched version of the AUXFAULT inputs.
+                        // Latched version of the AUXFAULT inputs.
 };
 
 /**
  * Specifies the access privileges for coprocessors.
  */
-struct CoprocessorAccessControlRegister
+struct __attribute__((__packed__)) CoprocessorAccessControlRegister
 {
     enum Privileges : uint8_t
     {
@@ -607,7 +598,7 @@ struct CoprocessorAccessControlRegister
 /**
  * Provides information about the interrupt controller
  */
-struct InterruptControllerTypeRegister
+struct __attribute__((__packed__)) InterruptControllerTypeRegister
 {
     uint8_t INTLINESNUM : 4;  // bits[3:0]
                               // The total number of interrupt lines supported by an implementation, defined in groups
@@ -615,11 +606,8 @@ struct InterruptControllerTypeRegister
                               // However, the absolute maximum number of interrupts is 496, corresponding to the
                               // INTLINESNUM value 0b1111.
 
-    uint8_t : 4;   // bits[7:5]
-    uint8_t : 8;   // bits[15:8]
-    uint16_t : 8;  // bits[23:16]
-    uint16_t : 8;  // bits[31:24]
-                   // Reserved
+    uint32_t : 28;  // bits[31:5]
+                    // Reserved
 };
 
 /**
@@ -627,7 +615,7 @@ struct InterruptControllerTypeRegister
  *
  * @note This register is available in all processor configurations
  */
-struct AuxiliaryControlRegister
+struct __attribute__((__packed__)) AuxiliaryControlRegister
 {
     bool DISMCYCINT : 1;  // bit[0]
                           // Disables interruption of multi-cycle instructions. This increases the interrupt latency of
@@ -652,24 +640,21 @@ struct AuxiliaryControlRegister
                        // Disables floating point instructions completing out of order with respect to integer
                        // instructions.
 
-    uint8_t : 6;  // bits[15:10]
-    uint8_t : 8;  // bits[23:16]
-    uint8_t : 8;  // bits[31:24]
-                  // Reserved
+    uint32_t : 22;  // bits[31:10]
+                    // Reserved
 };
 
 /**
  * Provides a mechanism for software to generate an interrupt.
  */
-struct SoftwareTriggeredInterruptRegister
+struct __attribute__((__packed__)) SoftwareTriggeredInterruptRegister
 {
     uint16_t INTID : 9;  // bits[8:0]
                          // Indicates the interrupt to be triggered. The value written is (ExceptionNumber - 16)
                          // Writing to this register has the same effect as setting the NVIC ISPR bit corresponding to
                          // the interrupt to 1
 
-    uint16_t : 7;   // bits[15:9]
-    uint16_t : 16;  // bits[31:16]
+    uint32_t : 23;  // bits[31:9]
                     // Reserved
 };
 

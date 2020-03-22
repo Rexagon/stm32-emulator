@@ -1,7 +1,7 @@
 set(SUBPROJ_NAME stm32)
 set(${SUBPROJ_NAME}_NAMESPACE stm32)
 
-set(${SUBPROJ_NAME}_CXX_STANDARD 17)
+set(${SUBPROJ_NAME}_CXX_STANDARD 20)
 set(${SUBPROJ_NAME}_CXX_EXTENSIONS OFF)
 set(${SUBPROJ_NAME}_CXX_STANDARD_REQUIRED YES)
 
@@ -84,6 +84,11 @@ target_include_directories(
         PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<INSTALL_INTERFACE:include>)
+
+if (MINGW)
+    # Fix struct packing
+    target_compile_options(${SUBPROJ_NAME} PUBLIC -mno-ms-bitfields)
+endif ()
 
 # ############################################################### #
 # Installing #################################################### #

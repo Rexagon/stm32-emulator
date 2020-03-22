@@ -8,27 +8,25 @@ namespace details
 {
 using namespace stm32;
 
-Memory createMemory()
+auto createMemory() -> Memory
 {
     return Memory{Memory::Config{
-        0x08000000u,  // FLASH memory start
-        0x0801FFFFu,  // FLASH memory end
+        .flashMemoryStart = 0x08000000u,
+        .flashMemoryEnd = 0x0801FFFFu,
 
-        0x1FFFF000u,  // System memory start
-        0x1FFFF800u,  // System memory end
+        .systemMemoryStart = 0x1FFFF000u,
+        .systemMemoryEnd = 0x1FFFF800u,
 
-        0x1FFFF800u,  // Option bytes start
-        0x1FFFF80Fu,  // Option bytes end
+        .optionBytesStart = 0x1FFFF800u,
+        .optionBytesEnd = 0x1FFFF80Fu,
 
-        0x20000000u,  // SRAM start
-        0x20005000u,  // SRAM end
+        .sramStart = 0x20000000u,
+        .sramEnd = 0x20005000u,
     }};
 }
 
-uint32_t createBitBandAddress(uint32_t address,
-                              uint8_t bitNumber,
-                              uint32_t bitBandAliasStart,
-                              uint32_t bitBandRegionStart)
+auto createBitBandAddress(uint32_t address, uint8_t bitNumber, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart)
+    -> uint32_t
 {
     const auto byteOffset = address - bitBandRegionStart;
 
@@ -50,7 +48,7 @@ TEST(memory, memory_consistency)
         {0x20000001u, 0x57u},  // SRAM consistency
     };
 
-    for (const auto &[address, data] : testData)
+    for (const auto& [address, data] : testData)
     {
         memory.write(address, data);
         ASSERT_EQ(memory.read(address), data);
@@ -70,7 +68,7 @@ TEST(memory, reserved_addresses)
         {0x20005000u, 0xFFu},  // sram end
     };
 
-    for (const auto &[address, data] : testData)
+    for (const auto& [address, data] : testData)
     {
         memory.write(address, data);
         ASSERT_EQ(memory.read(address), 0);
@@ -89,7 +87,7 @@ TEST(memory, bit_band_region_test)
         {0x20000101u, 0xFFu},  //
     };
 
-    for (const auto &[address, data] : testData)
+    for (const auto& [address, data] : testData)
     {
         memory.write(address, data);
 
@@ -139,14 +137,14 @@ TEST(memory, bit_band_alias_test)
         },
     };
 
-    for (const auto &[targetData, bits] : testData)
+    for (const auto& [targetData, bits] : testData)
     {
-        for (const auto &[address, data] : bits)
+        for (const auto& [address, data] : bits)
         {
             memory.write(address, data);
         }
 
-        const auto &[address, data] = targetData;
+        const auto& [address, data] = targetData;
         ASSERT_EQ(memory.read(address), data);
     }
 }
