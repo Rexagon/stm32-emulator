@@ -46,4 +46,9 @@ TEST(system_control_registers, alignment)
     CHECK_REGISTER(InterruptControllerTypeRegister, Word);
     CHECK_REGISTER(AuxiliaryControlRegister, Word);
     CHECK_REGISTER(SoftwareTriggeredInterruptRegister, Word);
+
+    CHECK_REGISTER(SysTickControlAndStatusRegister, Word);
+    CHECK_REGISTER(SysTickReloadValueRegister, Word);
+    CHECK_REGISTER(SysTickCurrentValueRegister, Word);
+    CHECK_REGISTER(SysTickCalibrationValueRegister, Word);
 }

@@ -97,9 +97,8 @@ struct __attribute__((__packed__)) FaultMaskRegister
                     // Reserved
 };
 
-// The special-purpose CONTROL register
+// The special-purpose CONTROL 2-bit register
 //
-
 struct __attribute__((__packed__)) ControlRegister
 {
     bool nPRIV : 1;  // bit[0]
@@ -112,8 +111,15 @@ struct __attribute__((__packed__)) ControlRegister
                      // false - Use SP_main as the current stack.
                      // true - In Thread mode, use SP_process as the current stack.
                      //        In Handler mode, this value is reserved
+};
 
-    // TODO: check reserved space
+// Instruction encoding
+// TODO: move into utils
+enum class InstructionEncoding
+{
+    T1,
+    T2,
+    T3,
 };
 
 // Register set
@@ -166,6 +172,13 @@ public:
 
     inline auto CONTROL() -> ControlRegister&;
 
+    inline auto ITSTATE() -> uint8_t&;
+    inline auto currentCondition() const -> uint8_t;
+    inline auto conditionPassed() const -> bool;
+    inline auto isInItBlock() const -> bool;
+    inline auto isLastInItBlock() const -> bool;
+    inline void advanceCondition();
+
 private:
     uint32_t m_generalPurposeRegisters[13]{};
     uint32_t m_stackPointers[StackPointerType::Count];
@@ -185,6 +198,8 @@ private:
     FaultMaskRegister m_faultMaskRegister;
 
     ControlRegister m_controlRegister;
+
+    uint8_t m_ifThenState;
 };
 
 }  // namespace stm32

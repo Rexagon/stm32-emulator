@@ -137,15 +137,15 @@ public:
         uint32_t sramEnd;
     };
 
-    explicit Memory(const Config &config);
+    explicit Memory(const Config& config);
 
-    void attachRegion(MemoryRegion &region);
+    void attachRegion(MemoryRegion& region);
 
     void write(uint32_t address, uint8_t data);
     auto read(uint32_t address) const -> uint8_t;
 
 private:
-    auto findRegion(uint32_t address) const -> MemoryRegion *;
+    auto findRegion(uint32_t address) const -> MemoryRegion*;
 
     Config m_config;
 
@@ -155,7 +155,7 @@ private:
 
     std::vector<uint8_t> m_sram;
 
-    std::vector<MemoryRegion *> m_memoryRegions;
+    std::vector<MemoryRegion*> m_memoryRegions;
 };
 
 }  // namespace stm32
