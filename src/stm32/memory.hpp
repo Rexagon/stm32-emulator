@@ -144,6 +144,8 @@ public:
     void write(uint32_t address, uint8_t data);
     auto read(uint32_t address) const -> uint8_t;
 
+    auto config() const -> const Config&;
+
 private:
     auto findRegion(uint32_t address) const -> MemoryRegion*;
 

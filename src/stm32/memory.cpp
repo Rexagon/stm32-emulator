@@ -7,9 +7,8 @@ namespace stm32
 {
 namespace
 {
-inline auto decodeBitBand(uint32_t address,
-                          uint32_t bitBandAliasStart,
-                          uint32_t bitBandRegionStart) -> std::pair<uint32_t, uint8_t>
+inline auto decodeBitBand(uint32_t address, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart)
+    -> std::pair<uint32_t, uint8_t>
 {
     // bit_word_offset = (byte_offset * 32) + (bit_number * 4)
     // bit_word_address = bit_band_offset + bit_word_offset
@@ -48,7 +47,7 @@ auto MemoryRegion::regionEnd() const -> uint32_t
 }
 
 
-Memory::Memory(const Config &config)
+Memory::Memory(const Config& config)
     : m_config{config}
     , m_flash(config.flashMemoryEnd - config.flashMemoryStart, 0)
     , m_systemMemory(config.systemMemoryEnd - config.systemMemoryStart, 0)
@@ -58,7 +57,7 @@ Memory::Memory(const Config &config)
 }
 
 
-void Memory::attachRegion(MemoryRegion &region)
+void Memory::attachRegion(MemoryRegion& region)
 {
     auto it = m_memoryRegions.begin();
     for (; it != m_memoryRegions.end() && (*it)->regionEnd() < region.regionStart(); ++it)
@@ -96,26 +95,26 @@ void Memory::write(uint32_t address, uint8_t data)
     }
     else if (address >= AddressSpace::SramBitBandAliasStart && address < AddressSpace::SramBitBandAliasEnd)
     {
-        const auto[referencedAddress, bitNumber] =
-        decodeBitBand(address, AddressSpace::SramBitBandAliasStart, AddressSpace::SramBitBandRegionStart);
+        const auto [referencedAddress, bitNumber] =
+            decodeBitBand(address, AddressSpace::SramBitBandAliasStart, AddressSpace::SramBitBandRegionStart);
 
         if (referencedAddress >= m_config.sramStart && referencedAddress < m_config.sramEnd)
         {
-            auto &sramCell = m_sram[referencedAddress - m_config.sramStart];
+            auto& sramCell = m_sram[referencedAddress - m_config.sramStart];
             sramCell = setBit(sramCell, bitNumber, data);
         }
     }
     else if (address >= AddressSpace::PeripheralBitBandAliasStart && address < AddressSpace::PeripheralBitBandAliasEnd)
     {
-        const auto[referencedAddress, bitNumber] = decodeBitBand(address, AddressSpace::PeripheralBitBandAliasStart,
-                                                                 AddressSpace::PeripheralBitBandRegionStart);
+        const auto [referencedAddress, bitNumber] = decodeBitBand(address, AddressSpace::PeripheralBitBandAliasStart,
+                                                                  AddressSpace::PeripheralBitBandRegionStart);
 
-        if (auto *region = findRegion(referencedAddress); region != nullptr)
+        if (auto* region = findRegion(referencedAddress); region != nullptr)
         {
             region->write(referencedAddress, setBit(region->read(referencedAddress), bitNumber, data));
         }
     }
-    else if (auto *region = findRegion(address); region != nullptr)
+    else if (auto* region = findRegion(address); region != nullptr)
     {
         region->write(address, data);
     }
@@ -149,8 +148,8 @@ auto Memory::read(uint32_t address) const -> uint8_t
     }
     else if (address >= AddressSpace::SramBitBandAliasStart && address < AddressSpace::SramBitBandAliasEnd)
     {
-        const auto[referencedAddress, bitNumber] =
-        decodeBitBand(address, AddressSpace::SramBitBandAliasStart, AddressSpace::SramBitBandRegionStart);
+        const auto [referencedAddress, bitNumber] =
+            decodeBitBand(address, AddressSpace::SramBitBandAliasStart, AddressSpace::SramBitBandRegionStart);
 
         if (referencedAddress >= m_config.sramStart && referencedAddress < m_config.sramEnd)
         {
@@ -159,15 +158,15 @@ auto Memory::read(uint32_t address) const -> uint8_t
     }
     else if (address >= AddressSpace::PeripheralBitBandAliasStart && address < AddressSpace::PeripheralBitBandAliasEnd)
     {
-        const auto[referencedAddress, bitNumber] = decodeBitBand(address, AddressSpace::PeripheralBitBandAliasStart,
-                                                                 AddressSpace::PeripheralBitBandRegionStart);
+        const auto [referencedAddress, bitNumber] = decodeBitBand(address, AddressSpace::PeripheralBitBandAliasStart,
+                                                                  AddressSpace::PeripheralBitBandRegionStart);
 
-        if (auto *region = findRegion(referencedAddress); region != nullptr)
+        if (auto* region = findRegion(referencedAddress); region != nullptr)
         {
             return static_cast<uint8_t>(region->read(referencedAddress) >> bitNumber) & 0x1u;
         }
     }
-    else if (auto *region = findRegion(address); region != nullptr)
+    else if (auto* region = findRegion(address); region != nullptr)
     {
         return region->read(address);
     }
@@ -176,7 +175,7 @@ auto Memory::read(uint32_t address) const -> uint8_t
 }
 
 
-auto Memory::findRegion(uint32_t address) const -> MemoryRegion *
+auto Memory::findRegion(uint32_t address) const -> MemoryRegion*
 {
     if (m_memoryRegions.empty())
     {
@@ -209,4 +208,11 @@ auto Memory::findRegion(uint32_t address) const -> MemoryRegion *
         stepSize >>= 1u;
     }
 }
+
+
+auto Memory::config() const -> const Memory::Config&
+{
+    return m_config;
+}
+
 }  // namespace stm32

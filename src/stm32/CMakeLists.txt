@@ -11,16 +11,16 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
+        "cpu.hpp"
         "cpu_register_set.hpp"
         "memory.hpp"
-        "opcodes.hpp"
         "stm32.hpp"
         "system_control_registers.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
+        "cpu.cpp"
         "cpu_register_set.cpp"
         "memory.cpp"
-        "opcodes.cpp"
         "stm32.cpp"
         "system_control_registers.cpp")
 
