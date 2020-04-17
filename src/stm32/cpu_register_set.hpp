@@ -125,25 +125,24 @@ enum class InstructionEncoding
 // Register set
 //
 
-enum class RegisterType
+enum RegisterType : uint8_t
 {
-    R0 = 0,
-    R1 = 1,
-    R2 = 2,
-    R3 = 3,
-    R4 = 4,
-    R5 = 5,
-    R6 = 6,
-    R7 = 7,
-    R8 = 8,
-    R9 = 9,
-    R10 = 10,
-    R11 = 11,
-    R12 = 12,
-    R13 = 13,
-    SP,
-    LR,
-    PC,
+    R0 = 0u,
+    R1 = 1u,
+    R2 = 2u,
+    R3 = 3u,
+    R4 = 4u,
+    R5 = 5u,
+    R6 = 6u,
+    R7 = 7u,
+    R8 = 8u,
+    R9 = 9u,
+    R10 = 10u,
+    R11 = 11u,
+    R12 = 12u,
+    SP = 13u,
+    LR = 14u,
+    PC = 15u,
 };
 
 class CpuRegisterSet
@@ -159,7 +158,7 @@ class CpuRegisterSet
 public:
     void reset();
 
-    inline auto reg(const RegisterType& reg) -> uint32_t&;
+    inline auto reg(uint16_t reg) -> uint32_t&;
 
     inline auto xPSR() -> uint32_t&;
     inline auto APSR() -> ApplicationProgramStatusRegister&;
@@ -180,7 +179,7 @@ public:
     inline void advanceCondition();
 
 private:
-    uint32_t m_generalPurposeRegisters[13]{};
+    uint32_t m_generalPurposeRegisters[12]{};
     uint32_t m_stackPointers[StackPointerType::Count];
     uint32_t m_linkRegister{};
     uint32_t m_programCounter{};

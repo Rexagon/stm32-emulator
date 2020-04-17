@@ -65,7 +65,7 @@ set(
 add_library(
         ${SUBPROJ_NAME}
         ${${SUBPROJ_NAME}_TARGET_TYPE}
-        ${${SUBPROJ_NAME}_ALL_SRCS})
+        ${${SUBPROJ_NAME}_ALL_SRCS} opcodes.cpp opcodes.hpp)
 
 # Enable C++ standard
 set_target_properties(

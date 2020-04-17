@@ -21,7 +21,7 @@ void CpuRegisterSet::reset()
 }
 
 
-auto CpuRegisterSet::reg(const RegisterType& reg) -> uint32_t&
+auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
 {
     switch (reg)
     {
@@ -38,7 +38,6 @@ auto CpuRegisterSet::reg(const RegisterType& reg) -> uint32_t&
         case RegisterType::R10:
         case RegisterType::R11:
         case RegisterType::R12:
-        case RegisterType::R13:
             return m_generalPurposeRegisters[static_cast<int>(reg)];
 
         case RegisterType::SP:
@@ -57,6 +56,10 @@ auto CpuRegisterSet::reg(const RegisterType& reg) -> uint32_t&
 
         case RegisterType::PC:
             return m_programCounter;
+
+        default:
+            assert("UNPREDICTABLE");
+            break;
     }
 }
 
@@ -184,6 +187,7 @@ auto CpuRegisterSet::isLastInItBlock() const -> bool
 {
     return (m_ifThenState & 0b1111u) == 0b1000u;
 }
+
 
 void CpuRegisterSet::advanceCondition()
 {
