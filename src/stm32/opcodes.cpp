@@ -5,44 +5,51 @@
 
 #include <cassert>
 
-#include "math.hpp"
-
-namespace stm32::opcodes::t1
+namespace stm32::opcodes
 {
-void cmd_lsl(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+
+void cmd_mov(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     if (!registers.conditionPassed())
     {
         return;
     }
 
-    const auto d = registers.reg(opCode);
-    const auto m = registers.reg(opCode >> 3u);
-    const auto shift = math::decodeImmediateShift(0b00u, opCode >> 6u).second;
-}
+    const auto& imm8 = opCode & 0b11111111u;
+    auto& Rd = registers.reg(opCode >> 8u);
 
-void cmd_lsr(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
-{
-}
+    auto& APSR = registers.APSR();
 
-void cmd_asr(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
-{
-}
+    const auto imm32 = static_cast<uint32_t>(imm8);
 
-void cmd_add(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
-{
-}
-
-void cmd_sub(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
-{
-}
-
-void cmd_mov(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
-{
+    Rd = imm32;
+    if (registers.isInItBlock())
+    {
+        APSR.N = imm32 & math::LEFT_BIT<uint32_t>;
+        APSR.Z = imm32 == 0;
+    }
 }
 
 void cmd_cmp(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
+    if (!registers.conditionPassed())
+    {
+        return;
+    }
+
+    const auto& imm8 = opCode & 0b11111111u;
+    const auto& Rn = registers.reg(opCode >> 8u);
+
+    auto& APSR = registers.APSR();
+
+    const auto imm32 = static_cast<uint32_t>(imm8);
+
+    const auto [result, carry, overflow] = math::addWithCarry(Rn, ~imm32, true);
+
+    APSR.N = imm32 & math::LEFT_BIT<uint32_t>;
+    APSR.Z = imm32 == 0;
+    APSR.C = carry;
+    APSR.V = overflow;
 }
 
-}  // namespace stm32::opcodes::t1
+}  // namespace stm32::opcodes

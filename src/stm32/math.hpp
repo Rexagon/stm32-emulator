@@ -6,17 +6,33 @@
 #include <tuple>
 #include <utility>
 
-namespace stm32::math
-{
+namespace stm32::math {
 template <typename T, typename R = T>
 constexpr R MAX_SHIFT = static_cast<R>(sizeof(T) * 8u - 1u);
 
 template <typename T, typename R = T>
 constexpr R LEFT_BIT = static_cast<R>(T(0b1u) << MAX_SHIFT<T>);
+
 template <typename T, typename R = T>
 constexpr R RIGHT_BIT = T(0b1u);
+
 template <typename T, typename R = T>
 constexpr R ALL_BITS = static_cast<R>(~T(0b0u));
+
+template <uint8_t N, typename T>
+constexpr T BITS = (T(0b1u) << N) - T(0b1u);
+
+template <uint8_t Offset, uint8_t N, typename T, typename R = T>
+constexpr auto maskedShift(const T& value) -> R
+{
+    return static_cast<T>(value >> Offset) & BITS<N, T>;
+}
+
+template <typename T>
+constexpr auto isNegative(const T& value) -> bool
+{
+    return value & LEFT_BIT<T>;
+}
 
 template <typename T>
 inline auto lsl_c(T x, int8_t shift) -> std::pair<T, bool>
@@ -53,12 +69,10 @@ inline auto asr_c(T x, int8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
     const auto carry = x & RIGHT_BIT<T>;
-    if (x & LEFT_BIT<T>)
-    {
+    if (x & LEFT_BIT<T>) {
         return {x >> shift | ~(ALL_BITS<T> >> shift), carry};
     }
-    else
-    {
+    else {
         return {x >> shift, carry};
     }
 }
@@ -67,12 +81,10 @@ template <typename T>
 inline auto asr(T x, int8_t shift) -> T
 {
     assert(shift >= 0);
-    if (x & LEFT_BIT<T>)
-    {
+    if (x & LEFT_BIT<T>) {
         return x >> shift | ~(ALL_BITS<T> >> shift);
     }
-    else
-    {
+    else {
         return x >> shift;
     }
 }
@@ -89,8 +101,7 @@ inline auto ror_c(T x, int8_t shift) -> std::pair<T, bool>
 template <typename T>
 inline auto ror(T x, int8_t shift) -> T
 {
-    if (shift == 0)
-    {
+    if (shift == 0) {
         return x;
     }
 
@@ -111,8 +122,7 @@ inline auto rrx(T x, bool carryIn) -> T
     return (carryIn << MAX_SHIFT<T>) | (x >> 1u);
 }
 
-enum class ShiftType
-{
+enum class ShiftType {
     LSL,
     LSR,
     ASR,
@@ -122,29 +132,25 @@ enum class ShiftType
 
 inline auto decodeImmediateShift(uint8_t bits, uint16_t immediate) -> std::pair<ShiftType, uint8_t>
 {
-    switch (bits)
-    {
+    switch (bits) {
         case 0b00u:
             return {ShiftType::LSL, immediate};
         case 0b01u:
-            switch (immediate)
-            {
+            switch (immediate) {
                 case 0b00000u:
                     return {ShiftType::LSR, 0b11111u};
                 default:
                     return {ShiftType::LSR, immediate};
             }
         case 0b10u:
-            switch (immediate)
-            {
+            switch (immediate) {
                 case 0b00000u:
                     return {ShiftType::ASR, 0b11111u};
                 default:
                     return {ShiftType::ASR, immediate};
             }
         case 0b11u:
-            switch (immediate)
-            {
+            switch (immediate) {
                 case 0b00000u:
                     return {ShiftType::RRX, 0b1u};
                 default:
@@ -161,13 +167,11 @@ inline auto shiftCarry(T value, ShiftType shiftType, int8_t shift, bool carryIn)
 {
     assert(shiftType != ShiftType::RRX || shift == 1u);
 
-    if (shift == 0)
-    {
+    if (shift == 0) {
         return {value, carryIn};
     }
 
-    switch (shiftType)
-    {
+    switch (shiftType) {
         case ShiftType::LSL:
             return lsl_c(value, shift);
         case ShiftType::LSR:
@@ -178,6 +182,8 @@ inline auto shiftCarry(T value, ShiftType shiftType, int8_t shift, bool carryIn)
             return ror_c(value, shift);
         case ShiftType::RRX:
             return rrx_c(value, carryIn);
+        default:
+            return {};
     }
 }
 

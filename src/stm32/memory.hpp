@@ -3,26 +3,23 @@
 #include <cstdint>
 #include <vector>
 
-namespace stm32
-{
-class MemoryRegion
-{
+namespace stm32 {
+class MemoryRegion {
 public:
     explicit MemoryRegion(uint32_t regionStart, uint32_t regionEnd);
 
     virtual void write(uint32_t address, uint8_t data) = 0;
     virtual auto read(uint32_t address) -> uint8_t = 0;
 
-    inline auto regionStart() const -> uint32_t;
-    inline auto regionEnd() const -> uint32_t;
+    inline auto regionStart() const -> uint32_t { return m_regionStart; }
+    inline auto regionEnd() const -> uint32_t { return m_regionEnd; }
 
 private:
     uint32_t m_regionStart;
     uint32_t m_regionEnd;
 };
 
-class Memory
-{
+class Memory {
 public:
     /**
      * @brief Memory regions ranges
@@ -67,8 +64,7 @@ public:
      * - Implementation-specific areas of the PPB memory map
      *
      */
-    enum AddressSpace : uint32_t
-    {
+    enum AddressSpace : uint32_t {
         CodeStart = 0x00000000u,
         CodeEnd = 0x20000000u,
 
@@ -122,8 +118,7 @@ public:
         SystemEnd = 0xFFFFFFFF
     };
 
-    struct Config
-    {
+    struct Config {
         uint32_t flashMemoryStart;
         uint32_t flashMemoryEnd;
 
@@ -144,7 +139,7 @@ public:
     void write(uint32_t address, uint8_t data);
     auto read(uint32_t address) const -> uint8_t;
 
-    auto config() const -> const Config&;
+    inline auto config() const -> const Config& { return m_config; }
 
 private:
     auto findRegion(uint32_t address) const -> MemoryRegion*;

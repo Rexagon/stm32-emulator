@@ -2,13 +2,11 @@
 
 #include <cstdint>
 
-namespace stm32
-{
+namespace stm32 {
 // The special-purpose program status registers, xPSR
 //
 
-struct __attribute__((__packed__)) ApplicationProgramStatusRegister
-{
+struct __attribute__((__packed__)) ApplicationProgramStatusRegister {
     uint32_t : 27;  // bits[26:0]
                     // Reserved
 
@@ -40,8 +38,7 @@ struct __attribute__((__packed__)) ApplicationProgramStatusRegister
                  // it is positive or zero.
 };
 
-struct __attribute__((__packed__)) InterruptProgramStatusRegister
-{
+struct __attribute__((__packed__)) InterruptProgramStatusRegister {
     uint16_t exceptionNumber : 9;  // bits[8:0]
                                    // When the processor is executing an exception handler, holds the exception number
                                    // of the exception being processed. Otherwise, the IPSR value is zero.
@@ -50,8 +47,7 @@ struct __attribute__((__packed__)) InterruptProgramStatusRegister
                     // Reserved
 };
 
-struct __attribute__((__packed__)) ExecutionProgramStatusRegister
-{
+struct __attribute__((__packed__)) ExecutionProgramStatusRegister {
     uint32_t : 24;  // bits[23:0]
                     // Reserved
 
@@ -66,8 +62,7 @@ struct __attribute__((__packed__)) ExecutionProgramStatusRegister
 // The special-purpose mask registers
 //
 
-struct __attribute__((__packed__)) ExceptionMaskRegister
-{
+struct __attribute__((__packed__)) ExceptionMaskRegister {
     bool PM : 1;  // bit[0]
                   // Setting PRIMASK to 1 raises the execution priority to 0.
 
@@ -75,8 +70,7 @@ struct __attribute__((__packed__)) ExceptionMaskRegister
                     // Reserved
 };
 
-struct __attribute__((__packed__)) BasePriorityMaskRegister
-{
+struct __attribute__((__packed__)) BasePriorityMaskRegister {
     uint8_t level : 8;  // bit[7:0]
                         // Changes the priority level required for exception preemption. It has an effect only when
                         // it has a lower value than the unmasked priority level of the currently executing software.
@@ -85,8 +79,7 @@ struct __attribute__((__packed__)) BasePriorityMaskRegister
                     // Reserved
 };
 
-struct __attribute__((__packed__)) FaultMaskRegister
-{
+struct __attribute__((__packed__)) FaultMaskRegister {
     uint8_t FM : 1;  // bit[0]
                      // Setting FM to 1 raises the execution priority to -1, the priority of HardFault. Only
                      // privileged software executing at a priority below -1 can set FM to 1. This means
@@ -99,8 +92,7 @@ struct __attribute__((__packed__)) FaultMaskRegister
 
 // The special-purpose CONTROL 2-bit register
 //
-struct __attribute__((__packed__)) ControlRegister
-{
+struct __attribute__((__packed__)) ControlRegister {
     bool nPRIV : 1;  // bit[0]
                      // Defines the execution privilege in Thread mode
                      // false - Thread mode has privileged access.
@@ -115,8 +107,7 @@ struct __attribute__((__packed__)) ControlRegister
 
 // Instruction encoding
 // TODO: move into utils
-enum class InstructionEncoding
-{
+enum class InstructionEncoding {
     T1,
     T2,
     T3,
@@ -125,8 +116,7 @@ enum class InstructionEncoding
 // Register set
 //
 
-enum RegisterType : uint8_t
-{
+enum RegisterType : uint8_t {
     R0 = 0u,
     R1 = 1u,
     R2 = 2u,
@@ -145,10 +135,8 @@ enum RegisterType : uint8_t
     PC = 15u,
 };
 
-class CpuRegisterSet
-{
-    enum StackPointerType
-    {
+class CpuRegisterSet {
+    enum StackPointerType {
         Main = 0,
         Process = 1,
 
@@ -158,25 +146,26 @@ class CpuRegisterSet
 public:
     void reset();
 
-    inline auto reg(uint16_t reg) -> uint32_t&;
+    auto reg(uint16_t reg) -> uint32_t&;
 
-    inline auto xPSR() -> uint32_t&;
-    inline auto APSR() -> ApplicationProgramStatusRegister&;
-    inline auto IPSR() -> InterruptProgramStatusRegister&;
-    inline auto EPSR() -> ExecutionProgramStatusRegister&;
+    inline auto xPSR() -> uint32_t& { return m_programStatusRegister; }
+    inline auto APSR() -> ApplicationProgramStatusRegister& { return m_applicationProgramStatusRegister; }
+    inline auto IPSR() -> InterruptProgramStatusRegister& { return m_interruptProgramStatusRegister; }
+    inline auto EPSR() -> ExecutionProgramStatusRegister& { return m_executionProgramStatusRegister; }
 
-    inline auto PRIMASK() -> ExceptionMaskRegister&;
-    inline auto BASEPRI() -> BasePriorityMaskRegister&;
-    inline auto FAULTMASK() -> FaultMaskRegister&;
+    inline auto PRIMASK() -> ExceptionMaskRegister& { return m_exceptionMaskRegister; }
+    inline auto BASEPRI() -> BasePriorityMaskRegister& { return m_basePriorityMaskRegister; }
+    inline auto FAULTMASK() -> FaultMaskRegister& { return m_faultMaskRegister; }
 
-    inline auto CONTROL() -> ControlRegister&;
+    inline auto CONTROL() -> ControlRegister& { return m_controlRegister; }
 
-    inline auto ITSTATE() -> uint8_t&;
-    inline auto currentCondition() const -> uint8_t;
-    inline auto conditionPassed() const -> bool;
-    inline auto isInItBlock() const -> bool;
-    inline auto isLastInItBlock() const -> bool;
-    inline void advanceCondition();
+    inline auto ITSTATE() -> uint8_t& { return m_ifThenState; }
+
+    auto currentCondition() const -> uint8_t;
+    auto conditionPassed() const -> bool;
+    auto isInItBlock() const -> bool;
+    auto isLastInItBlock() const -> bool;
+    void advanceCondition();
 
 private:
     uint32_t m_generalPurposeRegisters[12]{};

@@ -13,14 +13,18 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 set(${SUBPROJ_NAME}_HEADERS
         "cpu.hpp"
         "cpu_register_set.hpp"
+        "math.hpp"
         "memory.hpp"
+        "opcodes.hpp"
         "stm32.hpp"
-        "system_control_registers.hpp")
+        "system_control_registers.hpp"
+        "utils.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
         "cpu_register_set.cpp"
         "memory.cpp"
+        "opcodes.cpp"
         "stm32.cpp"
         "system_control_registers.cpp")
 
@@ -65,7 +69,7 @@ set(
 add_library(
         ${SUBPROJ_NAME}
         ${${SUBPROJ_NAME}_TARGET_TYPE}
-        ${${SUBPROJ_NAME}_ALL_SRCS} opcodes.cpp opcodes.hpp math.hpp)
+        ${${SUBPROJ_NAME}_ALL_SRCS})
 
 # Enable C++ standard
 set_target_properties(

@@ -4,38 +4,7 @@
 
 #include <stm32/memory.hpp>
 
-namespace details
-{
-using namespace stm32;
-
-auto createMemory() -> Memory
-{
-    return Memory{Memory::Config{
-        .flashMemoryStart = 0x08000000u,
-        .flashMemoryEnd = 0x0801FFFFu,
-
-        .systemMemoryStart = 0x1FFFF000u,
-        .systemMemoryEnd = 0x1FFFF800u,
-
-        .optionBytesStart = 0x1FFFF800u,
-        .optionBytesEnd = 0x1FFFF80Fu,
-
-        .sramStart = 0x20000000u,
-        .sramEnd = 0x20005000u,
-    }};
-}
-
-auto createBitBandAddress(uint32_t address, uint8_t bitNumber, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart)
-    -> uint32_t
-{
-    const auto byteOffset = address - bitBandRegionStart;
-
-    const auto bitWordOffset = static_cast<uint32_t>(byteOffset << 5u) + static_cast<uint32_t>(bitNumber << 2u);
-
-    return bitWordOffset + bitBandAliasStart;
-}
-
-}  // namespace details
+#include "utils.hpp"
 
 TEST(memory, memory_consistency)
 {
@@ -48,8 +17,7 @@ TEST(memory, memory_consistency)
         {0x20000001u, 0x57u},  // SRAM consistency
     };
 
-    for (const auto& [address, data] : testData)
-    {
+    for (const auto& [address, data] : testData) {
         memory.write(address, data);
         ASSERT_EQ(memory.read(address), data);
     }
@@ -68,8 +36,7 @@ TEST(memory, reserved_addresses)
         {0x20005000u, 0xFFu},  // sram end
     };
 
-    for (const auto& [address, data] : testData)
-    {
+    for (const auto& [address, data] : testData) {
         memory.write(address, data);
         ASSERT_EQ(memory.read(address), 0);
     }
@@ -87,14 +54,12 @@ TEST(memory, bit_band_region_test)
         {0x20000101u, 0xFFu},  //
     };
 
-    for (const auto& [address, data] : testData)
-    {
+    for (const auto& [address, data] : testData) {
         memory.write(address, data);
 
-        for (uint8_t i = 0; i < 8u; ++i)
-        {
-            const auto bitValue = memory.read(details::createBitBandAddress(
-                address, i, Memory::AddressSpace::SramBitBandAliasStart, Memory::AddressSpace::SramBitBandRegionStart));
+        for (uint8_t i = 0; i < 8u; ++i) {
+            const auto bitValue = memory.read(details::createBitBandAddress(address, i, Memory::AddressSpace::SramBitBandAliasStart,
+                                                                            Memory::AddressSpace::SramBitBandRegionStart));
 
             ASSERT_EQ(bitValue, static_cast<uint32_t>(data >> i) & 0x1u);
         }
@@ -137,10 +102,8 @@ TEST(memory, bit_band_alias_test)
         },
     };
 
-    for (const auto& [targetData, bits] : testData)
-    {
-        for (const auto& [address, data] : bits)
-        {
+    for (const auto& [targetData, bits] : testData) {
+        for (const auto& [address, data] : bits) {
             memory.write(address, data);
         }
 

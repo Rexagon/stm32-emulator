@@ -6,16 +6,14 @@
 #undef UNALIGNED
 #endif
 
-namespace stm32
-{
+namespace stm32 {
 /**
  * Specifies the ID number of the processor core, the version number of the processor core and the implementation
  * details of the processor core.
  *
  * @note This register is available in all processor configurations.
  */
-struct __attribute__((__packed__)) CpuIdBaseRegister
-{
+struct __attribute__((__packed__)) CpuIdBaseRegister {
     uint8_t REVISION : 4;  // bits[3:0]
                            // Indicates patch release: 0x1 = Patch 1.
 
@@ -35,8 +33,7 @@ struct __attribute__((__packed__)) CpuIdBaseRegister
 /**
  * Provides software control of the NMI, PendSV, and SysTick exceptions, and provides interrupt status information.
  */
-struct __attribute__((__packed__)) InterruptControlAndStateRegister
-{
+struct __attribute__((__packed__)) InterruptControlAndStateRegister {
     uint16_t VECTACTIVE : 9;  // bits[8:0], read only for memory
                               // The exception number of the current executing exception. A value of 0 indicates that
                               // the processor is in Thread mode.
@@ -105,8 +102,7 @@ struct __attribute__((__packed__)) InterruptControlAndStateRegister
  * @note Software can write all 1s to the TBLOFF field and then read the register to find the maximum supported offset
  * value.
  */
-struct __attribute__((__packed__)) VectorTableOffsetRegister
-{
+struct __attribute__((__packed__)) VectorTableOffsetRegister {
     uint8_t : 7;  // bits[6:0]
                   // Reserved
 
@@ -117,8 +113,7 @@ struct __attribute__((__packed__)) VectorTableOffsetRegister
 /**
  * Sets or returns interrupt control data.
  */
-struct __attribute__((__packed__)) ApplicationInterruptAndResetControlRegister
-{
+struct __attribute__((__packed__)) ApplicationInterruptAndResetControlRegister {
     bool VECTRESET : 1;  // bit[0], write only for memory
                          // Writing 1 to this bit causes a local system reset
                          // The effect of writing a 1 to this bit if the processor is not halted in Debug state is
@@ -163,8 +158,7 @@ struct __attribute__((__packed__)) ApplicationInterruptAndResetControlRegister
 /**
  * Sets or returns system control data
  */
-struct __attribute__((__packed__)) SystemControlRegister
-{
+struct __attribute__((__packed__)) SystemControlRegister {
     uint8_t : 1;  // bit[0]
                   // Reserved
 
@@ -199,8 +193,7 @@ struct __attribute__((__packed__)) SystemControlRegister
 /**
  * Sets or returns configuration and control data, and provides control over caching and branch prediction.
  */
-struct __attribute__((__packed__)) ConfigurationAndControlRegister
-{
+struct __attribute__((__packed__)) ConfigurationAndControlRegister {
     bool NONBASETHRDENA : 1;  // bit[0]
                               // Controls whether the processor can enter Thread mode with exceptions active:
                               // false - any attempt to enter Thread mode with exceptions active faults.
@@ -287,8 +280,7 @@ struct __attribute__((__packed__)) ConfigurationAndControlRegister
 /**
  * Sets or returns priority for system handlers
  */
-struct __attribute__((__packed__)) SystemHandlerPriorityRegister
-{
+struct __attribute__((__packed__)) SystemHandlerPriorityRegister {
     uint8_t PRI[4];
 };
 
@@ -303,8 +295,7 @@ struct __attribute__((__packed__)) SystemHandlerPriorityRegister
  * return consistency checks. If software removes the active state, causing a change in current execution priority, this
  * can defeat the architectural behavior that prevents an exception from preempting its own handler
  */
-struct __attribute__((__packed__)) SystemHandlerControlAndStateRegister
-{
+struct __attribute__((__packed__)) SystemHandlerControlAndStateRegister {
     bool MEMFAULTACT : 1;  // bit[0]
                            // MemManage is active if true
 
@@ -363,8 +354,7 @@ struct __attribute__((__packed__)) SystemHandlerControlAndStateRegister
 /**
  * Shows the status of MPU faults.
  */
-struct __attribute__((__packed__)) MemManageStatusRegister
-{
+struct __attribute__((__packed__)) MemManageStatusRegister {
     bool IACCVIOL : 1;  // bit[0]
                         // If true: MPU or Execute Never (XN) default memory map access violation on an
                         // instruction fetch has occurred. The fault is signalled only if the instruction is
@@ -396,8 +386,7 @@ struct __attribute__((__packed__)) MemManageStatusRegister
 /**
  * Shows the status of bus errors resulting from instruction prefetches and data accesses.
  */
-struct __attribute__((__packed__)) BusFaultStatusRegister
-{
+struct __attribute__((__packed__)) BusFaultStatusRegister {
     bool IBUSERR : 1;  // bit[0]
                        // If true: A bus fault on an instruction prefetch has occurred. The fault is signaled only if
                        // the instruction is issued.
@@ -428,8 +417,7 @@ struct __attribute__((__packed__)) BusFaultStatusRegister
 /**
  * Contains the status for some instruction execution faults, and for data access faults.
  */
-struct __attribute__((__packed__)) UsageFaultStatusRegister
-{
+struct __attribute__((__packed__)) UsageFaultStatusRegister {
     bool UNDEFINSTR : 1;  // bit[0]
                           // If true: The processor has attempted to execute an undefined instruction. This might be  an
                           // undefined instruction associated with an enabled coprocessor
@@ -466,8 +454,7 @@ struct __attribute__((__packed__)) UsageFaultStatusRegister
 /**
  * Contains the three Configurable Fault Status Registers.
  */
-struct __attribute__((__packed__)) ConfigurableFaultStatusRegister
-{
+struct __attribute__((__packed__)) ConfigurableFaultStatusRegister {
     MemManageStatusRegister memManage;  // bits[7:0]
                                         // Provides information on MemManage exceptions
 
@@ -481,8 +468,7 @@ struct __attribute__((__packed__)) ConfigurableFaultStatusRegister
 /**
  * Shows the cause of any HardFault
  */
-struct __attribute__((__packed__)) HardFaultStatusRegister
-{
+struct __attribute__((__packed__)) HardFaultStatusRegister {
     uint8_t : 1;  // bit[0]
                   // Reserved
 
@@ -514,8 +500,7 @@ struct __attribute__((__packed__)) HardFaultStatusRegister
  *
  * @note Valid only when MMFSR.MMARVALID is set
  */
-struct __attribute__((__packed__)) MemManageFaultAddressRegister
-{
+struct __attribute__((__packed__)) MemManageFaultAddressRegister {
     uint32_t ADDRESS;  // bits[31:0]
                        // Data address for an MPU fault. This is the location addressed by an attempted load or store
                        // access that was faulted. The MemManage Status Register shows the cause of the fault, and
@@ -529,8 +514,7 @@ struct __attribute__((__packed__)) MemManageFaultAddressRegister
  *
  * @note Valid only when BFSR.BFARVALID is set, otherwise reads as UNKNOWN
  */
-struct __attribute__((__packed__)) BusFaultAddressRegister
-{
+struct __attribute__((__packed__)) BusFaultAddressRegister {
     uint32_t ADDRESS;  // bits[31:0]
                        // Data address for a precise bus fault. This is the location addressed by an attempted data
                        // access that was faulted. The BFSR shows the reason for the fault and whether BFAR.ADDRESS is
@@ -553,8 +537,7 @@ struct __attribute__((__packed__)) BusFaultAddressRegister
  *
  * @note This register is available in all processor configurations.
  */
-struct __attribute__((__packed__)) AuxiliaryFaultStatusRegister
-{
+struct __attribute__((__packed__)) AuxiliaryFaultStatusRegister {
     uint32_t AUXFAULT;  // bits[31:0]
                         // Latched version of the AUXFAULT inputs.
 };
@@ -562,10 +545,8 @@ struct __attribute__((__packed__)) AuxiliaryFaultStatusRegister
 /**
  * Specifies the access privileges for coprocessors.
  */
-struct __attribute__((__packed__)) CoprocessorAccessControlRegister
-{
-    enum Privileges : uint8_t
-    {
+struct __attribute__((__packed__)) CoprocessorAccessControlRegister {
+    enum Privileges : uint8_t {
         AccessDenied = 0b00,          // Any attempted access generates a NOCP UsageFault
         PrivilegedAccessOnly = 0b01,  // An unprivileged access generates a NOCP UsageFault
         // Reserved = 0b10,
@@ -598,8 +579,7 @@ struct __attribute__((__packed__)) CoprocessorAccessControlRegister
 /**
  * Provides information about the interrupt controller
  */
-struct __attribute__((__packed__)) InterruptControllerTypeRegister
-{
+struct __attribute__((__packed__)) InterruptControllerTypeRegister {
     uint8_t INTLINESNUM : 4;  // bits[3:0]
                               // The total number of interrupt lines supported by an implementation, defined in groups
                               // of 32. That is, the total number of interrupt lines is up to (32*(INTLINESNUM+1)).
@@ -615,8 +595,7 @@ struct __attribute__((__packed__)) InterruptControllerTypeRegister
  *
  * @note This register is available in all processor configurations
  */
-struct __attribute__((__packed__)) AuxiliaryControlRegister
-{
+struct __attribute__((__packed__)) AuxiliaryControlRegister {
     bool DISMCYCINT : 1;  // bit[0]
                           // Disables interruption of multi-cycle instructions. This increases the interrupt latency of
                           // the processor because load/store and multiply/divide operations complete before interrupt
@@ -647,8 +626,7 @@ struct __attribute__((__packed__)) AuxiliaryControlRegister
 /**
  * Provides a mechanism for software to generate an interrupt.
  */
-struct __attribute__((__packed__)) SoftwareTriggeredInterruptRegister
-{
+struct __attribute__((__packed__)) SoftwareTriggeredInterruptRegister {
     uint16_t INTID : 9;  // bits[8:0]
                          // Indicates the interrupt to be triggered. The value written is (ExceptionNumber - 16)
                          // Writing to this register has the same effect as setting the NVIC ISPR bit corresponding to
@@ -663,8 +641,7 @@ struct __attribute__((__packed__)) SoftwareTriggeredInterruptRegister
  *
  * Controls the system timer and provides status data
  */
-struct __attribute__((__packed__)) SysTickControlAndStatusRegister
-{
+struct __attribute__((__packed__)) SysTickControlAndStatusRegister {
     bool ENABLE : 1;  // bit[0]
                       // Indicates the enabled status of the SysTick counter
                       // true - counter is operating
@@ -702,8 +679,7 @@ struct __attribute__((__packed__)) SysTickControlAndStatusRegister
  *
  * Holds the reload value of the SYST_CVR
  */
-struct __attribute__((__packed__)) SysTickReloadValueRegister
-{
+struct __attribute__((__packed__)) SysTickReloadValueRegister {
     uint32_t RELOAD : 24;  // bits[23:0]
                            // The value to load into the SYST_CVR when the counter reaches 0.
 
@@ -716,8 +692,7 @@ struct __attribute__((__packed__)) SysTickReloadValueRegister
  *
  * Reads or clears the current counter value
  */
-struct __attribute__((__packed__)) SysTickCurrentValueRegister
-{
+struct __attribute__((__packed__)) SysTickCurrentValueRegister {
     uint32_t CURRENT : 32;  // bits[31:0]
                             // Current counter value
                             // This is the value of the counter at the time it is sampled
@@ -728,8 +703,7 @@ struct __attribute__((__packed__)) SysTickCurrentValueRegister
  *
  * Reads the calibration value and parameters for SysTick
  */
-struct __attribute__((__packed__)) SysTickCalibrationValueRegister
-{
+struct __attribute__((__packed__)) SysTickCalibrationValueRegister {
     uint32_t TENMS : 24;  // bits[23:0]
                           // Optionally, holds a reload value to be used for 10ms (100Hz) timing, subject to system
                           // clock skew errors. If this field is zero, the calibration value is not known.
@@ -748,8 +722,7 @@ struct __attribute__((__packed__)) SysTickCalibrationValueRegister
                      // false - the reference clock is implemented
 };
 
-class SystemControlRegistersSet
-{
+class SystemControlRegistersSet {
 public:
 };
 

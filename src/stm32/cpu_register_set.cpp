@@ -5,8 +5,7 @@
 
 #include <cassert>
 
-namespace stm32
-{
+namespace stm32 {
 void CpuRegisterSet::reset()
 {
     m_interruptProgramStatusRegister.exceptionNumber = 0x0u;
@@ -23,8 +22,7 @@ void CpuRegisterSet::reset()
 
 auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
 {
-    switch (reg)
-    {
+    switch (reg) {
         case RegisterType::R0:
         case RegisterType::R1:
         case RegisterType::R2:
@@ -41,13 +39,11 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
             return m_generalPurposeRegisters[static_cast<int>(reg)];
 
         case RegisterType::SP:
-            if (m_controlRegister.SPSEL)
-            {
+            if (m_controlRegister.SPSEL) {
                 // TODO: check if current mode is Thread and return UNPREDICTABLE otherwise
                 return m_stackPointers[StackPointerType::Process];
             }
-            else
-            {
+            else {
                 return m_stackPointers[StackPointerType::Main];
             }
 
@@ -63,69 +59,12 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
     }
 }
 
-
-auto CpuRegisterSet::xPSR() -> uint32_t&
-{
-    return m_programStatusRegister;
-}
-
-
-auto CpuRegisterSet::APSR() -> ApplicationProgramStatusRegister&
-{
-    return m_applicationProgramStatusRegister;
-}
-
-
-auto CpuRegisterSet::IPSR() -> InterruptProgramStatusRegister&
-{
-    return m_interruptProgramStatusRegister;
-}
-
-
-auto CpuRegisterSet::EPSR() -> ExecutionProgramStatusRegister&
-{
-    return m_executionProgramStatusRegister;
-}
-
-
-auto CpuRegisterSet::PRIMASK() -> ExceptionMaskRegister&
-{
-    return m_exceptionMaskRegister;
-}
-
-
-auto CpuRegisterSet::BASEPRI() -> BasePriorityMaskRegister&
-{
-    return m_basePriorityMaskRegister;
-}
-
-
-auto CpuRegisterSet::FAULTMASK() -> FaultMaskRegister&
-{
-    return m_faultMaskRegister;
-}
-
-
-auto CpuRegisterSet::CONTROL() -> ControlRegister&
-{
-    return m_controlRegister;
-}
-
-
-auto CpuRegisterSet::ITSTATE() -> uint8_t&
-{
-    return m_ifThenState;
-}
-
-
 auto CpuRegisterSet::currentCondition() const -> uint8_t
 {
-    if (m_ifThenState & 0x0fu)
-    {
+    if (m_ifThenState & 0x0fu) {
         return m_ifThenState >> 4u;
     }
-    else if (m_ifThenState == 0x00u)
-    {
+    else if (m_ifThenState == 0x00u) {
         return 0b1110u;
     }
     assert("UNPREDICTABLE");
@@ -136,8 +75,7 @@ auto CpuRegisterSet::conditionPassed() const -> bool
 {
     const auto condition = currentCondition() & 0x0fu;
     bool result;
-    switch (condition >> 1u)
-    {
+    switch (condition >> 1u) {
         case 0b000u:
             result = m_applicationProgramStatusRegister.Z;
             break;
@@ -157,8 +95,7 @@ auto CpuRegisterSet::conditionPassed() const -> bool
             result = m_applicationProgramStatusRegister.N == m_applicationProgramStatusRegister.V;
             break;
         case 0b110u:
-            result = m_applicationProgramStatusRegister.N == m_applicationProgramStatusRegister.V &&
-                     !m_applicationProgramStatusRegister.Z;
+            result = m_applicationProgramStatusRegister.N == m_applicationProgramStatusRegister.V && !m_applicationProgramStatusRegister.Z;
             break;
         case 0b111u:
             result = true;
@@ -168,8 +105,7 @@ auto CpuRegisterSet::conditionPassed() const -> bool
             result = false;
     }
 
-    if ((condition & 0b1u) && (condition != 0x0fu))
-    {
+    if ((condition & 0b1u) && (condition != 0x0fu)) {
         result = !result;
     }
 
@@ -191,12 +127,10 @@ auto CpuRegisterSet::isLastInItBlock() const -> bool
 
 void CpuRegisterSet::advanceCondition()
 {
-    if (m_ifThenState & 0b111u)
-    {
+    if (m_ifThenState & 0b111u) {
         m_ifThenState |= (static_cast<uint8_t>(m_ifThenState << 1u) | 0b1u) & 0b11111u;
     }
-    else
-    {
+    else {
         m_ifThenState = 0x00u;
     }
 }

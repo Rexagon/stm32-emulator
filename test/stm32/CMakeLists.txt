@@ -9,7 +9,8 @@ set(${SUBPROJ_NAME}_CXX_STANDARD_REQUIRED YES)
 set(${SUBPROJ_NAME}_HEADERS
         "test_cpu.hpp"
         "test_memory.hpp"
-        "test_system_control_registers.hpp")
+        "test_system_control_registers.hpp"
+        "utils.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "test.cpp")
@@ -29,7 +30,7 @@ set(
 
 add_executable(
         ${SUBPROJ_NAME}
-        ${${SUBPROJ_NAME}_ALL_SRCS})
+        ${${SUBPROJ_NAME}_ALL_SRCS} utils.hpp)
 
 # Enable C++17 on this project
 set_target_properties(

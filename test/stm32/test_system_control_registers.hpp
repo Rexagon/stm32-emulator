@@ -6,14 +6,8 @@
 #include <stm32/system_control_registers.hpp>
 #include <typeinfo>
 
-namespace details
-{
-enum RegisterSize
-{
-    Byte = 1u,
-    HalfWord = 2u,
-    Word = 4u
-};
+namespace details {
+enum RegisterSize { Byte = 1u, HalfWord = 2u, Word = 4u };
 }  // namespace details
 
 #define CHECK_REGISTER(T, size)                        \
