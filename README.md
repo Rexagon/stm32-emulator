@@ -1,4 +1,12 @@
-# STM32F103 emulator
+<p align="center">
+    <h3 align="center">STM32F103 emulator</h3>
+    <p align="center">Bachelor thesis</p>
+    <p align="center">
+        <a href="/LICENSE">
+            <img alt="GitHub" src="https://img.shields.io/github/license/Rexagon/stm32-emulator?style=for-the-badge" />
+        </a>
+    </p>
+</p>
 
 ### Used datasheets:
 * [Instruction set](https://static.docs.arm.com/ddi0403/eb/DDI0403E_B_armv7m_arm.pdf)
