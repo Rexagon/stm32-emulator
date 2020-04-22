@@ -29,8 +29,8 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
         case 0b000'00u ... 0b000'11u:
             switch (math::getPart<6, 5>(opCode)) {
                 case 0b00000u:
-                    // TODO: A7-312
-                    return;
+                    // see: A7-312
+                    return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
                 default:
                     // see: A7-298
                     return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers, memory);
@@ -54,8 +54,8 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             // see: A7-448
             return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers, memory);
         case 0b100'00u ... 0b100'11u:
-            // TODO: A7-312
-            return;
+            // see: A7-312
+            return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
         case 0b101'00u ... 0b101'11u:
             // TODO: A7-229
             return;

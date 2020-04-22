@@ -252,7 +252,57 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
     }
 }
 
-void cmd_mov(uint16_t opCode, CpuRegisterSet& registers, Memory& memory);
+template <Encoding encoding, typename T>
+void cmdMovImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, setFlags;
+    bool imm32;
+    bool carry;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, Rd] = math::split<T, Part<0, 8>, Part<8, 3>>(opCode);
+
+        d = Rd;
+        setFlags = !registers.isInItBlock();
+        imm32 = static_cast<uint32_t>(imm8);
+        carry = APSR.C;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [imm8, Rd, imm3, S, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<20, 1>, Part<26, 1>>(opCode);
+
+        d = Rd;
+        setFlags = S;
+        std::tie(imm32, carry) =
+            math::thumbExpandImmediateWithCarry(math::combine<uint16_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C);
+
+        assert(d < 13);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto [imm8, Rd, imm3, imm4, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<16, 4>, Part<26, 1>>(opCode);
+
+        d = Rd;
+        setFlags = false;
+        imm32 = math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}, Part<13, 4>{imm4});
+        carry = APSR.C;
+    }
+
+    auto& Rd = registers.reg(d);
+
+    Rd = imm32;
+    if (setFlags) {
+        APSR.N = math::isNegative(imm32);
+        APSR.Z = imm32 == 0;
+        APSR.C = carry;
+    }
+}
+
 void cmd_cmp(uint16_t opCode, CpuRegisterSet& registers, Memory& memory);
 
 }  // namespace stm32::opcodes

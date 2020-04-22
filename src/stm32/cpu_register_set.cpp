@@ -56,8 +56,7 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
             return m_programCounter;
 
         default:
-            assert("UNPREDICTABLE");
-            break;
+            UNPREDICTABLE;
     }
 }
 
@@ -92,7 +91,7 @@ auto CpuRegisterSet::currentCondition() const -> uint8_t
     else if (m_ifThenState == 0x00u) {
         return 0b1110u;
     }
-    assert("UNPREDICTABLE");
+    UNPREDICTABLE;
 }
 
 auto CpuRegisterSet::conditionPassed() const -> bool

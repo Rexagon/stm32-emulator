@@ -24,7 +24,6 @@ set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
         "cpu_register_set.cpp"
         "memory.cpp"
-        "opcodes.cpp"
         "stm32.cpp"
         "system_control_registers.cpp")
 
