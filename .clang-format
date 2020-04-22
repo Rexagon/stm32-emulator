@@ -5,6 +5,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
 AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: Never
@@ -12,9 +13,9 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
-BinPackArguments: true
+BinPackArguments: false
+ExperimentalAutoDetectBinPacking: false
 BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Stroustrup
 BreakConstructorInitializersBeforeComma: true
 ColumnLimit: 140
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
@@ -33,3 +34,15 @@ SpaceBeforeParens: ControlStatements
 Standard: Latest
 TabWidth: 4
 UseTab: Never
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+BreakBeforeBraces: Custom

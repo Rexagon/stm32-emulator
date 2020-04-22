@@ -2,4 +2,4 @@
 
 #include <cassert>
 
-#define UNPREDICTED assert(false)
+#define UNPREDICTABLE assert(false)

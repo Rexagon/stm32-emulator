@@ -5,16 +5,18 @@
 
 #include <cassert>
 
-namespace {
-inline bool is32bitInstruction(uint8_t firstByte)
+namespace
 {
-    const auto maskedOpCode = firstByte & 0b11111'000u;
-    return maskedOpCode == 0b11101'000u || maskedOpCode == 0b11110'000u || maskedOpCode == 0b11111'000u;
+inline bool is32bitInstruction(uint8_t opCodeHw1High)
+{
+    const auto value = opCodeHw1High & 0b11111'000u;
+    return value == 0b11101'000u || value == 0b11110'000u || value == 0b11111'000u;
 }
 
 }  // namespace
 
-namespace stm32 {
+namespace stm32
+{
 void VirtualCpu::reset()
 {
     m_registers.reset();
@@ -23,7 +25,7 @@ void VirtualCpu::reset()
 inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     /// see A5.2.1
-    switch (math::maskedShift<9, 5>(opCode)) {
+    switch (math::getPart<9, 5>(opCode)) {
         case 0b000'00u ... 0b000'11u:
             switch ((opCode >> 6u) & 0b11111u) {
                 case 0b00000u:
@@ -40,17 +42,17 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             // see: A7-203
             return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, registers, memory);
         case 0b01100u:
-            // TODO: A7-191
-            return;
+            // see: A7-191
+            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers, memory);
         case 0b01101u:
-            // TODO: A7-450
-            return;
+            // see: A7-450
+            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers, memory);
         case 0b01110u:
             // see: A7-189
-            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, false>(opCode, registers, memory);
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers, memory);
         case 0b01111u:
-            // TODO: A7-448
-            return;
+            // see: A7-448
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers, memory);
         case 0b100'00u ... 0b100'11u:
             // TODO: A7-312
             return;
@@ -58,22 +60,20 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             // TODO: A7-229
             return;
         case 0b110'00u ... 0b110'11u:
-            // TODO: A7-189
-            return;
+            // see: A7-189
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ false>(opCode, registers, memory);
         case 0b111'00u ... 0b111'11u:
-            // TODO: A7-448
-            return;
+            // see: A7-448
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ true>(opCode, registers, memory);
         default:
-            break;
+            UNPREDICTABLE;
     }
-
-    assert(false);  // UNPREDICTABLE
 }
 
 inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     // see A5.2.2
-    switch ((opCode >> 6u) & 0b1111u) {
+    switch (math::getPart<6, 4>(opCode)) {
         case 0b0000u:
             // TODO: A7-201
             return;
@@ -123,16 +123,14 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
             // TODO: A7-238
             return;
         default:
-            break;
+            UNPREDICTABLE;
     }
-
-    assert("UNPREDICTABLE");
 }
 
 inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     // see A5.2.3
-    switch ((opCode >> 6u) & 0b1111u) {
+    switch (math::getPart<6, 4>(opCode)) {
         case 0b00'00u ... 0b00'11u:
             // TODO: A7-191
             return;
@@ -150,10 +148,8 @@ inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& regist
             // TODO: A7-217
             return;
         default:
-            break;
+            UNPREDICTABLE;
     }
-
-    assert("UNPREDICTABLE");
 }
 
 inline void handleLoadFromLiteralPool(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
@@ -164,9 +160,9 @@ inline void handleLoadFromLiteralPool(uint16_t opCode, CpuRegisterSet& registers
 inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     // see A5.2.4
-    switch (opCode >> 12u) {
+    switch (math::getPart<12, 4>(opCode)) {
         case 0b0101u:
-            switch ((opCode >> 9u) & 0b111u) {
+            switch (math::getPart<9, 3>(opCode)) {
                 case 0b000u:
                     // TODO: A7-428
                     return;
@@ -192,11 +188,10 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
                     // TODO: A7-294
                     return;
                 default:
-                    break;
+                    UNPREDICTABLE;
             }
-            break;
         case 0b0110u:
-            switch ((opCode >> 9u) & 0b111u) {
+            switch (math::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-426
                     return;
@@ -204,11 +199,10 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
                     // TODO: A7-252
                     return;
                 default:
-                    break;
+                    UNPREDICTABLE;
             }
-            break;
         case 0b0111u:
-            switch ((opCode >> 9u) & 0b111u) {
+            switch (math::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-430
                     return;
@@ -216,11 +210,10 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
                     // TODO: A7-258
                     return;
                 default:
-                    break;
+                    UNPREDICTABLE;
             }
-            break;
         case 0b1000u:
-            switch ((opCode >> 9u) & 0b111u) {
+            switch (math::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-442
                     return;
@@ -228,11 +221,10 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
                     // TODO: A7-274
                     return;
                 default:
-                    break;
+                    UNPREDICTABLE;
             }
-            break;
         case 0b1001u:
-            switch ((opCode >> 9u) & 0b111u) {
+            switch (math::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-426
                     return;
@@ -240,12 +232,11 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
                     // TODO: A7-252
                     return;
                 default:
-                    break;
+                    UNPREDICTABLE;
             }
-            break;
+        default:
+            UNPREDICTABLE;
     }
-
-    assert("UNPREDICTABLE");
 }
 
 inline void handleGeneratePcRelativeAddress(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
@@ -261,7 +252,7 @@ inline void handleGenerateSpRelativeAddress(uint16_t opCode, CpuRegisterSet& reg
 inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     // see A5.2.5
-    switch (static_cast<uint16_t>(opCode >> 5u) & 0b1111111u) {
+    switch (math::getPart<5, 7>(opCode)) {
         case 0b00000'00u ... 0b00000'11u:
             // TODO: A7-193
             return;
@@ -312,9 +303,9 @@ inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             return;
         case 0b1111'000u ... 0b1111'111u:
             // see A5-133
-            switch (opCode & 0b1111u) {
+            switch (math::getPart<0, 4>(opCode)) {
                 case 0b0000u:
-                    switch (static_cast<uint16_t>(opCode >> 4u) & 0b1111u) {
+                    switch (math::getPart<4, 4>(opCode)) {
                         case 0b0001u:
                             // TODO: A7-562
                             return;
@@ -328,19 +319,15 @@ inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
                             // TODO: A7-385
                             return;
                         default:
-                            break;
+                            return;  // ignore other
                     }
-                    break;
                 default:
                     // TODO: A7-242
                     return;
             }
-            return;
         default:
-            break;
+            UNPREDICTABLE;
     }
-
-    assert("UNPREDICTABLE");
 }
 
 inline void handleStoreMultipleRegisters(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
@@ -356,7 +343,7 @@ inline void handleLoadMultipleRegisters(uint16_t opCode, CpuRegisterSet& registe
 inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
 {
     // see A5.2.6
-    switch ((opCode >> 8u) & 0b1111u) {
+    switch (math::getPart<8, 4>(opCode)) {
         case 0b1110u:
             // TODO: A7-471
             return;
@@ -378,14 +365,24 @@ void VirtualCpu::step()
 {
     auto& PC = m_registers.reg(RegisterType::PC);
 
-    const auto opCodeHigh = m_memory.read(PC);
-    if (is32bitInstruction(opCodeHigh)) {
+    const auto opCodeHw1Low = m_memory.read(PC);
+    const auto opCodeHw1High = m_memory.read(PC + 1u);
+
+    if (is32bitInstruction(opCodeHw1High)) {
+        const auto opCodeHw2Low = m_memory.read(PC + 2);
+        const auto opCodeHw2High = m_memory.read(PC + 3);
+
+        const auto opCode = math::combine<uint32_t>(math::Part<0, 8>{opCodeHw1Low},
+                                                    math::Part<8, 8>{opCodeHw1High},
+                                                    math::Part<16, 8>{opCodeHw2Low},
+                                                    math::Part<24, 8>{opCodeHw2High});
+
         // TODO: handle 32 bit instructions
     }
     else {
-        const uint16_t opCode = static_cast<uint16_t>(static_cast<uint16_t>(opCodeHigh) << 8u) | m_registers.reg(RegisterType::PC);
+        const auto opCode = math::combine<uint16_t>(math::Part<0, 8>{opCodeHw1Low}, math::Part<8, 8>{opCodeHw1High});
 
-        switch (opCodeHigh >> 2u) {
+        switch (math::getPart<2, 6>(opCode)) {
             case 0b00'0000u ... 0b00'1111u:
                 handleMathInstruction(opCode, m_registers, m_memory);
                 break;
@@ -425,11 +422,9 @@ void VirtualCpu::step()
                 handleUnconditionalBranch(opCode, m_registers, m_memory);
                 break;
             default:
-                assert("UNPREDICTABLE");
-                break;
+                UNPREDICTABLE;
         }
     }
 }
-
 
 }  // namespace stm32
