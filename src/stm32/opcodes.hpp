@@ -151,7 +151,7 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
         n = Rn;
         setFlags = S;
         imm32 =
-            math::thumbExpandImmediateWithCarry(math::combine<uint16_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C).second;
+            math::thumbExpandImmediateWithCarry(math::combine<uint16_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C).first;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
         const auto [imm8, Rd, imm3, Rn, i] =
@@ -264,7 +264,7 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
     auto& APSR = registers.APSR();
 
     uint8_t d, setFlags;
-    bool imm32;
+    uint32_t imm32;
     bool carry;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, Rd] = math::split<T, Part<0, 8>, Part<8, 3>>(opCode);
@@ -303,6 +303,41 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
     }
 }
 
-void cmd_cmp(uint16_t opCode, CpuRegisterSet& registers, Memory& memory);
+template <Encoding encoding, typename T>
+void cmdCmpImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t n;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, Rn] = math::split<T, Part<0, 8>, Part<8, 3>>(opCode);
+
+        n = Rn;
+        imm32 = static_cast<uint32_t>(imm8);
+    }
+    if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [imm8, imm3, Rn, i] = math::split<T, Part<0, 8>, Part<12, 3>, Part<16, 4>, Part<26, 1>>(opCode);
+
+        n = Rn;
+        imm32 =
+            math::thumbExpandImmediateWithCarry(math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C).first;
+
+        assert(n != 15);
+    }
+
+    const auto [result, carry, overflow] = math::addWithCarry(registers.reg(n), ~imm32, true);
+
+    APSR.N = math::isNegative(result);
+    APSR.Z = result == 0;
+    APSR.C = carry;
+    APSR.V = overflow;
+}
 
 }  // namespace stm32::opcodes

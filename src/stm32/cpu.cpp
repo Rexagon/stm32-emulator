@@ -57,8 +57,8 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             // see: A7-312
             return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
         case 0b101'00u ... 0b101'11u:
-            // TODO: A7-229
-            return;
+            // see: A7-229
+            return opcodes::cmdCmpImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
         case 0b110'00u ... 0b110'11u:
             // see: A7-189
             return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ false>(opCode, registers, memory);
