@@ -210,8 +210,8 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
         setFlags = false;
         shifted = registers.reg(Rm);
 
-        assert(!(d == 15 && registers.isInItBlock() && !registers.isLastInItBlock()));
-        assert(!(d == 15 && Rm == 15));
+        assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
+        assert(d != 15 || Rm != 15);
     }
     else if constexpr (check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T> ||
                        check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -239,7 +239,7 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
                                                                                     // (maybe Clion is right)
 
     if (check<!isSub> && d == 15) {
-        // TODO: ALUWRitePC(result)
+        registers.aluWritePC(result);
     }
     else {
         Rd = result;

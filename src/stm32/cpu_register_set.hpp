@@ -2,7 +2,8 @@
 
 #include <cstdint>
 
-namespace stm32 {
+namespace stm32
+{
 // The special-purpose program status registers, xPSR
 //
 
@@ -105,13 +106,12 @@ struct __attribute__((__packed__)) ControlRegister {
                      //        In Handler mode, this value is reserved
 };
 
-// Instruction encoding
-// TODO: move into utils
-enum class InstructionEncoding {
-    T1,
-    T2,
-    T3,
+// The M-profile execution modes
+enum class ExecutionMode {
+    Thread,
+    Handler,
 };
+
 
 // Register set
 //
@@ -161,6 +161,14 @@ public:
 
     inline auto ITSTATE() -> uint8_t& { return m_ifThenState; }
 
+    inline auto currentMode() -> ExecutionMode& { return m_currentMode; }
+
+    void branchWritePC(uint32_t address);
+    void bxWritePC(uint32_t address);
+    void blxWritePC(uint32_t address);
+    inline void loadWritePC(uint32_t address) { bxWritePC(address); }
+    inline void aluWritePC(uint32_t address) { branchWritePC(address); }
+
     auto currentCondition() const -> uint8_t;
     auto conditionPassed() const -> bool;
     auto isInItBlock() const -> bool;
@@ -186,6 +194,8 @@ private:
     FaultMaskRegister m_faultMaskRegister;
 
     ControlRegister m_controlRegister;
+
+    ExecutionMode m_currentMode;
 
     uint8_t m_ifThenState;
 };

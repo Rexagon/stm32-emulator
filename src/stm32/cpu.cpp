@@ -27,7 +27,7 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
     /// see A5.2.1
     switch (math::getPart<9, 5>(opCode)) {
         case 0b000'00u ... 0b000'11u:
-            switch ((opCode >> 6u) & 0b11111u) {
+            switch (math::getPart<6, 5>(opCode)) {
                 case 0b00000u:
                     // TODO: A7-312
                     return;

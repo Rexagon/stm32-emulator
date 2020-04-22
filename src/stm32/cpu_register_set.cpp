@@ -5,7 +5,10 @@
 
 #include <cassert>
 
-namespace stm32 {
+#include "math.hpp"
+
+namespace stm32
+{
 void CpuRegisterSet::reset()
 {
     m_interruptProgramStatusRegister.exceptionNumber = 0x0u;
@@ -18,7 +21,6 @@ void CpuRegisterSet::reset()
     m_controlRegister.nPRIV = false;
     m_controlRegister.SPSEL = false;
 }
-
 
 auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
 {
@@ -59,6 +61,29 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
     }
 }
 
+void CpuRegisterSet::branchWritePC(uint32_t address)
+{
+    m_programCounter = address & ~uint32_t{0b1u};
+}
+
+void CpuRegisterSet::bxWritePC(uint32_t address)
+{
+    if (m_currentMode == ExecutionMode::Handler && math::getPart<28, 4>(address) == 0b1111u) {
+        // TODO: ExceptionReturn(address<27:0>); // see B1-597
+    }
+    else {
+        m_executionProgramStatusRegister.T = address & 0b1u;
+        m_programCounter = address & ~uint32_t{0b1u};
+    }
+}
+
+void CpuRegisterSet::blxWritePC(uint32_t address)
+{
+    m_executionProgramStatusRegister.T = address & 0b1u;
+    // TODO: if EPSR.T == 0, a UsageFault(‘Invalid State’) is taken on the next instruction
+    m_programCounter = address & ~uint32_t{0b1u};
+}
+
 auto CpuRegisterSet::currentCondition() const -> uint8_t
 {
     if (m_ifThenState & 0x0fu) {
@@ -69,7 +94,6 @@ auto CpuRegisterSet::currentCondition() const -> uint8_t
     }
     assert("UNPREDICTABLE");
 }
-
 
 auto CpuRegisterSet::conditionPassed() const -> bool
 {
@@ -112,18 +136,15 @@ auto CpuRegisterSet::conditionPassed() const -> bool
     return result;
 }
 
-
 auto CpuRegisterSet::isInItBlock() const -> bool
 {
     return m_ifThenState & 0b1111u;
 }
 
-
 auto CpuRegisterSet::isLastInItBlock() const -> bool
 {
     return (m_ifThenState & 0b1111u) == 0b1000u;
 }
-
 
 void CpuRegisterSet::advanceCondition()
 {
@@ -134,6 +155,5 @@ void CpuRegisterSet::advanceCondition()
         m_ifThenState = 0x00u;
     }
 }
-
 
 }  // namespace stm32
