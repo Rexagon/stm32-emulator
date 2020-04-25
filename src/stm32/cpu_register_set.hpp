@@ -144,6 +144,8 @@ class CpuRegisterSet {
     };
 
 public:
+    explicit CpuRegisterSet();
+
     void reset();
 
     auto reg(uint16_t reg) -> uint32_t&;

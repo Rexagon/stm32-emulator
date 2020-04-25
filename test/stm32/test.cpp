@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "test_cpu.hpp"
+#include "test_math.hpp"
 #include "test_memory.hpp"
 #include "test_system_control_registers.hpp"
 

@@ -22,7 +22,7 @@ void VirtualCpu::reset()
     m_registers.reset();
 }
 
-inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers)
 {
     /// see A5.2.1
     switch (math::getPart<9, 5>(opCode)) {
@@ -30,47 +30,47 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
             switch (math::getPart<6, 5>(opCode)) {
                 case 0b00000u:
                     // see: A7-312
-                    return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
+                    return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers);
                 default:
                     // see: A7-298
-                    return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers, memory);
+                    return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers);
             }
         case 0b001'00u ... 0b001'11u:
             // see: A7-302
-            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSR>(opCode, registers, memory);
+            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSR>(opCode, registers);
         case 0b010'00u ... 0b010'11u:
             // see: A7-203
-            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, registers, memory);
+            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, registers);
         case 0b01100u:
             // see: A7-191
-            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers, memory);
+            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers);
         case 0b01101u:
             // see: A7-450
-            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers, memory);
+            return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers);
         case 0b01110u:
             // see: A7-189
-            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers, memory);
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ false>(opCode, registers);
         case 0b01111u:
             // see: A7-448
-            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers, memory);
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T1, /* isSub */ true>(opCode, registers);
         case 0b100'00u ... 0b100'11u:
             // see: A7-312
-            return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
+            return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers);
         case 0b101'00u ... 0b101'11u:
             // see: A7-229
-            return opcodes::cmdCmpImmediate<opcodes::Encoding::T1>(opCode, registers, memory);
+            return opcodes::cmdCmpImmediate<opcodes::Encoding::T1>(opCode, registers);
         case 0b110'00u ... 0b110'11u:
             // see: A7-189
-            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ false>(opCode, registers, memory);
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ false>(opCode, registers);
         case 0b111'00u ... 0b111'11u:
             // see: A7-448
-            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ true>(opCode, registers, memory);
+            return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ true>(opCode, registers);
         default:
             UNPREDICTABLE;
     }
 }
 
-inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // see A5.2.2
     switch (math::getPart<6, 4>(opCode)) {
@@ -127,7 +127,7 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
     }
 }
 
-inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // see A5.2.3
     switch (math::getPart<6, 4>(opCode)) {
@@ -152,12 +152,12 @@ inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& regist
     }
 }
 
-inline void handleLoadFromLiteralPool(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleLoadFromLiteralPool(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.43
 }
 
-inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // see A5.2.4
     switch (math::getPart<12, 4>(opCode)) {
@@ -239,17 +239,17 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& regis
     }
 }
 
-inline void handleGeneratePcRelativeAddress(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleGeneratePcRelativeAddress(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.7
 }
 
-inline void handleGenerateSpRelativeAddress(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleGenerateSpRelativeAddress(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.5
 }
 
-inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // see A5.2.5
     switch (math::getPart<5, 7>(opCode)) {
@@ -330,17 +330,17 @@ inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& registers, Me
     }
 }
 
-inline void handleStoreMultipleRegisters(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleStoreMultipleRegisters(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.156
 }
 
-inline void handleLoadMultipleRegisters(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleLoadMultipleRegisters(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.40
 }
 
-inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // see A5.2.6
     switch (math::getPart<8, 4>(opCode)) {
@@ -356,7 +356,7 @@ inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& registers, 
     }
 }
 
-inline void handleUnconditionalBranch(uint16_t opCode, CpuRegisterSet& registers, Memory& memory)
+inline void handleUnconditionalBranch(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
 {
     // TODO: A7.7.12
 }
@@ -369,6 +369,7 @@ void VirtualCpu::step()
     const auto opCodeHw1High = m_memory.read(PC + 1u);
 
     if (is32bitInstruction(opCodeHw1High)) {
+        /*
         const auto opCodeHw2Low = m_memory.read(PC + 2);
         const auto opCodeHw2High = m_memory.read(PC + 3);
 
@@ -376,7 +377,7 @@ void VirtualCpu::step()
                                                     math::Part<8, 8>{opCodeHw1High},
                                                     math::Part<16, 8>{opCodeHw2Low},
                                                     math::Part<24, 8>{opCodeHw2High});
-
+        */
         // TODO: handle 32 bit instructions
     }
     else {
@@ -384,7 +385,7 @@ void VirtualCpu::step()
 
         switch (math::getPart<2, 6>(opCode)) {
             case 0b00'0000u ... 0b00'1111u:
-                handleMathInstruction(opCode, m_registers, m_memory);
+                handleMathInstruction(opCode, m_registers);
                 break;
             case 0b010000u:
                 handleDataProcessingInstruction(opCode, m_registers, m_memory);

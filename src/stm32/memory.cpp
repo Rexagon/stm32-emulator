@@ -20,7 +20,7 @@ inline auto decodeBitBand(uint32_t address, uint32_t bitBandAliasStart, uint32_t
 inline auto setBit(uint8_t data, uint8_t bitNumber, uint8_t value) -> uint8_t
 {
     // Clear nth bit and set it same as the lowest data bit
-    return (data & ~(0x1u << bitNumber)) | ((value & 0x1u) << bitNumber);
+    return static_cast<uint8_t>(data & ~(0x1u << bitNumber)) | static_cast<uint8_t>((value & 0x1u) << bitNumber);
 }
 
 }  // namespace
@@ -37,6 +37,7 @@ Memory::Memory(const Config& config)
     , m_systemMemory(config.systemMemoryEnd - config.systemMemoryStart, 0)
     , m_optionBytes(config.optionBytesEnd - config.optionBytesStart, 0)
     , m_sram(config.sramEnd - config.sramStart, 0)
+    , m_memoryRegions{}
 {
 }
 

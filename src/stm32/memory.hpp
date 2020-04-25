@@ -7,6 +7,7 @@ namespace stm32 {
 class MemoryRegion {
 public:
     explicit MemoryRegion(uint32_t regionStart, uint32_t regionEnd);
+    virtual ~MemoryRegion() = default;
 
     virtual void write(uint32_t address, uint8_t data) = 0;
     virtual auto read(uint32_t address) -> uint8_t = 0;

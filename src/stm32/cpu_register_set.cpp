@@ -9,6 +9,16 @@
 
 namespace stm32
 {
+CpuRegisterSet::CpuRegisterSet()
+    : m_exceptionMaskRegister{}
+    , m_basePriorityMaskRegister{}
+    , m_faultMaskRegister{}
+    , m_controlRegister{}
+    , m_currentMode{}
+    , m_ifThenState{}
+{
+}
+
 void CpuRegisterSet::reset()
 {
     m_interruptProgramStatusRegister.exceptionNumber = 0x0u;
@@ -86,7 +96,7 @@ void CpuRegisterSet::blxWritePC(uint32_t address)
 auto CpuRegisterSet::currentCondition() const -> uint8_t
 {
     if (m_ifThenState & 0x0fu) {
-        return m_ifThenState >> 4u;
+        return static_cast<uint8_t>(m_ifThenState >> 4u);
     }
     else if (m_ifThenState == 0x00u) {
         return 0b1110u;

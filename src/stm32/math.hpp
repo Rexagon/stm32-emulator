@@ -41,7 +41,7 @@ struct Extractor;
 template <typename V, uint8_t offset, uint8_t bitCount, typename T>
 struct Extractor<V, Part<offset, bitCount, T>> {
     using Result = T;
-    static constexpr auto create(const T& part) -> V { return (static_cast<V>(part) & ONES<bitCount, V>) << offset; }
+    static constexpr auto create(const T& part) -> V { return static_cast<V>((static_cast<V>(part) & ONES<bitCount, V>) << offset); }
     static constexpr auto extract(const V& value) -> T { return static_cast<T>(value >> offset) & ONES<bitCount, T>; }
 };
 }  // namespace details
@@ -71,7 +71,7 @@ constexpr auto isNegative(const T& value) -> bool
 }
 
 template <typename T>
-inline auto lslWithCarry(T x, int8_t shift) -> std::pair<T, bool>
+inline auto lslWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
     const auto carry = x & LEFT_BIT<T>;
@@ -79,14 +79,13 @@ inline auto lslWithCarry(T x, int8_t shift) -> std::pair<T, bool>
 }
 
 template <typename T>
-inline auto lsl(T x, int8_t shift) -> T
+inline auto lsl(T x, uint8_t shift) -> T
 {
-    assert(shift >= 0);
     return x << shift;
 }
 
 template <typename T>
-inline auto lsrWithCarry(T x, int8_t shift) -> std::pair<T, bool>
+inline auto lsrWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
     const auto carry = x & RIGHT_BIT<T>;
@@ -94,14 +93,13 @@ inline auto lsrWithCarry(T x, int8_t shift) -> std::pair<T, bool>
 }
 
 template <typename T>
-inline auto lsr(T x, int8_t shift) -> T
+inline auto lsr(T x, uint8_t shift) -> T
 {
-    assert(shift >= 0);
     return x >> shift;
 }
 
 template <typename T>
-inline auto asrWithCarry(T x, int8_t shift) -> std::pair<T, bool>
+inline auto asrWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
     const auto carry = x & RIGHT_BIT<T>;
@@ -114,9 +112,8 @@ inline auto asrWithCarry(T x, int8_t shift) -> std::pair<T, bool>
 }
 
 template <typename T>
-inline auto asr(T x, int8_t shift) -> T
+inline auto asr(T x, uint8_t shift) -> T
 {
-    assert(shift >= 0);
     if (x & LEFT_BIT<T>) {
         return x >> shift | ~(ALL_BITS<T> >> shift);
     }
@@ -126,36 +123,37 @@ inline auto asr(T x, int8_t shift) -> T
 }
 
 template <typename T>
-inline auto rorWithCarry(T x, int8_t shift) -> std::pair<T, bool>
+inline auto rorWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
-    assert(shift != 0);
-    shift &= MAX_SHIFT<T>;
-    const auto result = (x >> shift) | (x << (-shift & MAX_SHIFT<T>));
+    assert(shift > 0);
+
+    const auto invShift = static_cast<uint8_t>(~shift) + 1u;
+    const auto result = (x >> (shift & MAX_SHIFT<T>)) | (x << (invShift & MAX_SHIFT<T>));
     return {result, result & LEFT_BIT<T>};
 }
 
 template <typename T>
-inline auto ror(T x, int8_t shift) -> T
+inline auto ror(T x, uint8_t shift) -> T
 {
     if (shift == 0) {
         return x;
     }
 
-    shift &= MAX_SHIFT<T>;
-    return (x >> shift) | (x << (-shift & MAX_SHIFT<T>));
+    const auto invShift = static_cast<uint8_t>(~shift) + 1u;
+    return (x >> (shift & MAX_SHIFT<T>)) | (x << (invShift & MAX_SHIFT<T>));
 }
 
 template <typename T>
 inline auto rrxWithCarry(T x, bool carryIn) -> std::pair<T, bool>
 {
     const auto carryOut = x & RIGHT_BIT<T>;
-    return {(carryIn << MAX_SHIFT<T>) | (x >> 1u), carryOut};
+    return {static_cast<T>(carryIn << MAX_SHIFT<T>) | (x >> 1u), carryOut};
 }
 
 template <typename T>
 inline auto rrx(T x, bool carryIn) -> T
 {
-    return (carryIn << MAX_SHIFT<T>) | (x >> 1u);
+    return static_cast<T>(carryIn << MAX_SHIFT<T>) | (x >> 1u);
 }
 
 enum class ShiftType {
@@ -198,7 +196,7 @@ inline auto decodeImmediateShift(uint8_t bits, uint8_t immediate) -> std::pair<S
 }
 
 template <typename T>
-inline auto shift(T value, ShiftType shiftType, int8_t shift, bool carryIn) -> T
+inline auto shift(T value, ShiftType shiftType, uint8_t shift, bool carryIn) -> T
 {
     assert(shiftType != ShiftType::RRX || shift == 1u);
 
@@ -223,7 +221,7 @@ inline auto shift(T value, ShiftType shiftType, int8_t shift, bool carryIn) -> T
 }
 
 template <typename T>
-inline auto shiftWithCarry(T value, ShiftType shiftType, int8_t shift, bool carryIn) -> std::pair<T, bool>
+inline auto shiftWithCarry(T value, ShiftType shiftType, uint8_t shift, bool carryIn) -> std::pair<T, bool>
 {
     assert(shiftType != ShiftType::RRX || shift == 1u);
 
@@ -270,19 +268,19 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
             case 0b00u:
                 return {static_cast<uint32_t>(immediate), carryIn};
             case 0b01u: {
-                const auto value = math::getPart<0, 8, uint8_t>(immediate);
+                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
                 return {combine<uint32_t>(Part<0, 8>{value}, Part<16, 8>{value}), carryIn};
             }
             case 0b10u: {
-                const auto value = math::getPart<0, 8, uint8_t>(immediate);
+                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
                 return {combine<uint32_t>(Part<8, 8>{value}, Part<24, 8>{value}), carryIn};
             }
             case 0b11u: {
-                const auto value = math::getPart<0, 8, uint8_t>(immediate);
+                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
-                return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<8, 16>{value}, Part<24, 8>{value}), carryIn};
+                return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<16, 16>{value}, Part<24, 8>{value}), carryIn};
             }
             default:
                 UNPREDICTABLE;
@@ -290,7 +288,7 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
     }
     else {
         const auto unrotatedValue = static_cast<uint32_t>(getPart<0, 7>(immediate)) | BIT<7, uint32_t>;
-        return rorWithCarry(unrotatedValue, getPart<7, 4>(immediate));
+        return rorWithCarry(unrotatedValue, getPart<7, 5, uint16_t, uint8_t>(immediate));
     }
 }
 

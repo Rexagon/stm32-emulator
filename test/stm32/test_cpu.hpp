@@ -11,7 +11,6 @@
 TEST(cpu, Opcodes)
 {
     stm32::CpuRegisterSet registers{};
-    auto memory = details::createMemory();
 
-    stm32::opcodes::cmdShiftImmediate<stm32::opcodes::Encoding::T1, stm32::math::ShiftType::LSR>(uint16_t{}, registers, memory);
+    stm32::opcodes::cmdShiftImmediate<stm32::opcodes::Encoding::T1, stm32::math::ShiftType::LSR>(uint16_t{}, registers);
 }

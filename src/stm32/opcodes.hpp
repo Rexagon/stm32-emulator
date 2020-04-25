@@ -22,7 +22,7 @@ template <bool b>
 constexpr bool check = b;  // Clion unused code highlighting fix
 
 template <Encoding encoding, math::ShiftType shiftType, typename T>
-inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, math::ShiftType::LSL, math::ShiftType::LSR, math::ShiftType::ASR>);
@@ -68,7 +68,7 @@ inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers, Memory& memor
 }
 
 template <Encoding encoding, math::ShiftType shiftType, typename T>
-inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
+inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, math::ShiftType::LSL, math::ShiftType::LSR, math::ShiftType::ASR>);
@@ -114,7 +114,7 @@ inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers, Memory& memory
 }
 
 template <Encoding encoding, bool isSub, typename T>
-void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
 
@@ -182,7 +182,7 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
 }
 
 template <Encoding encoding, bool isSub, typename T>
-void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
+void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (encoding == Encoding::T3 && !isSub));
 
@@ -213,8 +213,8 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
         assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
         assert(d != 15 || Rm != 15);
     }
-    else if constexpr (check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T> ||
-                       check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
         const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
             math::split<T, Part<0, 4>, Part<4, 2>, Part<6, 2>, Part<8, 4>, Part<12, 3>, Part<16, 4>, Part<20, 1>>(opCode);
 
@@ -253,7 +253,7 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers, Memory& memory)
 }
 
 template <Encoding encoding, typename T>
-void cmdMovImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
@@ -304,7 +304,7 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
 }
 
 template <Encoding encoding, typename T>
-void cmdCmpImmediate(T opCode, CpuRegisterSet& registers, Memory& memory)
+void cmdCmpImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 

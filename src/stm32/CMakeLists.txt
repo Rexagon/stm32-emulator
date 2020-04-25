@@ -90,6 +90,26 @@ target_include_directories(
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
         $<INSTALL_INTERFACE:include>)
 
+target_compile_options(${SUBPROJ_NAME} PUBLIC
+        -O2
+        -W
+        -Wall
+        -Wconversion
+        -Wctor-dtor-privacy
+        -Weffc++
+        -Wenum-compare
+        -Werror
+        -Wextra
+        -Wfloat-equal
+        -Wlogical-op
+        -Wnon-virtual-dtor
+        -Wold-style-cast
+        -Woverloaded-virtual
+        -Wshadow
+        -Wsign-conversion
+        -Wstrict-overflow=2
+        -Wunreachable-code)
+
 if (MINGW)
     # Fix struct packing
     target_compile_options(${SUBPROJ_NAME} PUBLIC -mno-ms-bitfields)
