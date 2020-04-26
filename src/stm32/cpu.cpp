@@ -120,8 +120,8 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
             // see: A7-213
             return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::BIC>(opCode, registers);
         case 0b1111u:
-            // TODO: A7-238
-            return;
+            // see: A7-238
+            return opcodes::cmdMvnRegister<opcodes::Encoding::T1>(opCode, registers);
         default:
             UNPREDICTABLE;
     }

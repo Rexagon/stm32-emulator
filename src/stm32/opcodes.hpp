@@ -469,6 +469,55 @@ void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
+void cmdMvnRegister(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, setFlags;
+    uint32_t shifted;
+    bool carry;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rd, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        d = Rd;
+        setFlags = !registers.isInItBlock();
+
+        shifted = registers.reg(Rm);
+        carry = APSR.C;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, type, imm2, Rd, imm3, S] =
+            math::split<T, Part<0, 4>, Part<4, 2>, Part<6, 2>, Part<8, 4>, Part<12, 3>, Part<20, 1>>(opCode);
+
+        assert(Rd < 13 && Rm < 13);
+
+        const auto [shiftType, shiftN] = math::decodeImmediateShift(type, math::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3}));
+
+        d = Rd;
+        setFlags = S;
+
+        std::tie(shifted, carry) = math::shiftWithCarry(registers.reg(Rm), shiftType, shiftN, APSR.C);
+    }
+
+    auto& Rd = registers.reg(d);
+
+    const auto result = ~shifted;
+
+    Rd = result;
+    if (setFlags) {
+        APSR.N = math::isNegative(result);
+        APSR.Z = result == 0;
+        APSR.C = carry;
+    }
+}
+
+template <Encoding encoding, typename T>
 void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
