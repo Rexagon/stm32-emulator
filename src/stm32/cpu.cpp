@@ -70,7 +70,7 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers)
     }
 }
 
-inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& registers)
 {
     // see A5.2.2
     switch (math::getPart<6, 4>(opCode)) {
@@ -81,32 +81,32 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& /*r
             // TODO: A7-239
             return;
         case 0b0010u:
-            // TODO: A7-300
-            return;
+            // see: A7-300
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers);
         case 0b0011u:
-            // TODO: A7-304
-            return;
+            // see: A7-304
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::LSR>(opCode, registers);
         case 0b0100u:
-            // TODO: A7-205
-            return;
+            // see: A7-205
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, registers);
         case 0b0101u:
-            // TODO: A7-187
-            return;
+            // see: A7-187
+            return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T1, /* isSbc */ false>(opCode, registers);
         case 0b0110u:
-            // TODO: A7-380
-            return;
+            // see: A7-380
+            return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T1, /* isSbc */ true>(opCode, registers);
         case 0b0111u:
-            // TODO: A7-368
-            return;
+            // see: A7-368
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::ROR>(opCode, registers);
         case 0b1000u:
-            // TODO: A7-466
-            return;
+            // see: A7-466
+            return opcodes::cmdTstRegister<opcodes::Encoding::T1>(opCode, registers);
         case 0b1001u:
-            // TODO: A7-372
-            return;
+            // see: A7-372
+            return opcodes::cmdRsbImmediate<opcodes::Encoding::T1>(opCode, registers);
         case 0b1010u:
-            // TODO: A7-231
-            return;
+            // see: A7-231
+            return opcodes::cmdCmpRegister<opcodes::Encoding::T1>(opCode, registers);
         case 0b1011u:
             // TODO: A7-227
             return;
@@ -388,7 +388,7 @@ void VirtualCpu::step()
                 handleMathInstruction(opCode, m_registers);
                 break;
             case 0b010000u:
-                handleDataProcessingInstruction(opCode, m_registers, m_memory);
+                handleDataProcessingInstruction(opCode, m_registers);
                 break;
             case 0b010001u:
                 handleSpecialDataInstruction(opCode, m_registers, m_memory);
