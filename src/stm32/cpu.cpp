@@ -75,11 +75,11 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
     // see A5.2.2
     switch (math::getPart<6, 4>(opCode)) {
         case 0b0000u:
-            // TODO: A7-201
-            return;
+            // see: A7-201
+            return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::AND>(opCode, registers);
         case 0b0001u:
-            // TODO: A7-239
-            return;
+            // see: A7-239
+            return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::EOR>(opCode, registers);
         case 0b0010u:
             // see: A7-300
             return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers);
@@ -106,19 +106,19 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
             return opcodes::cmdRsbImmediate<opcodes::Encoding::T1>(opCode, registers);
         case 0b1010u:
             // see: A7-231
-            return opcodes::cmdCmpRegister<opcodes::Encoding::T1>(opCode, registers);
+            return opcodes::cmdCmpRegister<opcodes::Encoding::T1, /* isNegative */ false>(opCode, registers);
         case 0b1011u:
-            // TODO: A7-227
-            return;
+            // see: A7-227
+            return opcodes::cmdCmpRegister<opcodes::Encoding::T1, /* isNegative */ true>(opCode, registers);
         case 0b1100u:
-            // TODO: A7-336
-            return;
+            // see: A7-336
+            return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::ORR>(opCode, registers);
         case 0b1101u:
-            // TODO: A7-234
-            return;
+            // see: A7-234
+            return opcodes::cmdMul<opcodes::Encoding::T1>(opCode, registers);
         case 0b1110u:
-            // TODO: A7-213
-            return;
+            // see: A7-213
+            return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::BIC>(opCode, registers);
         case 0b1111u:
             // TODO: A7-238
             return;

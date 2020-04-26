@@ -12,6 +12,8 @@ using Part = math::Part<offset, bitCount, T>;
 
 enum class Encoding { T1, T2, T3, T4 };
 
+enum class Bitwise { AND, EOR, ORR, BIC };
+
 template <auto v, auto... vs>
 constexpr bool is_in = ((v == vs) || ...);
 
@@ -352,6 +354,121 @@ void cmdRsbImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
+void cmdMul(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, n, m, setFlags;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rdm, Rn] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        d = Rdm;
+        n = Rn;
+        m = Rdm;
+        setFlags = !registers.isInItBlock();
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, Rd, Rn] = math::split<T, Part<0, 4>, Part<8, 4>, Part<16, 4>>(opCode);
+        assert(Rd < 13 && n < 13 && m < 13);
+
+        d = Rd;
+        n = Rn;
+        m = Rm;
+        setFlags = false;
+    }
+
+    const auto& Rn = registers.reg(n);
+    const auto& Rm = registers.reg(m);
+    auto& Rd = registers.reg(d);
+
+    const auto result = Rn * Rm;
+
+    Rd = result;
+    if (setFlags) {
+        APSR.N = math::isNegative(result);
+        APSR.Z = result == 0;
+    }
+}
+
+template <Encoding encoding, Bitwise bitwise, typename T>
+void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, n, setFlags;
+    uint32_t shifted;
+    bool carry;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rdn, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        d = Rdn;
+        n = Rdn;
+        setFlags = !registers.isInItBlock();
+
+        shifted = registers.reg(Rm);
+        carry = APSR.C;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
+            math::split<T, Part<0, 4>, Part<4, 2>, Part<6, 2>, Part<8, 4>, Part<12, 3>, Part<16, 4>, Part<20, 1>>(opCode);
+
+        const auto [shiftType, shiftN] = math::decodeImmediateShift(type, math::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3}));
+
+        if constexpr (is_in<bitwise, Bitwise::AND, Bitwise::EOR>) {
+            assert(Rd != 13 && (Rd != 15 || S != 0) && Rn < 13 && Rm < 13);
+        }
+        else if constexpr (is_in<bitwise, Bitwise::ORR>) {
+            assert(Rd < 13 && Rn != 13 && Rm < 13);
+        }
+        else if constexpr (is_in<bitwise, Bitwise::BIC>) {
+            assert(Rd < 13 && Rn < 13 && Rm < 13);
+        }
+
+        d = Rd;
+        n = Rn;
+        setFlags = S;
+
+        std::tie(shifted, carry) = math::shiftWithCarry(registers.reg(Rm), shiftType, shiftN, APSR.C);
+    }
+
+    const auto& Rn = registers.reg(n);
+    auto& Rd = registers.reg(d);
+
+    uint32_t result;
+    if constexpr (is_in<bitwise, Bitwise::AND>) {
+        result = Rn & shifted;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::EOR>) {
+        result = Rn ^ shifted;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::ORR>) {
+        result = Rn | shifted;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::BIC>) {
+        result = Rn & ~shifted;
+    }
+
+    Rd = result;
+    if (setFlags) {
+        APSR.N = math::isNegative(result);
+        APSR.Z = result == 0;
+        APSR.C = carry;
+    }
+}
+
+template <Encoding encoding, typename T>
 void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
@@ -437,10 +554,10 @@ void cmdCmpImmediate(T opCode, CpuRegisterSet& registers)
     APSR.V = overflow;
 }
 
-template <Encoding encoding, typename T>
+template <Encoding encoding, bool isNegative, typename T>
 void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
 {
-    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (check<!isNegative> && encoding == Encoding::T3));
 
     if (!registers.conditionPassed()) {
         return;
@@ -455,7 +572,7 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
         n = Rn;
         shifted = registers.reg(Rm);
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+    else if constexpr (check<!isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rn, Rm, N] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
 
         n = math::combine<uint8_t>(Part<0, 3>{Rn}, Part<4, 1>{N});
@@ -464,7 +581,8 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
 
         shifted = registers.reg(Rm);
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+    else if constexpr ((check<!isNegative> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (check<isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
         const auto [Rm, type, imm2, imm3, Rn] = math::split<T, Part<0, 4>, Part<4, 2>, Part<6, 2>, Part<12, 3>, Part<16, 4>>(opCode);
 
         const auto [shiftType, shiftN] = math::decodeImmediateShift(type, math::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3}));
@@ -477,7 +595,11 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
 
     const auto& Rn = registers.reg(n);
 
-    const auto [result, carry, overflow] = math::addWithCarry(Rn, ~shifted, true);
+    if constexpr (check<!isNegative>) {
+        shifted = ~shifted;
+    }
+
+    const auto [result, carry, overflow] = math::addWithCarry(Rn, shifted, !isNegative);
 
     APSR.N = math::isNegative(result);
     APSR.Z = result == 0;
