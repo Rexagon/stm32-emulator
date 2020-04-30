@@ -780,4 +780,33 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, CpuRegisterSet& registers)
     }
 }
 
+template <Encoding encoding, typename T>
+void cmdLoadRegisterLiteral(T opCode, CpuRegisterSet& registers, Memory& memory)
+{
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    uint8_t t, add;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, Rt] = math::split<T, Part<0, 7>, Part<8, 3>>(opCode);
+
+        t = Rt;
+        imm32 = static_cast<uint32_t>(imm8);
+        add = true;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [imm12, Rt, U] = math::split<T, Part<0, 12, uint32_t>, Part<12, 4>, Part<23, 1>>(opCode);
+
+        t = Rt;
+        imm32 = imm12;
+        add = U;
+    }
+
+    const auto base = registers.reg(RegisterType::PC) & ~math::ONES<2, uint32_t>;
+
+
+}
+
 }  // namespace stm32::opcodes
