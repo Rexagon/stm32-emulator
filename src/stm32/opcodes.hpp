@@ -206,7 +206,7 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
     else if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rdn, Rm, DN] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
 
-        d = math::combine<uint8_t>(Part<0, 3>{Rdn}, Part<4, 1>{DN});
+        d = math::combine<uint8_t>(Part<0, 3>{Rdn}, Part<3, 1>{DN});
         assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
         assert(d != 15 || Rm != 15);
 
@@ -564,6 +564,67 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
         APSR.N = math::isNegative(imm32);
         APSR.Z = imm32 == 0;
         APSR.C = carry;
+    }
+}
+
+template <Encoding encoding, typename T>
+void cmdMovRegister(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, m, setFlags;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rd, Rm, D] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
+
+        d = math::combine<uint8_t>(Part<0, 3>{Rd}, Part<3, 1>{D});
+        assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
+
+        m = Rm;
+        setFlags = false;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rd, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        assert(!registers.isInItBlock());
+
+        d = Rd;
+        m = Rm;
+        setFlags = false;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rm, Rd, S] = math::split<T, Part<0, 4>, Part<8, 4>, Part<20, 1>>(opCode);
+
+        d = Rd;
+        m = Rm;
+        setFlags = S;
+
+        if (setFlags) {
+            UNPREDICTABLE_IF(d >= 13 || m >= 13);
+        }
+        else {
+            UNPREDICTABLE_IF(d == 15 || m == 15 || (d == 13 && m == 13));
+        }
+    }
+
+    auto& Rd = registers.reg(d);
+
+    const auto result = registers.reg(m);
+
+    if (d == 15) {
+        registers.aluWritePC(result);
+    }
+    else {
+        Rd = result;
+        if (setFlags) {
+            APSR.N = math::isNegative(result);
+            APSR.Z = result == 0;
+        }
     }
 }
 

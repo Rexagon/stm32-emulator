@@ -30,7 +30,7 @@ inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers)
             switch (math::getPart<6, 5>(opCode)) {
                 case 0b00000u:
                     // see: A7-312
-                    return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, registers);
+                    return opcodes::cmdMovRegister<opcodes::Encoding::T2>(opCode, registers);
                 default:
                     // see: A7-298
                     return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, registers);
@@ -127,20 +127,20 @@ inline void handleDataProcessingInstruction(uint16_t opCode, CpuRegisterSet& reg
     }
 }
 
-inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& registers, Memory& /*memory*/)
 {
     // see A5.2.3
     switch (math::getPart<6, 4>(opCode)) {
         case 0b00'00u ... 0b00'11u:
-            // TODO: A7-191
-            return;
+            // see: A7-191
+            return opcodes::cmdAddSubRegister<opcodes::Encoding::T2, /* isSub */ false>(opCode, registers);
         case 0b0101u:
         case 0b011'0u ... 0b011'1u:
-            // TODO: A7-231
-            return;
+            // see: A7-231
+            return opcodes::cmdCmpRegister<opcodes::Encoding::T2, /* isNegative */ false>(opCode, registers);
         case 0b10'00u ... 0b10'11u:
-            // TODO: A7-314
-            return;
+            // see: A7-314
+            return opcodes::cmdMovRegister<opcodes::Encoding::T1>(opCode, registers);
         case 0b110'0u ... 0b110'1u:
             // TODO: A7-218
             return;
