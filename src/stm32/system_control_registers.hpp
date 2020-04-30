@@ -724,6 +724,7 @@ struct __attribute__((__packed__)) SysTickCalibrationValueRegister {
 
 class SystemControlRegistersSet {
 public:
+    void reset();
 };
 
 }  // namespace stm32

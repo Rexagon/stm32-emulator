@@ -49,14 +49,20 @@ struct __attribute__((__packed__)) InterruptProgramStatusRegister {
 };
 
 struct __attribute__((__packed__)) ExecutionProgramStatusRegister {
-    uint32_t : 24;  // bits[23:0]
+    uint16_t : 10;  // bits[9:0]
                     // Reserved
+
+    uint8_t ITlo : 6;  // bits[15:10]
+                       // low 6 bits of IT
 
     static constexpr uint8_t FlagTBitNumber = 24;
     bool T : 1;  // bit[24]
                  // T bit, that is set to 1 to indicate that the processor executes Thumb instructions
 
-    uint8_t : 7;  // bits[31:25]
+    uint8_t IThi : 2;  // bits[26:25]
+                       // high two bits of IT
+
+    uint8_t : 5;  // bits[31:27]
                   // Reserved
 };
 
@@ -81,11 +87,11 @@ struct __attribute__((__packed__)) BasePriorityMaskRegister {
 };
 
 struct __attribute__((__packed__)) FaultMaskRegister {
-    uint8_t FM : 1;  // bit[0]
-                     // Setting FM to 1 raises the execution priority to -1, the priority of HardFault. Only
-                     // privileged software executing at a priority below -1 can set FM to 1. This means
-                     // HardFault and NMI handlers cannot set FM to 1.  Returning from any exception except NMI
-                     // clears FM to 0.
+    bool FM : 1;  // bit[0]
+                  // Setting FM to 1 raises the execution priority to -1, the priority of HardFault. Only
+                  // privileged software executing at a priority below -1 can set FM to 1. This means
+                  // HardFault and NMI handlers cannot set FM to 1.  Returning from any exception except NMI
+                  // clears FM to 0.
 
     uint32_t : 31;  // bits[31:1]
                     // Reserved
@@ -146,9 +152,10 @@ class CpuRegisterSet {
 public:
     explicit CpuRegisterSet();
 
-    void reset();
-
     auto reg(uint16_t reg) -> uint32_t&;
+
+    auto SP_main() -> uint32_t&;
+    auto SP_process() -> uint32_t&;
 
     inline auto xPSR() -> uint32_t& { return m_programStatusRegister; }
     inline auto APSR() -> ApplicationProgramStatusRegister& { return m_applicationProgramStatusRegister; }

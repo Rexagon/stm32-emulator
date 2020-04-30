@@ -19,7 +19,31 @@ namespace stm32
 {
 void VirtualCpu::reset()
 {
-    m_registers.reset();
+    // see: B1.5.5
+
+    m_registers.PRIMASK().PM = false;
+    m_registers.FAULTMASK().FM = false;
+    m_registers.BASEPRI().level = 0u;
+
+    m_registers.CONTROL().nPRIV = false;
+    m_registers.CONTROL().SPSEL = false;
+
+    // TODO: reset system control space
+    // TODO: clear exclusive local
+
+    // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
+    m_registers.SP_process() &= ~math::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
+    m_registers.reg(RegisterType::LR) = std::numeric_limits<uint32_t>::max();
+
+    // tmp = MemA_with_priv[vectortable+4, 4, AccType_VECTABLE];
+    // tbit = tmp<0>;
+
+    // m_registers.APSR() is unknown
+    m_registers.IPSR().exceptionNumber = 0u;
+    m_registers.EPSR().T = false;  // TODO: change to tbit
+    m_registers.EPSR().ITlo = 0u;
+    m_registers.EPSR().IThi = 0u;
+    m_registers.branchWritePC(0u); // TODO: change to tmp & ~1u
 }
 
 inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers)
@@ -142,11 +166,11 @@ inline void handleSpecialDataInstruction(uint16_t opCode, CpuRegisterSet& regist
             // see: A7-314
             return opcodes::cmdMovRegister<opcodes::Encoding::T1>(opCode, registers);
         case 0b110'0u ... 0b110'1u:
-            // TODO: A7-218
-            return;
+            // see: A7-218
+            return opcodes::cmdBranchAndExecuteRegister</* withLink */ false>(opCode, registers);
         case 0b111'0u ... 0b111'1u:
-            // TODO: A7-217
-            return;
+            // see: A7-217
+            return opcodes::cmdBranchAndExecuteRegister</* withLink */ true>(opCode, registers);
         default:
             UNPREDICTABLE;
     }
@@ -365,13 +389,15 @@ void VirtualCpu::step()
 {
     auto& PC = m_registers.reg(RegisterType::PC);
 
-    const auto opCodeHw1Low = m_memory.read(PC);
-    const auto opCodeHw1High = m_memory.read(PC + 1u);
+    const auto opCodeHw1Low = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t>);
+    const auto opCodeHw1High = m_memory.read((PC & ~math::RIGHT_BIT<uint32_t>) + 1u);
+    PC += 2u;
 
     if (is32bitInstruction(opCodeHw1High)) {
         /*
-        const auto opCodeHw2Low = m_memory.read(PC + 2);
-        const auto opCodeHw2High = m_memory.read(PC + 3);
+        const auto opCodeHw2Low = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t>);
+        const auto opCodeHw2High = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t> + 1);
+        PC += 2u;
 
         const auto opCode = math::combine<uint32_t>(math::Part<0, 8>{opCodeHw1Low},
                                                     math::Part<8, 8>{opCodeHw1High},

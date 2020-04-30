@@ -2,7 +2,8 @@
 
 #include "opcodes.hpp"
 
-namespace stm32 {
+namespace stm32
+{
 class VirtualCpu {
 public:
     void reset();
@@ -10,6 +11,7 @@ public:
 
 private:
     CpuRegisterSet m_registers;
+    SystemControlRegistersSet m_systemRegisters;
     Memory m_memory;
 };
 }  // namespace stm32

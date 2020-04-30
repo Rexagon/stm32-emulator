@@ -3,6 +3,7 @@
 #include "cpu_register_set.hpp"
 #include "math.hpp"
 #include "memory.hpp"
+#include "system_control_registers.hpp"
 #include "utils.hpp"
 
 namespace stm32::opcodes
@@ -588,7 +589,7 @@ void cmdMovRegister(T opCode, CpuRegisterSet& registers)
         m = Rm;
         setFlags = false;
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rd, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
 
         assert(!registers.isInItBlock());
@@ -597,7 +598,7 @@ void cmdMovRegister(T opCode, CpuRegisterSet& registers)
         m = Rm;
         setFlags = false;
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint16_t, T>) {
         const auto [Rm, Rd, S] = math::split<T, Part<0, 4>, Part<8, 4>, Part<20, 1>>(opCode);
 
         d = Rd;
@@ -753,6 +754,30 @@ void cmdTstRegister(T opCode, CpuRegisterSet& registers)
     APSR.N = math::isNegative(result);
     APSR.Z = result == 0;
     APSR.C = carry;
+}
+
+template <bool withLink>
+void cmdBranchAndExecuteRegister(uint16_t opCode, CpuRegisterSet& registers)
+{
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    const auto m = math::getPart<3, 4>(opCode);
+    if constexpr (check<withLink>) {
+        UNPREDICTABLE_IF(m == 15);
+    }
+
+    const auto& Rm = registers.reg(m);
+
+    if constexpr (check<withLink>) {
+        const auto nextInstruction = registers.reg(RegisterType::PC) - 2;
+        registers.reg(RegisterType::LR) = nextInstruction | 0b1u;
+        registers.blxWritePC(Rm);
+    }
+    else {
+        registers.bxWritePC(Rm);
+    }
 }
 
 }  // namespace stm32::opcodes

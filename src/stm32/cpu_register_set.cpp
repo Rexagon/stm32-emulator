@@ -19,19 +19,6 @@ CpuRegisterSet::CpuRegisterSet()
 {
 }
 
-void CpuRegisterSet::reset()
-{
-    m_interruptProgramStatusRegister.exceptionNumber = 0x0u;
-    m_executionProgramStatusRegister.T = true;
-
-    m_exceptionMaskRegister.PM = false;
-    m_basePriorityMaskRegister.level = 0x0u;
-    m_faultMaskRegister.FM = false;
-
-    m_controlRegister.nPRIV = false;
-    m_controlRegister.SPSEL = false;
-}
-
 auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
 {
     switch (reg) {
@@ -68,6 +55,16 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
         default:
             UNPREDICTABLE;
     }
+}
+
+auto CpuRegisterSet::SP_main() -> uint32_t&
+{
+    return m_stackPointers[StackPointerType::Main];
+}
+
+auto CpuRegisterSet::SP_process() -> uint32_t&
+{
+    return m_stackPointers[StackPointerType::Process];
 }
 
 void CpuRegisterSet::branchWritePC(uint32_t address)
