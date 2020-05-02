@@ -1,9 +1,7 @@
 #pragma once
 
-#include "cpu_register_set.hpp"
+#include "cpu.hpp"
 #include "math.hpp"
-#include "memory.hpp"
-#include "system_control_registers.hpp"
 #include "utils.hpp"
 
 namespace stm32::opcodes
@@ -25,16 +23,16 @@ template <bool b>
 constexpr bool check = b;  // Clion unused code highlighting fix
 
 template <Encoding encoding, math::ShiftType shiftType, typename T>
-inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers)
+inline void cmdShiftImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, math::ShiftType::LSL, math::ShiftType::LSR, math::ShiftType::ASR>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, m, setFlags, shiftN;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
@@ -42,7 +40,7 @@ inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers)
 
         d = Rd;
         m = Rm;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
         shiftN = math::decodeImmediateShift(shiftTypeBits, imm5).second;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -57,8 +55,8 @@ inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers)
         shiftN = math::decodeImmediateShift(shiftTypeBits, math::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3})).second;
     }
 
-    auto& Rd = registers.reg(d);
-    const auto& Rm = registers.reg(m);
+    auto& Rd = cpu.registers().reg(d);
+    const auto& Rm = cpu.registers().reg(m);
 
     const auto [result, carry] = math::shiftWithCarry(Rm, shiftType, shiftN, APSR.C);
     Rd = result;
@@ -71,16 +69,16 @@ inline void cmdShiftImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, math::ShiftType shiftType, typename T>
-inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers)
+inline void cmdShiftRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, math::ShiftType::LSL, math::ShiftType::LSR, math::ShiftType::ASR, math::ShiftType::ROR>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, m, setFlags;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
@@ -89,7 +87,7 @@ inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers)
         d = Rdn;
         n = Rdn;
         m = Rm;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [Rm, Rd, Rn, S] = math::split<T, Part<0, 4>, Part<8, 4>, Part<16, 4>, Part<20, 1>>(opCode);
@@ -102,9 +100,9 @@ inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers)
         setFlags = S;
     }
 
-    const auto shiftN = math::getPart<0, 8, uint32_t, uint8_t>(registers.reg(m));
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto shiftN = math::getPart<0, 8, uint32_t, uint8_t>(cpu.registers().reg(m));
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     const auto [result, carry] = math::shiftWithCarry(Rn, shiftType, shiftN, APSR.C);
     Rd = result;
@@ -117,15 +115,15 @@ inline void cmdShiftRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, bool isSub, typename T>
-void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
+void cmdAddSubImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, setFlags;
     uint32_t imm32;
@@ -134,7 +132,7 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
 
         d = Rd;
         n = Rn;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
         imm32 = imm3;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
@@ -142,7 +140,7 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
 
         d = Rdn;
         n = Rdn;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
         imm32 = imm8;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
@@ -165,8 +163,8 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
         imm32 = math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i});
     }
 
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     if constexpr (check<isSub>) {
         imm32 = ~imm32;
@@ -184,15 +182,15 @@ void cmdAddSubImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, bool isSub, typename T>
-void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
+void cmdAddSubRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (encoding == Encoding::T3 && !isSub));
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, setFlags;
     uint32_t shifted;
@@ -201,19 +199,20 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
 
         d = Rd;
         n = Rn;
-        setFlags = !registers.isInItBlock();
-        shifted = registers.reg(Rm);
+        setFlags = !cpu.isInItBlock();
+        shifted = cpu.registers().reg(Rm);
     }
     else if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rdn, Rm, DN] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
 
         d = math::combine<uint8_t>(Part<0, 3>{Rdn}, Part<3, 1>{DN});
-        assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
-        assert(d != 15 || Rm != 15);
+
+        UNPREDICTABLE_IF(d == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        UNPREDICTABLE_IF(d == 15 || Rm == 15);
 
         n = d;
         setFlags = false;
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
     }
     else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
@@ -227,11 +226,11 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
         d = Rd;
         n = Rn;
         setFlags = S;
-        shifted = math::shift(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = math::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     if constexpr (check<isSub>) {
         shifted = ~shifted;
@@ -241,7 +240,7 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
                                                                                     // (maybe Clion is right)
 
     if (check<!isSub> && d == 15) {
-        registers.aluWritePC(result);
+        cpu.aluWritePC(result);
     }
     else {
         Rd = result;
@@ -254,34 +253,36 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
     }
 }
 
-template <Encoding encoding, typename T>
-void cmdAddSpPlusImmediate(T opCode, CpuRegisterSet& registers)
+template <Encoding encoding, bool isSub, typename T>
+void cmdAddSubSpPlusImmediate(T opCode, Cpu& cpu)
 {
-    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> || (encoding == Encoding::T4 && !isSub));
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, setFlags;
     uint32_t imm32;
-    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+    if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, Rd] = math::split<T, Part<0, 8, uint32_t>, Part<8, 3>>(opCode);
 
         d = Rd;
         setFlags = false;
         imm32 = imm8 << 2u;
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) ||
+                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>)) {
         const auto imm7 = math::getPart<0, 7, uint32_t>(opCode);
 
         d = RegisterType::SP;
         setFlags = false;
         imm32 = imm7 << 2u;
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) ||
+                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>)) {
         const auto [imm8, Rd, imm3, S, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<20, 1>, Part<26, 1>>(opCode);
 
         d = Rd;
@@ -291,7 +292,8 @@ void cmdAddSpPlusImmediate(T opCode, CpuRegisterSet& registers)
 
         UNPREDICTABLE_IF(d == 15 && S == 0);
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
+    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>)) {
         const auto [imm8, Rd, imm3, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<26, 1>>(opCode);
 
         d = Rd;
@@ -301,10 +303,14 @@ void cmdAddSpPlusImmediate(T opCode, CpuRegisterSet& registers)
         UNPREDICTABLE_IF(d == 15);
     }
 
-    const auto& SP = registers.reg(RegisterType::SP);
-    auto& Rd = registers.reg(d);
+    const auto& SP = cpu.registers().reg(RegisterType::SP);
+    auto& Rd = cpu.registers().reg(d);
 
-    const auto [result, carry, overflow] = math::addWithCarry(SP, imm32, false);
+    if constexpr (isSub) {
+        imm32 = ~imm32;
+    }
+
+    const auto [result, carry, overflow] = math::addWithCarry(SP, imm32, isSub);
 
     Rd = result;
     if (setFlags) {
@@ -316,15 +322,15 @@ void cmdAddSpPlusImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, bool isSbc, typename T>
-void cmdAdcSbcRegister(T opCode, CpuRegisterSet& registers)
+void cmdAdcSbcRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, setFlags;
     uint32_t shifted;
@@ -333,8 +339,8 @@ void cmdAdcSbcRegister(T opCode, CpuRegisterSet& registers)
 
         d = Rdn;
         n = Rdn;
-        setFlags = !registers.isInItBlock();
-        shifted = registers.reg(Rm);
+        setFlags = !cpu.isInItBlock();
+        shifted = cpu.registers().reg(Rm);
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
@@ -346,11 +352,11 @@ void cmdAdcSbcRegister(T opCode, CpuRegisterSet& registers)
 
         d = Rd;
         n = Rn;
-        shifted = math::shift(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = math::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     if constexpr (check<isSbc>) {
         shifted = ~shifted;
@@ -368,15 +374,15 @@ void cmdAdcSbcRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdRsbImmediate(T opCode, CpuRegisterSet& registers)
+void cmdRsbImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, setFlags;
     uint32_t imm32;
@@ -385,7 +391,7 @@ void cmdRsbImmediate(T opCode, CpuRegisterSet& registers)
 
         d = Rd;
         n = Rn;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
         imm32 = 0x0u;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -401,8 +407,8 @@ void cmdRsbImmediate(T opCode, CpuRegisterSet& registers)
             math::thumbExpandImmediateWithCarry(math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C).first;
     }
 
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     const auto [result, carry, overflow] = math::addWithCarry(~Rn, imm32, true);
 
@@ -416,15 +422,15 @@ void cmdRsbImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdMul(T opCode, CpuRegisterSet& registers)
+void cmdMul(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, m, setFlags;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
@@ -433,7 +439,7 @@ void cmdMul(T opCode, CpuRegisterSet& registers)
         d = Rdm;
         n = Rn;
         m = Rdm;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [Rm, Rd, Rn] = math::split<T, Part<0, 4>, Part<8, 4>, Part<16, 4>>(opCode);
@@ -445,9 +451,9 @@ void cmdMul(T opCode, CpuRegisterSet& registers)
         setFlags = false;
     }
 
-    const auto& Rn = registers.reg(n);
-    const auto& Rm = registers.reg(m);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    const auto& Rm = cpu.registers().reg(m);
+    auto& Rd = cpu.registers().reg(d);
 
     const auto result = Rn * Rm;
 
@@ -459,15 +465,15 @@ void cmdMul(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, Bitwise bitwise, typename T>
-void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
+void cmdBitwiseRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, n, setFlags;
     uint32_t shifted;
@@ -477,9 +483,9 @@ void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
 
         d = Rdn;
         n = Rdn;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
 
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
         carry = APSR.C;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -502,11 +508,11 @@ void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
         n = Rn;
         setFlags = S;
 
-        std::tie(shifted, carry) = math::shiftWithCarry(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = math::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto& Rn = registers.reg(n);
-    auto& Rd = registers.reg(d);
+    const auto& Rn = cpu.registers().reg(n);
+    auto& Rd = cpu.registers().reg(d);
 
     uint32_t result;
     if constexpr (is_in<bitwise, Bitwise::AND>) {
@@ -531,15 +537,15 @@ void cmdBitwiseRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdMvnRegister(T opCode, CpuRegisterSet& registers)
+void cmdMvnRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, setFlags;
     uint32_t shifted;
@@ -548,9 +554,9 @@ void cmdMvnRegister(T opCode, CpuRegisterSet& registers)
         const auto [Rd, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
 
         d = Rd;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
 
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
         carry = APSR.C;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -564,10 +570,10 @@ void cmdMvnRegister(T opCode, CpuRegisterSet& registers)
         d = Rd;
         setFlags = S;
 
-        std::tie(shifted, carry) = math::shiftWithCarry(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = math::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    auto& Rd = registers.reg(d);
+    auto& Rd = cpu.registers().reg(d);
 
     const auto result = ~shifted;
 
@@ -580,15 +586,15 @@ void cmdMvnRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
+void cmdMovImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, setFlags;
     uint32_t imm32;
@@ -597,7 +603,7 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
         const auto [imm8, Rd] = math::split<T, Part<0, 8>, Part<8, 3>>(opCode);
 
         d = Rd;
-        setFlags = !registers.isInItBlock();
+        setFlags = !cpu.isInItBlock();
         imm32 = static_cast<uint32_t>(imm8);
         carry = APSR.C;
     }
@@ -619,7 +625,7 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
         carry = APSR.C;
     }
 
-    auto& Rd = registers.reg(d);
+    auto& Rd = cpu.registers().reg(d);
 
     Rd = imm32;
     if (setFlags) {
@@ -630,22 +636,22 @@ void cmdMovImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdMovRegister(T opCode, CpuRegisterSet& registers)
+void cmdMovRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t d, m, setFlags;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [Rd, Rm, D] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
 
         d = math::combine<uint8_t>(Part<0, 3>{Rd}, Part<3, 1>{D});
-        assert(d != 15 || !registers.isInItBlock() || registers.isLastInItBlock());
+        assert(d != 15 || !cpu.isInItBlock() || cpu.isLastInItBlock());
 
         m = Rm;
         setFlags = false;
@@ -653,7 +659,7 @@ void cmdMovRegister(T opCode, CpuRegisterSet& registers)
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rd, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
 
-        assert(!registers.isInItBlock());
+        assert(!cpu.isInItBlock());
 
         d = Rd;
         m = Rm;
@@ -674,12 +680,12 @@ void cmdMovRegister(T opCode, CpuRegisterSet& registers)
         }
     }
 
-    auto& Rd = registers.reg(d);
+    auto& Rd = cpu.registers().reg(d);
 
-    const auto result = registers.reg(m);
+    const auto result = cpu.registers().reg(m);
 
     if (d == 15) {
-        registers.aluWritePC(result);
+        cpu.aluWritePC(result);
     }
     else {
         Rd = result;
@@ -691,15 +697,15 @@ void cmdMovRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdCmpImmediate(T opCode, CpuRegisterSet& registers)
+void cmdCmpImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t n;
     uint32_t imm32;
@@ -718,7 +724,7 @@ void cmdCmpImmediate(T opCode, CpuRegisterSet& registers)
             math::thumbExpandImmediateWithCarry(math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i}), APSR.C).first;
     }
 
-    const auto [result, carry, overflow] = math::addWithCarry(registers.reg(n), ~imm32, true);
+    const auto [result, carry, overflow] = math::addWithCarry(cpu.registers().reg(n), ~imm32, true);
 
     APSR.N = math::isNegative(result);
     APSR.Z = result == 0;
@@ -727,22 +733,22 @@ void cmdCmpImmediate(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, bool isNegative, typename T>
-void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
+void cmdCmpRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (check<!isNegative> && encoding == Encoding::T3));
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t n;
     uint32_t shifted;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [Rn, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
         n = Rn;
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
     }
     else if constexpr (check<!isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rn, Rm, N] = math::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
@@ -751,7 +757,7 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
         assert(n >= 8 || Rm >= 8);
         assert(n != 15 && Rm != 15);
 
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
     }
     else if constexpr ((check<!isNegative> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (check<isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
@@ -762,10 +768,10 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
         n = Rn;
         assert(n != 15 && Rm < 13);
 
-        shifted = math::shift(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = math::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto& Rn = registers.reg(n);
+    const auto& Rn = cpu.registers().reg(n);
 
     if constexpr (check<!isNegative>) {
         shifted = ~shifted;
@@ -780,15 +786,15 @@ void cmdCmpRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdTstRegister(T opCode, CpuRegisterSet& registers)
+void cmdTstRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
-    auto& APSR = registers.APSR();
+    auto& APSR = cpu.registers().APSR();
 
     uint8_t n;
     uint32_t shifted;
@@ -797,7 +803,7 @@ void cmdTstRegister(T opCode, CpuRegisterSet& registers)
         const auto [Rn, Rm] = math::split<T, Part<0, 3>, Part<3, 3>>(opCode);
 
         n = Rn;
-        shifted = registers.reg(Rm);
+        shifted = cpu.registers().reg(Rm);
         carry = APSR.C;
     }
     if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -807,10 +813,10 @@ void cmdTstRegister(T opCode, CpuRegisterSet& registers)
         const auto [shiftType, shiftN] = math::decodeImmediateShift(type, math::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3}));
 
         n = Rn;
-        std::tie(shifted, carry) = math::shiftWithCarry(registers.reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = math::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto result = registers.reg(n) & shifted;
+    const auto result = cpu.registers().reg(n) & shifted;
 
     APSR.N = math::isNegative(result);
     APSR.Z = result == 0;
@@ -818,9 +824,9 @@ void cmdTstRegister(T opCode, CpuRegisterSet& registers)
 }
 
 template <bool withLink>
-void cmdBranchAndExecuteRegister(uint16_t opCode, CpuRegisterSet& registers)
+void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
 {
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -829,24 +835,24 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, CpuRegisterSet& registers)
         UNPREDICTABLE_IF(m == 15);
     }
 
-    const auto& Rm = registers.reg(m);
+    const auto& Rm = cpu.registers().reg(m);
 
     if constexpr (check<withLink>) {
-        const auto nextInstruction = registers.reg(RegisterType::PC) - 2;
-        registers.reg(RegisterType::LR) = nextInstruction | 0b1u;
-        registers.blxWritePC(Rm);
+        const auto nextInstruction = cpu.registers().reg(RegisterType::PC) - 2;
+        cpu.registers().reg(RegisterType::LR) = nextInstruction | 0b1u;
+        cpu.blxWritePC(Rm);
     }
     else {
-        registers.bxWritePC(Rm);
+        cpu.bxWritePC(Rm);
     }
 }
 
 template <Encoding encoding, typename T>
-void cmdBranch(T opCode, CpuRegisterSet& registers)
+void cmdBranch(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -855,13 +861,13 @@ void cmdBranch(T opCode, CpuRegisterSet& registers)
         const auto [imm8, cond] = math::split<T, Part<0, 8, uint32_t>, Part<8, 4>>(opCode);
 
         imm32 = imm8 << 1;  // TODO: sign extend
-        UNPREDICTABLE_IF(registers.isInItBlock());
+        UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto imm11 = math::getPart<0, 11, uint32_t>(opCode);
 
         imm32 = imm11 << 1;  // TODO: sign extend
-        UNPREDICTABLE_IF(registers.isInItBlock() && !registers.isLastInItBlock());
+        UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto [imm11, J2, J1, imm6, cond, S] =
@@ -871,7 +877,7 @@ void cmdBranch(T opCode, CpuRegisterSet& registers)
 
         imm32 = math::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 6>{imm6}, Part<18, 1>{J1}, Part<19, 1>{J2}, Part<20, 1>{S});
 
-        UNPREDICTABLE_IF(registers.isInItBlock());
+        UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
         const auto [imm11, J2, J1, imm10, S] = math::getPart<T, Part<0, 11>, Part<11, 1>, Part<13, 1>, Part<16, 10>, Part<26, 1>>(opCode);
@@ -883,19 +889,19 @@ void cmdBranch(T opCode, CpuRegisterSet& registers)
 
         imm32 = math::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 10>{imm10}, Part<22, 1>{I2}, Part<23, 1>{I1}, Part<24, 1>{S});
 
-        UNPREDICTABLE_IF(registers.isInItBlock() && !registers.isLastInItBlock());
+        UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    auto& PC = registers.reg(RegisterType::PC);
-    registers.branchWritePC(PC + imm32);
+    auto& PC = cpu.registers().reg(RegisterType::PC);
+    cpu.branchWritePC(PC + imm32);
 }
 
 template <Encoding encoding, typename T>
-void cmdPermanentlyUndefined(T /*opCode*/, CpuRegisterSet& registers)
+void cmdPermanentlyUndefined(T /*opCode*/, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -903,9 +909,9 @@ void cmdPermanentlyUndefined(T /*opCode*/, CpuRegisterSet& registers)
 }
 
 
-inline void cmdCallSupervisor(uint16_t /*opCode*/, CpuRegisterSet& registers)
+inline void cmdCallSupervisor(uint16_t /*opCode*/, Cpu& cpu)
 {
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -913,11 +919,11 @@ inline void cmdCallSupervisor(uint16_t /*opCode*/, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdAdr(T opCode, CpuRegisterSet& registers)
+void cmdAdr(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -943,8 +949,8 @@ void cmdAdr(T opCode, CpuRegisterSet& registers)
         UNPREDICTABLE_IF(d >= 13);
     }
 
-    const auto PC = registers.reg(RegisterType::PC);
-    auto& Rd = registers.reg(d);
+    const auto PC = cpu.registers().reg(RegisterType::PC);
+    auto& Rd = cpu.registers().reg(d);
 
     if (add) {
         Rd = (PC & ~math::ONES<4, uint32_t>)+imm32;
@@ -955,11 +961,11 @@ void cmdAdr(T opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
-void cmdLoadRegisterLiteral(T opCode, CpuRegisterSet& registers, Memory& memory)
+void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!registers.conditionPassed()) {
+    if (!cpu.conditionPassed()) {
         return;
     }
 
@@ -980,7 +986,42 @@ void cmdLoadRegisterLiteral(T opCode, CpuRegisterSet& registers, Memory& memory)
         add = U;
     }
 
-    const auto base = registers.reg(RegisterType::PC) & ~math::ONES<2, uint32_t>;
+    const auto base = cpu.registers().reg(RegisterType::PC) & ~math::ONES<2, uint32_t>;
+
+    // TODO: finish memory write
+}
+
+inline void cmdCps(uint16_t opCode, Cpu& cpu)
+{
+    if (!cpu.isInPrivelegedMode()) {
+        return;
+    }
+
+    const auto [F, I, im] = math::split<uint16_t, Part<0, 1>, Part<1, 1>, Part<4, 1>>(opCode);
+
+    UNPREDICTABLE_IF(I == 0 && F == 0);
+
+    const auto affectPRI = I == 1u;
+    const auto affectFAULT = F == 1u;
+
+    UNPREDICTABLE_IF(cpu.isInItBlock());
+
+    if (im == 0) {
+        if (affectPRI) {
+            cpu.registers().PRIMASK().PM = false;
+        }
+        if (affectFAULT) {
+            cpu.registers().FAULTMASK().FM = false;
+        }
+    }
+    else {
+        if (affectPRI) {
+            cpu.registers().PRIMASK().PM = true;
+        }
+        if (affectFAULT && cpu.executionPriority() > -1) {
+            cpu.registers().FAULTMASK().FM = true;
+        }
+    }
 }
 
 }  // namespace stm32::opcodes

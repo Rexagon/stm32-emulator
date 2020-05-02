@@ -10,7 +10,4 @@
 
 TEST(cpu, Opcodes)
 {
-    stm32::CpuRegisterSet registers{};
-
-    stm32::opcodes::cmdShiftImmediate<stm32::opcodes::Encoding::T1, stm32::math::ShiftType::LSR>(uint16_t{}, registers);
 }
