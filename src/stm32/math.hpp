@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <tuple>
@@ -68,6 +69,31 @@ template <typename T>
 constexpr auto isNegative(const T& value) -> bool
 {
     return value & LEFT_BIT<T>;
+}
+
+constexpr auto reverseEndianness(const uint8_t& value) -> uint8_t
+{
+    return value;
+}
+
+constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
+{
+#ifdef __GNUC__
+    return __builtin_bswap16(value);
+#else
+    const auto [lo, hi] = math::split<uint16_t, Part<0, 8>, Part<8, 8>>(value);
+    return math::combite<uint16_t>(Part<0, 8>{hi}, Part<8, 8>{lo});
+#endif
+}
+
+constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
+{
+#ifdef __GNUC__
+    return __builtin_bswap32(value);
+#else
+    const auto [hw1lo, hw1hi, hw2lo, hw2hi] = math::split<uint16_t, Part<0, 8>, Part<8, 8>, Part<16, 8>, Part<24, 8>>(value);
+    return math::combite<uint16_t>(Part<0, 8>{hw2hi}, Part<8, 8>{hw2lo}, Part<16, 8>{hw1hi}, Part<24, 8>{hw1lo});
+#endif
 }
 
 template <typename T>
@@ -294,8 +320,21 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
 }
 
 template <typename T>
-auto replicate(T sign) -> T {
+auto replicate(T sign) -> T
+{
     // TODO
+}
+
+template <typename T>
+auto alignAddress(uint32_t address) -> T
+{
+    return address & ~ONES<std::log(sizeof(T)), uint32_t>;
+}
+
+template <typename T>
+auto isAddressAligned(uint32_t address) -> bool
+{
+    return (address & ~ONES<std::log(sizeof(T)), uint32_t>) == 0;
 }
 
 }  // namespace stm32::math

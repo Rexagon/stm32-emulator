@@ -3,6 +3,7 @@
 #include <bitset>
 
 #include "cpu_register_set.hpp"
+#include "math.hpp"
 #include "memory.hpp"
 #include "system_control_registers.hpp"
 
@@ -15,13 +16,16 @@ public:
     void reset();
     void step();
 
-    inline auto ITSTATE() -> uint8_t& { return m_ifThenState; }
-
     void branchWritePC(uint32_t address);
     void bxWritePC(uint32_t address);
     void blxWritePC(uint32_t address);
     inline void loadWritePC(uint32_t address) { bxWritePC(address); }
     inline void aluWritePC(uint32_t address) { branchWritePC(address); }
+
+    template <typename T>
+    auto basicMemoryRead(AddressDescriptor desc) -> T;
+    template <typename T>
+    auto alignedMemoryRead(uint32_t address) -> T;
 
     inline auto currentMode() -> ExecutionMode& { return m_currentMode; }
 
@@ -54,4 +58,14 @@ private:
 
     uint8_t m_ifThenState;
 };
+
+template <typename T>
+auto Cpu::alignedMemoryRead(uint32_t address) -> T
+{
+    if (!math::isAddressAligned<T>(address)) {
+        m_systemRegisters.UFSR().UNALIGNED = true;
+        // TODO: ExceptionTaken(UsageFault)
+    }
+}
+
 }  // namespace stm32

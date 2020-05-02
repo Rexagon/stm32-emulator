@@ -85,6 +85,28 @@ void Cpu::blxWritePC(uint32_t address)
     m_registers.PC() = address & ~uint32_t{0b1u};
 }
 
+template <>
+auto Cpu::basicMemoryRead<uint8_t>(AddressDescriptor desc) -> uint8_t
+{
+    return m_memory.read(desc.physicalAddress);
+}
+
+template <>
+auto Cpu::basicMemoryRead<uint16_t>(AddressDescriptor desc) -> uint16_t
+{
+    return math::combine<uint16_t>(math::Part<0, 8>{m_memory.read(desc.physicalAddress)},
+                                   math::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)});
+}
+
+template <>
+auto Cpu::basicMemoryRead<uint32_t>(AddressDescriptor desc) -> uint32_t
+{
+    return math::combine<uint32_t>(math::Part<0, 8>{m_memory.read(desc.physicalAddress)},
+                                   math::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)},
+                                   math::Part<16, 8>{m_memory.read(desc.physicalAddress + 2)},
+                                   math::Part<24, 8>{m_memory.read(desc.physicalAddress + 3)});
+}
+
 auto Cpu::currentCondition() const -> uint8_t
 {
     if (m_ifThenState & 0x0fu) {

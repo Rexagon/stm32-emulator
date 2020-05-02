@@ -3,7 +3,43 @@
 #include <cstdint>
 #include <vector>
 
-namespace stm32 {
+namespace stm32
+{
+enum class MemoryType : uint8_t {
+    Normal = 0b00u,
+    Device = 0b01u,
+    StronglyOrdered = 0b10u,
+};
+
+enum class CacheAttribute : uint8_t {
+    NonCacheable = 0b00u,
+    WBWA = 0b01u,   //  Write-back, write and read allocate
+    WT = 0b10u,     // Write-through, no write allocate
+    WBnWA = 0b11u,  // Write-back, no write allocate
+};
+
+// Memory attributes descriptor
+struct MemoryAttributes {
+    MemoryType type : 2;       // bits[1:0]
+    CacheAttribute inner : 2;  // bits[3:2]
+    CacheAttribute outer : 2;  // bits[5:4]
+    bool shareable : 1;        // bit[6]
+
+    uint8_t : 1;  // bit[7]
+                  // reserved
+};
+
+// Descriptor used to access the underlying memory array
+struct AddressDescriptor {
+    MemoryAttributes attributes;
+    uint32_t physicalAddress;
+};
+
+struct MemoryPermissions {
+    uint8_t accessPermissions;
+    bool executeNever;
+};
+
 class MemoryRegion {
 public:
     explicit MemoryRegion(uint32_t regionStart, uint32_t regionEnd);
