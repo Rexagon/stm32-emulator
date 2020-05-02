@@ -39,17 +39,22 @@ void Cpu::reset()
     m_registers.CONTROL().nPRIV = false;
     m_registers.CONTROL().SPSEL = false;
 
-    // TODO: reset system control space
+    m_exceptionActive.reset();
+
+    m_systemRegisters.reset();
     // TODO: clear exclusive local
+    clearEventRegister();
+
+    const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
 
     // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
     m_registers.SP_process() &= ~math::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
-    m_registers.reg(RegisterType::LR) = std::numeric_limits<uint32_t>::max();
+    m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
     // tmp = MemA_with_priv[vectortable+4, 4, AccType_VECTABLE];
     // tbit = tmp<0>;
 
-    // m_registers.APSR() is unknown
+    // NOTE: m_registers.APSR() is unknown
     m_registers.IPSR().exceptionNumber = 0u;
     m_registers.EPSR().T = false;  // TODO: change to tbit
     m_registers.EPSR().ITlo = 0u;

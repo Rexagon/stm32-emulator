@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bitset>
+
 #include "cpu_register_set.hpp"
 #include "memory.hpp"
 #include "system_control_registers.hpp"
@@ -32,6 +34,10 @@ public:
     auto isInPrivelegedMode() const -> bool;
     auto executionPriority() const -> int32_t;
 
+    inline void setEventRegister() { m_eventRegister = true; }
+    inline void clearEventRegister() { m_eventRegister = false; }
+    inline auto wasEventRegistered() -> bool { return m_eventRegister; }
+
     inline auto registers() -> CpuRegisterSet& { return m_registers; }
     inline auto systemRegisters() -> SystemControlRegistersSet& { return m_systemRegisters; }
     inline auto memory() -> Memory& { return m_memory; }
@@ -42,6 +48,9 @@ private:
     Memory m_memory;
 
     ExecutionMode m_currentMode;
+    std::bitset<512> m_exceptionActive;
+
+    bool m_eventRegister = false;
 
     uint8_t m_ifThenState;
 };

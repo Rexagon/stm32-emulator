@@ -745,9 +745,6 @@ public:
     inline auto SHCSR() const -> const SystemHandlerControlAndStateRegister& { return m_systemHandlerControlAndStateRegister; }
 
     inline auto CFSR() const -> const ConfigurableFaultStatusRegister& { return m_configurableFaultStatusRegister; }
-    inline auto MMFSR() const -> const MemManageStatusRegister& { return m_memManageStatusRegister; }
-    inline auto BFSR() const -> const BusFaultStatusRegister& { return m_busFaultStatusRegister; }
-    inline auto UFSR() const -> const UsageFaultStatusRegister& { return m_usageFaultStatusRegister; }
     inline auto HFSR() const -> const HardFaultStatusRegister& { return m_hardFaultStatusRegister; }
     inline auto AFSR() const -> const AuxiliaryFaultStatusRegister& { return m_auxiliaryFaultStatusRegister; }
 
@@ -778,9 +775,6 @@ private:
     SystemHandlerControlAndStateRegister m_systemHandlerControlAndStateRegister;
 
     ConfigurableFaultStatusRegister m_configurableFaultStatusRegister;
-    MemManageStatusRegister m_memManageStatusRegister;
-    BusFaultStatusRegister m_busFaultStatusRegister;
-    UsageFaultStatusRegister m_usageFaultStatusRegister;
     HardFaultStatusRegister m_hardFaultStatusRegister;
     AuxiliaryFaultStatusRegister m_auxiliaryFaultStatusRegister;
 
