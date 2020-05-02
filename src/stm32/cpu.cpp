@@ -43,7 +43,7 @@ void VirtualCpu::reset()
     m_registers.EPSR().T = false;  // TODO: change to tbit
     m_registers.EPSR().ITlo = 0u;
     m_registers.EPSR().IThi = 0u;
-    m_registers.branchWritePC(0u); // TODO: change to tmp & ~1u
+    m_registers.branchWritePC(0u);  // TODO: change to tmp & ~1u
 }
 
 inline void handleMathInstruction(uint16_t opCode, CpuRegisterSet& registers)
@@ -263,14 +263,16 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, CpuRegisterSet& /*reg
     }
 }
 
-inline void handleGeneratePcRelativeAddress(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleGeneratePcRelativeAddress(uint16_t opCode, CpuRegisterSet& registers)
 {
-    // TODO: A7.7.7
+    // see: A7.7.7
+    opcodes::cmdAdr<opcodes::Encoding::T1>(opCode, registers);
 }
 
-inline void handleGenerateSpRelativeAddress(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleGenerateSpRelativeAddress(uint16_t opCode, CpuRegisterSet& registers)
 {
-    // TODO: A7.7.5
+    // see: A7.7.5
+    opcodes::cmdAddSpPlusImmediate<opcodes::Encoding::T1>(opCode, registers);
 }
 
 inline void handleMiscInstruction(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
@@ -364,25 +366,26 @@ inline void handleLoadMultipleRegisters(uint16_t /*opCode*/, CpuRegisterSet& /*r
     // TODO: A7.7.40
 }
 
-inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleConditionalBranch(uint16_t opCode, CpuRegisterSet& registers)
 {
     // see A5.2.6
     switch (math::getPart<8, 4>(opCode)) {
         case 0b1110u:
-            // TODO: A7-471
-            return;
+            // see: A7-471
+            return opcodes::cmdPermanentlyUndefined<opcodes::Encoding::T1>(opCode, registers);
         case 0b1111u:
-            // TODO: A7-455
-            return;
+            // see: A7-455
+            return opcodes::cmdCallSupervisor(opCode, registers);
         default:
-            // TODO: A7-207
-            return;
+            // see: A7-207
+            return opcodes::cmdBranch<opcodes::Encoding::T1>(opCode, registers);
     }
 }
 
-inline void handleUnconditionalBranch(uint16_t /*opCode*/, CpuRegisterSet& /*registers*/, Memory& /*memory*/)
+inline void handleUnconditionalBranch(uint16_t opCode, CpuRegisterSet& registers)
 {
-    // TODO: A7.7.12
+    // see: A7.7.12
+    opcodes::cmdBranch<opcodes::Encoding::T2>(opCode, registers);
 }
 
 void VirtualCpu::step()
@@ -390,7 +393,7 @@ void VirtualCpu::step()
     auto& PC = m_registers.reg(RegisterType::PC);
 
     const auto opCodeHw1Low = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t>);
-    const auto opCodeHw1High = m_memory.read((PC & ~math::RIGHT_BIT<uint32_t>) + 1u);
+    const auto opCodeHw1High = m_memory.read((PC & ~math::RIGHT_BIT<uint32_t>)+1u);
     PC += 2u;
 
     if (is32bitInstruction(opCodeHw1High)) {
@@ -428,10 +431,10 @@ void VirtualCpu::step()
                 handleLoadStoreSingleDataItem(opCode, m_registers, m_memory);
                 break;
             case 0b10100'0u ... 0b10100'1u:
-                handleGeneratePcRelativeAddress(opCode, m_registers, m_memory);
+                handleGeneratePcRelativeAddress(opCode, m_registers);
                 break;
             case 0b10101'0u ... 0b10101'1u:
-                handleGenerateSpRelativeAddress(opCode, m_registers, m_memory);
+                handleGenerateSpRelativeAddress(opCode, m_registers);
                 break;
             case 0b1011'00u ... 0b1011'11u:
                 handleMiscInstruction(opCode, m_registers, m_memory);
@@ -443,10 +446,10 @@ void VirtualCpu::step()
                 handleLoadMultipleRegisters(opCode, m_registers, m_memory);
                 break;
             case 0b1101'00u ... 0b1101'11u:
-                handleConditionalBranch(opCode, m_registers, m_memory);
+                handleConditionalBranch(opCode, m_registers);
                 break;
             case 0b11100'0u ... 0b11100'0u:
-                handleUnconditionalBranch(opCode, m_registers, m_memory);
+                handleUnconditionalBranch(opCode, m_registers);
                 break;
             default:
                 UNPREDICTABLE;

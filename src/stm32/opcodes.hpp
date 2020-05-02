@@ -254,6 +254,67 @@ void cmdAddSubRegister(T opCode, CpuRegisterSet& registers)
     }
 }
 
+template <Encoding encoding, typename T>
+void cmdAddSpPlusImmediate(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    auto& APSR = registers.APSR();
+
+    uint8_t d, setFlags;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, Rd] = math::split<T, Part<0, 8, uint32_t>, Part<8, 3>>(opCode);
+
+        d = Rd;
+        setFlags = false;
+        imm32 = imm8 << 2u;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+        const auto imm7 = math::getPart<0, 7, uint32_t>(opCode);
+
+        d = RegisterType::SP;
+        setFlags = false;
+        imm32 = imm7 << 2u;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto [imm8, Rd, imm3, S, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<20, 1>, Part<26, 1>>(opCode);
+
+        d = Rd;
+        setFlags = S;
+        imm32 =
+            math::thumbExpandImmediateWithCarry(math::combine<uint16_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<11, 1>{i}), APSR.C).first;
+
+        UNPREDICTABLE_IF(d == 15 && S == 0);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
+        const auto [imm8, Rd, imm3, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<26, 1>>(opCode);
+
+        d = Rd;
+        setFlags = false;
+        imm32 = math::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<11, 1>{i});
+
+        UNPREDICTABLE_IF(d == 15);
+    }
+
+    const auto& SP = registers.reg(RegisterType::SP);
+    auto& Rd = registers.reg(d);
+
+    const auto [result, carry, overflow] = math::addWithCarry(SP, imm32, false);
+
+    Rd = result;
+    if (setFlags) {
+        APSR.N = math::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+        APSR.V = overflow;
+    }
+}
+
 template <Encoding encoding, bool isSbc, typename T>
 void cmdAdcSbcRegister(T opCode, CpuRegisterSet& registers)
 {
@@ -781,8 +842,123 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, CpuRegisterSet& registers)
 }
 
 template <Encoding encoding, typename T>
+void cmdBranch(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, cond] = math::split<T, Part<0, 8, uint32_t>, Part<8, 4>>(opCode);
+
+        imm32 = imm8 << 1;  // TODO: sign extend
+        UNPREDICTABLE_IF(registers.isInItBlock());
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+        const auto imm11 = math::getPart<0, 11, uint32_t>(opCode);
+
+        imm32 = imm11 << 1;  // TODO: sign extend
+        UNPREDICTABLE_IF(registers.isInItBlock() && !registers.isLastInItBlock());
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto [imm11, J2, J1, imm6, cond, S] =
+            math::getPart<T, Part<0, 11>, Part<11, 1>, Part<13, 1>, Part<16, 6>, Part<22, 4>, Part<26, 1>>(opCode);
+
+        // TODO: sign extend
+
+        imm32 = math::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 6>{imm6}, Part<18, 1>{J1}, Part<19, 1>{J2}, Part<20, 1>{S});
+
+        UNPREDICTABLE_IF(registers.isInItBlock());
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
+        const auto [imm11, J2, J1, imm10, S] = math::getPart<T, Part<0, 11>, Part<11, 1>, Part<13, 1>, Part<16, 10>, Part<26, 1>>(opCode);
+
+        const auto I1 = ~(J1 ^ S);
+        const auto I2 = ~(J2 ^ S);
+
+        // TODO: sign extend
+
+        imm32 = math::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 10>{imm10}, Part<22, 1>{I2}, Part<23, 1>{I1}, Part<24, 1>{S});
+
+        UNPREDICTABLE_IF(registers.isInItBlock() && !registers.isLastInItBlock());
+    }
+
+    auto& PC = registers.reg(RegisterType::PC);
+    registers.branchWritePC(PC + imm32);
+}
+
+template <Encoding encoding, typename T>
+void cmdPermanentlyUndefined(T /*opCode*/, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    // TODO: raise UNDEFINED
+}
+
+
+inline void cmdCallSupervisor(uint16_t /*opCode*/, CpuRegisterSet& registers)
+{
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    // TODO: call supervisor
+}
+
+template <Encoding encoding, typename T>
+void cmdAdr(T opCode, CpuRegisterSet& registers)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+
+    if (!registers.conditionPassed()) {
+        return;
+    }
+
+    uint8_t d, add;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [imm8, Rd] = math::split<T, Part<0, 8, uint32_t>, Part<8, 3>>(opCode);
+
+        d = Rd;
+        imm32 = imm8;
+        add = true;
+
+        UNPREDICTABLE_IF(d >= 13);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T> ||
+                       is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto [imm8, Rd, imm3, S, i] = math::split<T, Part<0, 8>, Part<8, 4>, Part<12, 3>, Part<23, 1>, Part<26, 1>>(opCode);
+
+        d = Rd;
+        imm32 = math::combine<T>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<11, 1>{i});
+        add = S == 0u;
+
+        UNPREDICTABLE_IF(d >= 13);
+    }
+
+    const auto PC = registers.reg(RegisterType::PC);
+    auto& Rd = registers.reg(d);
+
+    if (add) {
+        Rd = (PC & ~math::ONES<4, uint32_t>)+imm32;
+    }
+    else {
+        Rd = (PC & ~math::ONES<4, uint32_t>)-imm32;
+    }
+}
+
+template <Encoding encoding, typename T>
 void cmdLoadRegisterLiteral(T opCode, CpuRegisterSet& registers, Memory& memory)
 {
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
     if (!registers.conditionPassed()) {
         return;
     }
@@ -805,8 +981,6 @@ void cmdLoadRegisterLiteral(T opCode, CpuRegisterSet& registers, Memory& memory)
     }
 
     const auto base = registers.reg(RegisterType::PC) & ~math::ONES<2, uint32_t>;
-
-
 }
 
 }  // namespace stm32::opcodes

@@ -284,12 +284,18 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
             }
             default:
                 UNPREDICTABLE;
+                return {};
         }
     }
     else {
         const auto unrotatedValue = static_cast<uint32_t>(getPart<0, 7>(immediate)) | BIT<7, uint32_t>;
         return rorWithCarry(unrotatedValue, getPart<7, 5, uint16_t, uint8_t>(immediate));
     }
+}
+
+template <typename T>
+auto replicate(T sign) -> T {
+    // TODO
 }
 
 }  // namespace stm32::math
