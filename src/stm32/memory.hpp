@@ -19,7 +19,7 @@ enum class CacheAttribute : uint8_t {
 };
 
 // Memory attributes descriptor
-struct MemoryAttributes {
+struct __attribute__((__packed__)) MemoryAttributes {
     MemoryType type : 2;       // bits[1:0]
     CacheAttribute inner : 2;  // bits[3:2]
     CacheAttribute outer : 2;  // bits[5:4]

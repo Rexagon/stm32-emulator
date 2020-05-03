@@ -5,7 +5,9 @@
 #include "cpu_register_set.hpp"
 #include "math.hpp"
 #include "memory.hpp"
-#include "system_control_registers.hpp"
+#include "system_control/nvic_registers_set.hpp"
+#include "system_control/sys_tick_registers_set.hpp"
+#include "system_control/system_control_registers_set.hpp"
 
 namespace stm32
 {
@@ -43,12 +45,16 @@ public:
     inline auto wasEventRegistered() -> bool { return m_eventRegister; }
 
     inline auto registers() -> CpuRegisterSet& { return m_registers; }
-    inline auto systemRegisters() -> SystemControlRegistersSet& { return m_systemRegisters; }
+    inline auto systemRegisters() -> sc::SystemControlRegistersSet& { return m_systemRegisters; }
+    inline auto sysTickRegisters() -> sc::SysTickRegistersSet& { return m_sysTickRegisters; }
+    inline auto nvicRegisters() -> sc::NvicRegistersSet& { return m_nvicRegisters; }
     inline auto memory() -> Memory& { return m_memory; }
 
 private:
     CpuRegisterSet m_registers;
-    SystemControlRegistersSet m_systemRegisters;
+    sc::SystemControlRegistersSet m_systemRegisters;
+    sc::SysTickRegistersSet m_sysTickRegisters;
+    sc::NvicRegistersSet m_nvicRegisters;
     Memory m_memory;
 
     ExecutionMode m_currentMode;
@@ -63,7 +69,7 @@ template <typename T>
 auto Cpu::alignedMemoryRead(uint32_t address) -> T
 {
     if (!math::isAddressAligned<T>(address)) {
-        m_systemRegisters.UFSR().UNALIGNED = true;
+        m_systemRegisters.UFSR().UNALIGNED_ = true;
         // TODO: ExceptionTaken(UsageFault)
     }
 }

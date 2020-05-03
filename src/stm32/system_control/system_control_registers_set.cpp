@@ -1,20 +1,11 @@
 // This is #include #include "opcodes.hpp""opcodes.hpp"an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include "system_control_registers.hpp"
+#include "system_control_registers_set.hpp"
 
-namespace
-{
-template <typename T, typename V = uint32_t>
-void resetRegisterValue(T& reg, V value = V{0})
-{
-    static_assert(sizeof(T) != sizeof(V));
-    *reinterpret_cast<V*>(&reg) = value;
-}
+#include "../utils.hpp"
 
-}  // namespace
-
-namespace stm32
+namespace stm32::sc
 {
 SystemControlRegistersSet::SystemControlRegistersSet()
     : m_cpuIdBaseRegister{}
@@ -33,10 +24,6 @@ SystemControlRegistersSet::SystemControlRegistersSet()
     , m_auxiliaryControlRegister{}
     , m_interruptControllerTypeRegister{}
     , m_softwareTriggeredInterruptRegister{}
-    , m_sysTickControlAndStatusRegister{}
-    , m_sysTickReloadValueRegister{}
-    , m_sysTickCurrentValueRegister{}
-    , m_sysTickCalibrationValueRegister{}
 {
     reset();
 }
@@ -65,14 +52,9 @@ void SystemControlRegistersSet::reset()
     resetRegisterValue(m_coprocessorAccessControlRegister);
     resetRegisterValue(m_auxiliaryControlRegister);
 
-    resetRegisterValue(m_interruptControllerTypeRegister, 0x00000001u); // TODO: check value on real microcontroller
+    resetRegisterValue(m_interruptControllerTypeRegister, 0x00000111u);  // TODO: check value on real microcontroller
 
     resetRegisterValue(m_softwareTriggeredInterruptRegister);
-
-    resetRegisterValue(m_sysTickControlAndStatusRegister);
-    // STRVR is unknown on reset
-    // STRVR is unknown on reset
-    resetRegisterValue(m_sysTickCalibrationValueRegister); // TODO: check value on real microcontroller
 }
 
-}  // namespace stm32
+}  // namespace stm32::sc

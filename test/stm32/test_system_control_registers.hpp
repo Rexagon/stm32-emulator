@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
-#include <stm32/system_control_registers.hpp>
+#include <stm32/system_control/system_control_registers_set.hpp>
 #include <typeinfo>
 
 namespace details {
@@ -17,11 +17,12 @@ enum RegisterSize { Byte = 1u, HalfWord = 2u, Word = 4u };
 TEST(system_control_registers, alignment)
 {
     using namespace details;
+    using namespace sc;
 
     CHECK_REGISTER(CpuIdBaseRegister, Word);
     CHECK_REGISTER(InterruptControlAndStateRegister, Word);
     CHECK_REGISTER(VectorTableOffsetRegister, Word);
-    CHECK_REGISTER(ApplicationInterruptAndResetControlRegister, HalfWord);
+    CHECK_REGISTER(ApplicationInterruptAndResetControlRegister, Word);
     CHECK_REGISTER(SystemControlRegister, Word);
     CHECK_REGISTER(ConfigurationAndControlRegister, Word);
     CHECK_REGISTER(SystemHandlerPriorityRegister, Word);

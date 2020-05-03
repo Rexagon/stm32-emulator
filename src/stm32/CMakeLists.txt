@@ -17,15 +17,25 @@ set(${SUBPROJ_NAME}_HEADERS
         "memory.hpp"
         "opcodes.hpp"
         "stm32.hpp"
-        "system_control_registers.hpp"
-        "utils.hpp")
+        "utils.hpp"
+        "system_control/mpu_registers.hpp"
+        "system_control/mpu_registers_set.hpp"
+        "system_control/nvic_registers.hpp"
+        "system_control/nvic_registers_set.hpp"
+        "system_control/sys_tick_registers.hpp"
+        "system_control/sys_tick_registers_set.hpp"
+        "system_control/system_control_registers.hpp"
+        "system_control/system_control_registers_set.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
         "cpu_register_set.cpp"
         "memory.cpp"
         "stm32.cpp"
-        "system_control_registers.cpp")
+        "system_control/mpu_registers_set.cpp"
+        "system_control/nvic_registers_set.cpp"
+        "system_control/sys_tick_registers_set.cpp"
+        "system_control/system_control_registers_set.cpp")
 
 # ############################################################### #
 # Options ####################################################### #

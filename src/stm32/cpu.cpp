@@ -22,8 +22,11 @@ namespace stm32
 Cpu::Cpu(const Memory::Config& memoryConfig)
     : m_registers{}
     , m_systemRegisters{}
+    , m_sysTickRegisters{}
+    , m_nvicRegisters{}
     , m_memory{memoryConfig}
     , m_currentMode{}
+    , m_exceptionActive{}
     , m_ifThenState{}
 {
 }
@@ -42,10 +45,12 @@ void Cpu::reset()
     m_exceptionActive.reset();
 
     m_systemRegisters.reset();
+    m_sysTickRegisters.reset();
+    m_nvicRegisters.reset();
     // TODO: clear exclusive local
     clearEventRegister();
 
-    const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
+    // const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
 
     // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
     m_registers.SP_process() &= ~math::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
