@@ -2,7 +2,7 @@
 
 #include "mpu_registers.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 class MpuRegistersSet {
 public:

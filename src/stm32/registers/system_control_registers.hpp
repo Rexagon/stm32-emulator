@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace stm32::sc
+namespace stm32::rg
 {
 /**
  * Specifies the ID number of the processor core, the version number of the processor core and the implementation

@@ -7,9 +7,9 @@
 #include <tuple>
 #include <utility>
 
-#include "utils.hpp"
+#include "stm32/utils/general.hpp"
 
-namespace stm32::math
+namespace stm32::utils
 {
 template <typename T, typename R = T>
 constexpr R MAX_SHIFT = static_cast<R>(sizeof(T) * 8u - 1u);
@@ -81,8 +81,8 @@ constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
 #ifdef __GNUC__
     return __builtin_bswap16(value);
 #else
-    const auto [lo, hi] = math::split<uint16_t, Part<0, 8>, Part<8, 8>>(value);
-    return math::combite<uint16_t>(Part<0, 8>{hi}, Part<8, 8>{lo});
+    const auto [lo, hi] = split<uint16_t, Part<0, 8>, Part<8, 8>>(value);
+    return combite<uint16_t>(Part<0, 8>{hi}, Part<8, 8>{lo});
 #endif
 }
 
@@ -91,8 +91,8 @@ constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
 #ifdef __GNUC__
     return __builtin_bswap32(value);
 #else
-    const auto [hw1lo, hw1hi, hw2lo, hw2hi] = math::split<uint16_t, Part<0, 8>, Part<8, 8>, Part<16, 8>, Part<24, 8>>(value);
-    return math::combite<uint16_t>(Part<0, 8>{hw2hi}, Part<8, 8>{hw2lo}, Part<16, 8>{hw1hi}, Part<24, 8>{hw1lo});
+    const auto [hw1lo, hw1hi, hw2lo, hw2hi] = split<uint16_t, Part<0, 8>, Part<8, 8>, Part<16, 8>, Part<24, 8>>(value);
+    return combite<uint16_t>(Part<0, 8>{hw2hi}, Part<8, 8>{hw2lo}, Part<16, 8>{hw1hi}, Part<24, 8>{hw1lo});
 #endif
 }
 
@@ -289,22 +289,22 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
 {
     assert((immediate >> 12u) == 0u);
 
-    if (math::getPart<10, 2>(immediate) == 0) {
-        switch (math::getPart<8, 2>(immediate)) {
+    if (utils::getPart<10, 2>(immediate) == 0) {
+        switch (utils::getPart<8, 2>(immediate)) {
             case 0b00u:
                 return {static_cast<uint32_t>(immediate), carryIn};
             case 0b01u: {
-                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
                 return {combine<uint32_t>(Part<0, 8>{value}, Part<16, 8>{value}), carryIn};
             }
             case 0b10u: {
-                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
                 return {combine<uint32_t>(Part<8, 8>{value}, Part<24, 8>{value}), carryIn};
             }
             case 0b11u: {
-                const auto value = math::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
                 return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<16, 16>{value}, Part<24, 8>{value}), carryIn};
             }
@@ -337,4 +337,4 @@ auto isAddressAligned(uint32_t address) -> bool
     return (address & ~ONES<std::log(sizeof(T)), uint32_t>) == 0;
 }
 
-}  // namespace stm32::math
+}  // namespace stm32::utils

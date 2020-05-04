@@ -2,18 +2,18 @@
 
 #include <gtest/gtest.h>
 
-#include <stm32/math.hpp>
+#include <stm32/utils/math.hpp>
 
 TEST(math, ONES)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ((ONES<4, uint8_t>), 0b1111u);
 }
 
 TEST(math, parts)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     const auto [first, second] = split<uint16_t, Part<0, 8>, Part<4, 5>>(0x1f22u);
     ASSERT_EQ(first, 0x22u);
@@ -26,7 +26,7 @@ TEST(math, parts)
 
 TEST(math, LSL)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ(lsl(0x00000001u, 1), 0x00000002u);
     ASSERT_EQ(lsl(0xf0000001u, 1), 0xE0000002u);
@@ -37,7 +37,7 @@ TEST(math, LSL)
 
 TEST(math, LSR)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ(lsr(0x00000002u, 1), 0x00000001u);
     ASSERT_EQ(lsr(0x80000002u, 1), 0x40000001u);
@@ -48,7 +48,7 @@ TEST(math, LSR)
 
 TEST(math, ASR)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ(asr(0x80000002u, 1), 0xC0000001u);
     ASSERT_EQ(asr(0x80000002u, 1), 0xC0000001u);
@@ -59,7 +59,7 @@ TEST(math, ASR)
 
 TEST(math, ROR)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ(ror(0x00000003u, 1), 0x80000001u);
     ASSERT_EQ(ror(0x80000003u, 1), 0xC0000001u);
@@ -74,7 +74,7 @@ TEST(math, ROR)
 
 TEST(math, RRX)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     ASSERT_EQ(rrx(0x00000003u, true), 0x80000001u);
     ASSERT_EQ(rrx(0x00000003u, false), 0x00000001u);
@@ -85,7 +85,7 @@ TEST(math, RRX)
 
 TEST(math, ADC)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     const auto neg = []<typename T>(T value) -> T { return static_cast<T>(~value) + 1u; };
 
@@ -101,7 +101,7 @@ TEST(math, ADC)
 
 TEST(math, thumbExpandImmediateWithCarry)
 {
-    using namespace stm32::math;
+    using namespace stm32::utils;
 
     const auto pack = [](uint8_t high, uint8_t mid, uint8_t low) -> uint16_t {
         return combine<uint16_t>(Part<0, 8>{low}, Part<8, 2>{mid}, Part<10, 2>{high});

@@ -2,15 +2,23 @@
 
 #include <bitset>
 
-#include "cpu_register_set.hpp"
-#include "math.hpp"
 #include "memory.hpp"
-#include "system_control/nvic_registers_set.hpp"
-#include "system_control/sys_tick_registers_set.hpp"
-#include "system_control/system_control_registers_set.hpp"
+#include "registers/cpu_registers_set.hpp"
+#include "registers/nvic_registers_set.hpp"
+#include "registers/sys_tick_registers_set.hpp"
+#include "registers/system_control_registers_set.hpp"
+#include "utils/math.hpp"
 
 namespace stm32
 {
+/**
+ * The M-profile execution modes
+ */
+enum class ExecutionMode {
+    Thread,
+    Handler,
+};
+
 class Cpu {
 public:
     explicit Cpu(const Memory::Config& memoryConfig);
@@ -44,17 +52,18 @@ public:
     inline void clearEventRegister() { m_eventRegister = false; }
     inline auto wasEventRegistered() -> bool { return m_eventRegister; }
 
-    inline auto registers() -> CpuRegisterSet& { return m_registers; }
-    inline auto systemRegisters() -> sc::SystemControlRegistersSet& { return m_systemRegisters; }
-    inline auto sysTickRegisters() -> sc::SysTickRegistersSet& { return m_sysTickRegisters; }
-    inline auto nvicRegisters() -> sc::NvicRegistersSet& { return m_nvicRegisters; }
+    inline auto registers() -> rg::CpuRegistersSet& { return m_registers; }
+    inline auto systemRegisters() -> rg::SystemControlRegistersSet& { return m_systemRegisters; }
+    inline auto sysTickRegisters() -> rg::SysTickRegistersSet& { return m_sysTickRegisters; }
+    inline auto nvicRegisters() -> rg::NvicRegistersSet& { return m_nvicRegisters; }
+
     inline auto memory() -> Memory& { return m_memory; }
 
 private:
-    CpuRegisterSet m_registers;
-    sc::SystemControlRegistersSet m_systemRegisters;
-    sc::SysTickRegistersSet m_sysTickRegisters;
-    sc::NvicRegistersSet m_nvicRegisters;
+    rg::CpuRegistersSet m_registers;
+    rg::SystemControlRegistersSet m_systemRegisters;
+    rg::SysTickRegistersSet m_sysTickRegisters;
+    rg::NvicRegistersSet m_nvicRegisters;
     Memory m_memory;
 
     ExecutionMode m_currentMode;
@@ -68,7 +77,7 @@ private:
 template <typename T>
 auto Cpu::alignedMemoryRead(uint32_t address) -> T
 {
-    if (!math::isAddressAligned<T>(address)) {
+    if (!utils::isAddressAligned<T>(address)) {
         m_systemRegisters.UFSR().UNALIGNED_ = true;
         // TODO: ExceptionTaken(UsageFault)
     }

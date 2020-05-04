@@ -3,9 +3,9 @@
 
 #include "sys_tick_registers_set.hpp"
 
-#include "../utils.hpp"
+#include "stm32/utils/general.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 SysTickRegistersSet::SysTickRegistersSet()
     : m_sysTickControlAndStatusRegister{}

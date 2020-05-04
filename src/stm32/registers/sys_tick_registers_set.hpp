@@ -2,7 +2,7 @@
 
 #include "sys_tick_registers.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 class SysTickRegistersSet {
 public:

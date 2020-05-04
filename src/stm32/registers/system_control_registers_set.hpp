@@ -2,7 +2,7 @@
 
 #include "system_control_registers.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 class SystemControlRegistersSet {
 public:

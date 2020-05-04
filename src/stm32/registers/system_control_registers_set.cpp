@@ -3,9 +3,9 @@
 
 #include "system_control_registers_set.hpp"
 
-#include "../utils.hpp"
+#include "stm32/utils/general.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 SystemControlRegistersSet::SystemControlRegistersSet()
     : m_cpuIdBaseRegister{}

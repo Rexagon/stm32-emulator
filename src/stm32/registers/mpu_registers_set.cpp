@@ -3,7 +3,7 @@
 
 #include "mpu_registers_set.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 MpuRegistersSet::MpuRegistersSet()
 {

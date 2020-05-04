@@ -12,30 +12,31 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
         "cpu.hpp"
-        "cpu_register_set.hpp"
-        "math.hpp"
         "memory.hpp"
         "opcodes.hpp"
         "stm32.hpp"
-        "utils.hpp"
-        "system_control/mpu_registers.hpp"
-        "system_control/mpu_registers_set.hpp"
-        "system_control/nvic_registers.hpp"
-        "system_control/nvic_registers_set.hpp"
-        "system_control/sys_tick_registers.hpp"
-        "system_control/sys_tick_registers_set.hpp"
-        "system_control/system_control_registers.hpp"
-        "system_control/system_control_registers_set.hpp")
+        "utils/general.hpp"
+        "utils/math.hpp"
+        "registers/cpu_registers.hpp"
+        "registers/cpu_registers_set.hpp"
+        "registers/mpu_registers.hpp"
+        "registers/mpu_registers_set.hpp"
+        "registers/nvic_registers.hpp"
+        "registers/nvic_registers_set.hpp"
+        "registers/sys_tick_registers.hpp"
+        "registers/sys_tick_registers_set.hpp"
+        "registers/system_control_registers.hpp"
+        "registers/system_control_registers_set.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
-        "cpu_register_set.cpp"
         "memory.cpp"
         "stm32.cpp"
-        "system_control/mpu_registers_set.cpp"
-        "system_control/nvic_registers_set.cpp"
-        "system_control/sys_tick_registers_set.cpp"
-        "system_control/system_control_registers_set.cpp")
+        "registers/cpu_registers_set.cpp"
+        "registers/mpu_registers_set.cpp"
+        "registers/nvic_registers_set.cpp"
+        "registers/sys_tick_registers_set.cpp"
+        "registers/system_control_registers_set.cpp")
 
 # ############################################################### #
 # Options ####################################################### #

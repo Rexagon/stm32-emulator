@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
+
 #include "nvic_registers.hpp"
 
-namespace stm32::sc
+namespace stm32::rg
 {
 class NvicRegistersSet {
 public:
@@ -21,11 +23,11 @@ public:
     auto IPR(uint8_t n) const -> const InterruptPriorityRegister&;
 
 private:
-    uint32_t m_interruptEnableStates[8];
-    uint32_t m_interruptPendingStates[8];
+    std::array<uint32_t, 8> m_interruptEnableStates;
+    std::array<uint32_t, 8> m_interruptPendingStates;
 
-    InterruptActiveBitRegister m_interruptActiveBitRegisters[8];
-    InterruptPriorityRegister m_interruptPriorityRegister[60];
+    std::array<InterruptActiveBitRegister, 8> m_interruptActiveBitRegisters;
+    std::array<InterruptPriorityRegister, 60> m_interruptPriorityRegisters;
 };
 
 }  // namespace stm32::sc

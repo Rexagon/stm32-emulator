@@ -1,15 +1,15 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
-#include "cpu_register_set.hpp"
+#include "cpu_registers_set.hpp"
 
 #include <cassert>
 
-#include "math.hpp"
+#include "stm32/utils/math.hpp"
 
-namespace stm32
+namespace stm32::rg
 {
-CpuRegisterSet::CpuRegisterSet()
+CpuRegistersSet::CpuRegistersSet()
     : m_exceptionMaskRegister{}
     , m_basePriorityMaskRegister{}
     , m_faultMaskRegister{}
@@ -17,7 +17,17 @@ CpuRegisterSet::CpuRegisterSet()
 {
 }
 
-auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
+void CpuRegistersSet::reset()
+{
+    m_exceptionMaskRegister.PM = false;
+    m_faultMaskRegister.FM = false;
+    m_basePriorityMaskRegister.level = 0u;
+
+    m_controlRegister.nPRIV = false;
+    m_controlRegister.SPSEL = false;
+}
+
+auto CpuRegistersSet::reg(uint16_t reg) -> uint32_t&
 {
     switch (reg) {
         case RegisterType::R0:
@@ -55,7 +65,7 @@ auto CpuRegisterSet::reg(uint16_t reg) -> uint32_t&
     }
 }
 
-auto CpuRegisterSet::SP() -> uint32_t&
+auto CpuRegistersSet::SP() -> uint32_t&
 {
     if (m_controlRegister.SPSEL) {
         // TODO: check if current mode is Thread and return UNPREDICTABLE otherwise
@@ -66,12 +76,12 @@ auto CpuRegisterSet::SP() -> uint32_t&
     }
 }
 
-auto CpuRegisterSet::SP_main() -> uint32_t&
+auto CpuRegistersSet::SP_main() -> uint32_t&
 {
     return m_stackPointers[StackPointerType::Main];
 }
 
-auto CpuRegisterSet::SP_process() -> uint32_t&
+auto CpuRegistersSet::SP_process() -> uint32_t&
 {
     return m_stackPointers[StackPointerType::Process];
 }

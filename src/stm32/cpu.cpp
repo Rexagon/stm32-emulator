@@ -34,13 +34,7 @@ Cpu::Cpu(const Memory::Config& memoryConfig)
 void Cpu::reset()
 {
     // see: B1.5.5
-
-    m_registers.PRIMASK().PM = false;
-    m_registers.FAULTMASK().FM = false;
-    m_registers.BASEPRI().level = 0u;
-
-    m_registers.CONTROL().nPRIV = false;
-    m_registers.CONTROL().SPSEL = false;
+    m_registers.reset();
 
     m_exceptionActive.reset();
 
@@ -53,7 +47,7 @@ void Cpu::reset()
     // const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
 
     // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
-    m_registers.SP_process() &= ~math::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
+    m_registers.SP_process() &= ~utils::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
     m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
     // tmp = MemA_with_priv[vectortable+4, 4, AccType_VECTABLE];
@@ -74,7 +68,7 @@ void Cpu::branchWritePC(uint32_t address)
 
 void Cpu::bxWritePC(uint32_t address)
 {
-    if (m_currentMode == ExecutionMode::Handler && math::getPart<28, 4>(address) == 0b1111u) {
+    if (m_currentMode == ExecutionMode::Handler && utils::getPart<28, 4>(address) == 0b1111u) {
         // TODO: ExceptionReturn(address<27:0>); // see B1-597
     }
     else {
@@ -99,17 +93,17 @@ auto Cpu::basicMemoryRead<uint8_t>(AddressDescriptor desc) -> uint8_t
 template <>
 auto Cpu::basicMemoryRead<uint16_t>(AddressDescriptor desc) -> uint16_t
 {
-    return math::combine<uint16_t>(math::Part<0, 8>{m_memory.read(desc.physicalAddress)},
-                                   math::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)});
+    return utils::combine<uint16_t>(utils::Part<0, 8>{m_memory.read(desc.physicalAddress)},
+                                    utils::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)});
 }
 
 template <>
 auto Cpu::basicMemoryRead<uint32_t>(AddressDescriptor desc) -> uint32_t
 {
-    return math::combine<uint32_t>(math::Part<0, 8>{m_memory.read(desc.physicalAddress)},
-                                   math::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)},
-                                   math::Part<16, 8>{m_memory.read(desc.physicalAddress + 2)},
-                                   math::Part<24, 8>{m_memory.read(desc.physicalAddress + 3)});
+    return utils::combine<uint32_t>(utils::Part<0, 8>{m_memory.read(desc.physicalAddress)},
+                                    utils::Part<8, 8>{m_memory.read(desc.physicalAddress + 1)},
+                                    utils::Part<16, 8>{m_memory.read(desc.physicalAddress + 2)},
+                                    utils::Part<24, 8>{m_memory.read(desc.physicalAddress + 3)});
 }
 
 auto Cpu::currentCondition() const -> uint8_t
@@ -201,7 +195,7 @@ auto Cpu::executionPriority() const -> int32_t
     auto boostedPRI = 256;  // Priority influence of BASEPRI, PRIMASK and FAULTMASK
 
     auto subGroupShift = m_systemRegisters.AIRCR().PRIGROUP;
-    auto groupValue = math::lsl(std::uint32_t{0b10}, subGroupShift);
+    auto groupValue = utils::lsl(std::uint32_t{0b10}, subGroupShift);
 
     for (size_t i = 2; i < 512; ++i) {
         // TODO:
@@ -234,22 +228,22 @@ auto Cpu::executionPriority() const -> int32_t
 inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)
 {
     /// see A5.2.1
-    switch (math::getPart<9, 5>(opCode)) {
+    switch (utils::getPart<9, 5>(opCode)) {
         case 0b000'00u ... 0b000'11u:
-            switch (math::getPart<6, 5>(opCode)) {
+            switch (utils::getPart<6, 5>(opCode)) {
                 case 0b00000u:
                     // see: A7-312
                     return opcodes::cmdMovRegister<opcodes::Encoding::T2>(opCode, cpu);
                 default:
                     // see: A7-298
-                    return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, cpu);
+                    return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, utils::ShiftType::LSL>(opCode, cpu);
             }
         case 0b001'00u ... 0b001'11u:
             // see: A7-302
-            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::LSR>(opCode, cpu);
+            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, utils::ShiftType::LSR>(opCode, cpu);
         case 0b010'00u ... 0b010'11u:
             // see: A7-203
-            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, cpu);
+            return opcodes::cmdShiftImmediate<opcodes::Encoding::T1, utils::ShiftType::ASR>(opCode, cpu);
         case 0b01100u:
             // see: A7-191
             return opcodes::cmdAddSubRegister<opcodes::Encoding::T1, /* isSub */ false>(opCode, cpu);
@@ -282,7 +276,7 @@ inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)
 inline void handleDataProcessingInstruction(uint16_t opCode, Cpu& cpu)
 {
     // see A5.2.2
-    switch (math::getPart<6, 4>(opCode)) {
+    switch (utils::getPart<6, 4>(opCode)) {
         case 0b0000u:
             // see: A7-201
             return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::AND>(opCode, cpu);
@@ -291,13 +285,13 @@ inline void handleDataProcessingInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdBitwiseRegister<opcodes::Encoding::T1, opcodes::Bitwise::EOR>(opCode, cpu);
         case 0b0010u:
             // see: A7-300
-            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::LSL>(opCode, cpu);
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, utils::ShiftType::LSL>(opCode, cpu);
         case 0b0011u:
             // see: A7-304
-            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::LSR>(opCode, cpu);
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, utils::ShiftType::LSR>(opCode, cpu);
         case 0b0100u:
             // see: A7-205
-            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::ASR>(opCode, cpu);
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, utils::ShiftType::ASR>(opCode, cpu);
         case 0b0101u:
             // see: A7-187
             return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T1, /* isSbc */ false>(opCode, cpu);
@@ -306,7 +300,7 @@ inline void handleDataProcessingInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T1, /* isSbc */ true>(opCode, cpu);
         case 0b0111u:
             // see: A7-368
-            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, math::ShiftType::ROR>(opCode, cpu);
+            return opcodes::cmdShiftRegister<opcodes::Encoding::T1, utils::ShiftType::ROR>(opCode, cpu);
         case 0b1000u:
             // see: A7-466
             return opcodes::cmdTstRegister<opcodes::Encoding::T1>(opCode, cpu);
@@ -339,7 +333,7 @@ inline void handleDataProcessingInstruction(uint16_t opCode, Cpu& cpu)
 inline void handleSpecialDataInstruction(uint16_t opCode, Cpu& cpu)
 {
     // see A5.2.3
-    switch (math::getPart<6, 4>(opCode)) {
+    switch (utils::getPart<6, 4>(opCode)) {
         case 0b00'00u ... 0b00'11u:
             // see: A7-191
             return opcodes::cmdAddSubRegister<opcodes::Encoding::T2, /* isSub */ false>(opCode, cpu);
@@ -369,9 +363,9 @@ inline void handleLoadFromLiteralPool(uint16_t /*opCode*/, Cpu& /*cpu*/)
 inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
 {
     // see A5.2.4
-    switch (math::getPart<12, 4>(opCode)) {
+    switch (utils::getPart<12, 4>(opCode)) {
         case 0b0101u:
-            switch (math::getPart<9, 3>(opCode)) {
+            switch (utils::getPart<9, 3>(opCode)) {
                 case 0b000u:
                     // TODO: A7-428
                     return;
@@ -400,7 +394,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
                     UNPREDICTABLE;
             }
         case 0b0110u:
-            switch (math::getPart<9, 3>(opCode)) {
+            switch (utils::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-426
                     return;
@@ -411,7 +405,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
                     UNPREDICTABLE;
             }
         case 0b0111u:
-            switch (math::getPart<9, 3>(opCode)) {
+            switch (utils::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-430
                     return;
@@ -422,7 +416,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
                     UNPREDICTABLE;
             }
         case 0b1000u:
-            switch (math::getPart<9, 3>(opCode)) {
+            switch (utils::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-442
                     return;
@@ -433,7 +427,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
                     UNPREDICTABLE;
             }
         case 0b1001u:
-            switch (math::getPart<9, 3>(opCode)) {
+            switch (utils::getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
                     // TODO: A7-426
                     return;
@@ -463,7 +457,7 @@ inline void handleGenerateSpRelativeAddress(uint16_t opCode, Cpu& cpu)
 inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
 {
     // see A5.2.5
-    switch (math::getPart<5, 7>(opCode)) {
+    switch (utils::getPart<5, 7>(opCode)) {
         case 0b00000'00u ... 0b00000'11u:
             // see: A7-193
             return opcodes::cmdAddSubSpPlusImmediate<opcodes::Encoding::T2, /*isSub*/ false>(opCode, cpu);
@@ -514,9 +508,9 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             return;
         case 0b1111'000u ... 0b1111'111u:
             // see A5-133
-            switch (math::getPart<0, 4>(opCode)) {
+            switch (utils::getPart<0, 4>(opCode)) {
                 case 0b0000u:
-                    switch (math::getPart<4, 4>(opCode)) {
+                    switch (utils::getPart<4, 4>(opCode)) {
                         case 0b0001u:
                             // TODO: A7-562
                             return;
@@ -554,7 +548,7 @@ inline void handleLoadMultipleRegisters(uint16_t /*opCode*/, Cpu& /*cpu*/)
 inline void handleConditionalBranch(uint16_t opCode, Cpu& cpu)
 {
     // see A5.2.6
-    switch (math::getPart<8, 4>(opCode)) {
+    switch (utils::getPart<8, 4>(opCode)) {
         case 0b1110u:
             // see: A7-471
             return opcodes::cmdPermanentlyUndefined<opcodes::Encoding::T1>(opCode, cpu);
@@ -575,10 +569,10 @@ inline void handleUnconditionalBranch(uint16_t opCode, Cpu& cpu)
 
 void Cpu::step()
 {
-    auto& PC = m_registers.reg(RegisterType::PC);
+    auto& PC = m_registers.PC();
 
-    const auto opCodeHw1Low = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t>);
-    const auto opCodeHw1High = m_memory.read((PC & ~math::RIGHT_BIT<uint32_t>)+1u);
+    const auto opCodeHw1Low = m_memory.read(PC & ~utils::RIGHT_BIT<uint32_t>);
+    const auto opCodeHw1High = m_memory.read((PC & ~utils::RIGHT_BIT<uint32_t>)+1u);
     PC += 2u;
 
     if (is32bitInstruction(opCodeHw1High)) {
@@ -595,9 +589,9 @@ void Cpu::step()
         // TODO: handle 32 bit instructions
     }
     else {
-        const auto opCode = math::combine<uint16_t>(math::Part<0, 8>{opCodeHw1Low}, math::Part<8, 8>{opCodeHw1High});
+        const auto opCode = utils::combine<uint16_t>(utils::Part<0, 8>{opCodeHw1Low}, utils::Part<8, 8>{opCodeHw1High});
 
-        switch (math::getPart<2, 6>(opCode)) {
+        switch (utils::getPart<2, 6>(opCode)) {
             case 0b00'0000u ... 0b00'1111u:
                 handleMathInstruction(opCode, *this);
                 break;

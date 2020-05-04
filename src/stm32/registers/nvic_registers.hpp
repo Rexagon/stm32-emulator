@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace stm32::sc
+namespace stm32::rg
 {
 /**
  * Interrupt Set-Enable Register
