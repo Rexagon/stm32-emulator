@@ -1,8 +1,8 @@
 #pragma once
 
 #include "cpu.hpp"
-#include "stm32/utils/general.hpp"
-#include "stm32/utils/math.hpp"
+#include "utils/general.hpp"
+#include "utils/math.hpp"
 
 namespace stm32::opcodes
 {

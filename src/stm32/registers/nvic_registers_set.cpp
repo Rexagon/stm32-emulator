@@ -5,7 +5,7 @@
 
 #include <cassert>
 
-#include "stm32/utils/general.hpp"
+#include "../utils/general.hpp"
 
 namespace stm32::rg
 {

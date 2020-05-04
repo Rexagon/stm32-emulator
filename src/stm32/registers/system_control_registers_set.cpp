@@ -3,7 +3,7 @@
 
 #include "system_control_registers_set.hpp"
 
-#include "stm32/utils/general.hpp"
+#include "../utils/general.hpp"
 
 namespace stm32::rg
 {

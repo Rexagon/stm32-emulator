@@ -7,7 +7,7 @@
 #include <tuple>
 #include <utility>
 
-#include "stm32/utils/general.hpp"
+#include "../utils/general.hpp"
 
 namespace stm32::utils
 {
