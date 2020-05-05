@@ -11,6 +11,19 @@
 
 namespace stm32
 {
+enum ExceptionType : uint8_t {
+    Reset = 1,
+    NMI = 2,
+    HardFault = 3,
+    MemManage = 4,
+    BusFault = 5,
+    UsageFault = 6,
+    SVCall = 11,
+    // DebugMonitor = 12,
+    PendSV = 14,
+    SysTick = 15,
+};
+
 /**
  * The M-profile execution modes
  */
@@ -45,8 +58,10 @@ public:
     auto isLastInItBlock() const -> bool;
     void advanceCondition();
 
-    auto isInPrivelegedMode() const -> bool;
+    auto isInPrivilegedMode() const -> bool;
     auto executionPriority() const -> int32_t;
+
+    void pushStack(ExceptionType exceptionType);
 
     inline void setEventRegister() { m_eventRegister = true; }
     inline void clearEventRegister() { m_eventRegister = false; }

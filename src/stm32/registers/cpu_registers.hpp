@@ -103,12 +103,16 @@ struct __attribute__((__packed__)) FaultMaskRegister {
 struct __attribute__((__packed__)) ControlRegister {
     bool nPRIV : 1;  ///< bit[0]
                      ///< Defines the execution privilege in Thread mode
+                     ///<
                      ///< false - Thread mode has privileged access.
+                     ///<
                      ///< true - Thread mode has unprivileged access.
 
     bool SPSEL : 1;  ///< bit[1]
                      ///< Defines the stack to be used
+                     ///<
                      ///< false - Use SP_main as the current stack.
+                     ///<
                      ///< true - In Thread mode, use SP_process as the current stack.
                      ///<        In Handler mode, this value is reserved
 };

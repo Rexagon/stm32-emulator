@@ -72,16 +72,16 @@ void Cpu::bxWritePC(uint32_t address)
         // TODO: ExceptionReturn(address<27:0>); // see B1-597
     }
     else {
-        m_registers.EPSR().T = address & 0b1u;
-        m_registers.PC() = address & ~uint32_t{0b1u};
+        m_registers.EPSR().T = address & utils::RIGHT_BIT<uint32_t>;
+        m_registers.PC() = address & ~utils::RIGHT_BIT<uint32_t>;
     }
 }
 
 void Cpu::blxWritePC(uint32_t address)
 {
-    m_registers.EPSR().T = address & 0b1u;
+    m_registers.EPSR().T = address & utils::RIGHT_BIT<uint32_t>;
     // TODO: if EPSR.T == 0, a UsageFault(‘Invalid State’) is taken on the next instruction
-    m_registers.PC() = address & ~uint32_t{0b1u};
+    m_registers.PC() = address & ~utils::RIGHT_BIT<uint32_t>;
 }
 
 template <>
@@ -181,7 +181,7 @@ void Cpu::advanceCondition()
     }
 }
 
-auto Cpu::isInPrivelegedMode() const -> bool
+auto Cpu::isInPrivilegedMode() const -> bool
 {
     return m_currentMode == ExecutionMode::Handler || !m_registers.CONTROL().nPRIV;
 }
@@ -223,6 +223,31 @@ auto Cpu::executionPriority() const -> int32_t
     }
 
     return std::min(boostedPRI, highestPRI);
+}
+
+void Cpu::pushStack(ExceptionType exceptionType)
+{
+    const auto frameSize = 0x20u;
+    const auto forceAlign = m_systemRegisters.CCR().STKALIGN;
+
+    const auto spMask = ~utils::combine<uint32_t>(utils::Part<0, 2>{0u}, utils::Part<3, 1>{forceAlign});
+
+    bool framePtrAlign{};
+    uint32_t framePtr{};
+    if (m_registers.CONTROL().SPSEL && m_currentMode == ExecutionMode::Thread) {
+        auto& SP_process = m_registers.SP_process();
+
+        framePtrAlign = utils::getPart<2, 1>(SP_process) && forceAlign;
+        SP_process = (SP_process - frameSize) & spMask;
+        framePtr = SP_process;
+    }
+    else {
+        auto& SP_main = m_registers.SP_main();
+
+        framePtrAlign = utils::getPart<2, 1>(SP_main) && forceAlign;
+        SP_main = (SP_main - frameSize) & spMask;
+        framePtr = SP_main;
+    }
 }
 
 inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)

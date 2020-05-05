@@ -994,7 +994,7 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
 
 inline void cmdCps(uint16_t opCode, Cpu& cpu)
 {
-    if (!cpu.isInPrivelegedMode()) {
+    if (!cpu.isInPrivilegedMode()) {
         return;
     }
 
