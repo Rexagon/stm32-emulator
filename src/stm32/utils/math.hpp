@@ -29,6 +29,9 @@ constexpr R ALL_BITS = static_cast<R>(~T(0b0u));
 template <uint8_t N, typename T>
 constexpr T ONES = (T(0b1u) << N) - T(0b1u);
 
+template <uint8_t N, typename T>
+constexpr T ZEROS = static_cast<T>(~ONES<N, T>);
+
 template <uint8_t /* offset */, uint8_t /* bitCount */, typename T = uint8_t>
 struct Part {
     T value;
@@ -328,13 +331,21 @@ auto replicate(T sign) -> T
 template <typename T>
 auto alignAddress(uint32_t address) -> T
 {
-    return address & ~ONES<std::log(sizeof(T)), uint32_t>;
+    return address & ZEROS<std::log(sizeof(T)), uint32_t>;
 }
 
 template <typename T>
 auto isAddressAligned(uint32_t address) -> bool
 {
-    return (address & ~ONES<std::log(sizeof(T)), uint32_t>) == 0;
+    if constexpr (std::is_same_v<T, uint8_t>) {
+        return true;
+    }
+    else if constexpr (std::is_same_v<T, uint16_t>) {
+        return (address & ZEROS<1, uint32_t>) == 0;
+    }
+    else if constexpr (std::is_same_v<T, uint32_t>) {
+        return (address & ZEROS<2, uint32_t>) == 0;
+    }
 }
 
 }  // namespace stm32::utils

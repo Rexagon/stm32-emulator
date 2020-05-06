@@ -55,14 +55,11 @@ inline void cmdShiftImmediate(T opCode, Cpu& cpu)
         shiftN = utils::decodeImmediateShift(shiftTypeBits, utils::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3})).second;
     }
 
-    auto& Rd = cpu.registers().reg(d);
-    const auto& Rm = cpu.registers().reg(m);
-
-    const auto [result, carry] = utils::shiftWithCarry(Rm, shiftType, shiftN, APSR.C);
-    Rd = result;
+    const auto [result, carry] = utils::shiftWithCarry(cpu.R(m), shiftType, shiftN, APSR.C);
+    cpu.setR(d, result);
 
     if (setFlags) {
-        APSR.N = result & utils::LEFT_BIT<uint32_t>;
+        APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
         APSR.C = carry;
     }
@@ -100,15 +97,13 @@ inline void cmdShiftRegister(T opCode, Cpu& cpu)
         setFlags = S;
     }
 
-    const auto shiftN = utils::getPart<0, 8, uint32_t, uint8_t>(cpu.registers().reg(m));
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
+    const auto shiftN = utils::getPart<0, 8, uint32_t, uint8_t>(cpu.R(m));
 
-    const auto [result, carry] = utils::shiftWithCarry(Rn, shiftType, shiftN, APSR.C);
-    Rd = result;
+    const auto [result, carry] = utils::shiftWithCarry(cpu.R(n), shiftType, shiftN, APSR.C);
+    cpu.setR(d, result);
 
     if (setFlags) {
-        APSR.N = result & utils::LEFT_BIT<uint32_t>;
+        APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
         APSR.C = carry;
     }
@@ -163,16 +158,13 @@ void cmdAddSubImmediate(T opCode, Cpu& cpu)
         imm32 = utils::combine<uint32_t>(Part<0, 8>{imm8}, Part<8, 3>{imm3}, Part<12, 1>{i});
     }
 
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
-
     if constexpr (check<isSub>) {
         imm32 = ~imm32;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(Rn, imm32, isSub);
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), imm32, isSub);
+    cpu.setR(d, result);
 
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -200,7 +192,7 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         d = Rd;
         n = Rn;
         setFlags = !cpu.isInItBlock();
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
     }
     else if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rdn, Rm, DN] = utils::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
@@ -212,7 +204,7 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
 
         n = d;
         setFlags = false;
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
     }
     else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
@@ -226,24 +218,20 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         d = Rd;
         n = Rn;
         setFlags = S;
-        shifted = utils::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
-
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
 
     if constexpr (check<isSub>) {
         shifted = ~shifted;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(Rn, shifted, isSub);  // TODO: verify if isSub is true for SUB
-                                                                                     // (maybe Clion is right)
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), shifted, isSub);
 
     if (check<!isSub> && d == 15) {
         cpu.aluWritePC(result);
     }
     else {
-        Rd = result;
+        cpu.setR(d, result);
         if (setFlags) {
             APSR.N = utils::isNegative(result);
             APSR.Z = result == 0;
@@ -303,16 +291,13 @@ void cmdAddSubSpPlusImmediate(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(d == 15);
     }
 
-    const auto& SP = cpu.registers().SP();
-    auto& Rd = cpu.registers().reg(d);
-
     if constexpr (isSub) {
         imm32 = ~imm32;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(SP, imm32, isSub);
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.registers().SP(), imm32, isSub);
+    cpu.setR(d, result);
 
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0u;
@@ -340,7 +325,7 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
         d = Rdn;
         n = Rdn;
         setFlags = !cpu.isInItBlock();
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
@@ -352,19 +337,16 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
 
         d = Rd;
         n = Rn;
-        shifted = utils::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
-
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
 
     if constexpr (check<isSbc>) {
         shifted = ~shifted;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(Rn, shifted, isSbc);
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), shifted, isSbc);
+    cpu.setR(d, result);
 
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -407,12 +389,9 @@ void cmdRsbImmediate(T opCode, Cpu& cpu)
                     .first;
     }
 
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
+    const auto [result, carry, overflow] = utils::addWithCarry(~cpu.R(n), imm32, true);
+    cpu.setR(d, result);
 
-    const auto [result, carry, overflow] = utils::addWithCarry(~Rn, imm32, true);
-
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -451,13 +430,9 @@ void cmdMul(T opCode, Cpu& cpu)
         setFlags = false;
     }
 
-    const auto& Rn = cpu.registers().reg(n);
-    const auto& Rm = cpu.registers().reg(m);
-    auto& Rd = cpu.registers().reg(d);
+    const auto result = cpu.R(n) * cpu.R(m);
+    cpu.setR(d, result);
 
-    const auto result = Rn * Rm;
-
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -485,7 +460,7 @@ void cmdBitwiseRegister(T opCode, Cpu& cpu)
         n = Rdn;
         setFlags = !cpu.isInItBlock();
 
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
         carry = APSR.C;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -508,27 +483,24 @@ void cmdBitwiseRegister(T opCode, Cpu& cpu)
         n = Rn;
         setFlags = S;
 
-        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
-
-    const auto& Rn = cpu.registers().reg(n);
-    auto& Rd = cpu.registers().reg(d);
 
     uint32_t result;
     if constexpr (is_in<bitwise, Bitwise::AND>) {
-        result = Rn & shifted;
+        result = cpu.R(n) & shifted;
     }
     else if constexpr (is_in<bitwise, Bitwise::EOR>) {
-        result = Rn ^ shifted;
+        result = cpu.R(n) ^ shifted;
     }
     else if constexpr (is_in<bitwise, Bitwise::ORR>) {
-        result = Rn | shifted;
+        result = cpu.R(n) | shifted;
     }
     else if constexpr (is_in<bitwise, Bitwise::BIC>) {
-        result = Rn & ~shifted;
+        result = cpu.R(n) & ~shifted;
     }
+    cpu.setR(d, result);
 
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -556,7 +528,7 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
         d = Rd;
         setFlags = !cpu.isInItBlock();
 
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
         carry = APSR.C;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -570,14 +542,12 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
         d = Rd;
         setFlags = S;
 
-        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
-    auto& Rd = cpu.registers().reg(d);
-
     const auto result = ~shifted;
+    cpu.setR(d, result);
 
-    Rd = result;
     if (setFlags) {
         APSR.N = utils::isNegative(result);
         APSR.Z = result == 0;
@@ -625,9 +595,8 @@ void cmdMovImmediate(T opCode, Cpu& cpu)
         carry = APSR.C;
     }
 
-    auto& Rd = cpu.registers().reg(d);
+    cpu.setR(d, imm32);
 
-    Rd = imm32;
     if (setFlags) {
         APSR.N = utils::isNegative(imm32);
         APSR.Z = imm32 == 0;
@@ -680,15 +649,13 @@ void cmdMovRegister(T opCode, Cpu& cpu)
         }
     }
 
-    auto& Rd = cpu.registers().reg(d);
-
-    const auto result = cpu.registers().reg(m);
+    const auto result = cpu.R(m);
 
     if (d == 15) {
         cpu.aluWritePC(result);
     }
     else {
-        Rd = result;
+        cpu.setR(d, result);
         if (setFlags) {
             APSR.N = utils::isNegative(result);
             APSR.Z = result == 0;
@@ -724,7 +691,7 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
                     .first;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(cpu.registers().reg(n), ~imm32, true);
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), ~imm32, true);
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0;
@@ -748,7 +715,7 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [Rn, Rm] = utils::split<T, Part<0, 3>, Part<3, 3>>(opCode);
         n = Rn;
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
     }
     else if constexpr (check<!isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rn, Rm, N] = utils::split<T, Part<0, 3>, Part<3, 4>, Part<7, 1>>(opCode);
@@ -757,7 +724,7 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
         assert(n >= 8 || Rm >= 8);
         assert(n != 15 && Rm != 15);
 
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
     }
     else if constexpr ((check<!isNegative> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (check<isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
@@ -768,16 +735,14 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
         n = Rn;
         assert(n != 15 && Rm < 13);
 
-        shifted = utils::shift(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
-
-    const auto& Rn = cpu.registers().reg(n);
 
     if constexpr (check<!isNegative>) {
         shifted = ~shifted;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(Rn, shifted, !isNegative);
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), shifted, !isNegative);
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0;
@@ -803,7 +768,7 @@ void cmdTstRegister(T opCode, Cpu& cpu)
         const auto [Rn, Rm] = utils::split<T, Part<0, 3>, Part<3, 3>>(opCode);
 
         n = Rn;
-        shifted = cpu.registers().reg(Rm);
+        shifted = cpu.R(Rm);
         carry = APSR.C;
     }
     if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -813,10 +778,10 @@ void cmdTstRegister(T opCode, Cpu& cpu)
         const auto [shiftType, shiftN] = utils::decodeImmediateShift(type, utils::combine<uint8_t>(Part<0, 2>{imm2}, Part<2, 3>{imm3}));
 
         n = Rn;
-        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.registers().reg(Rm), shiftType, shiftN, APSR.C);
+        std::tie(shifted, carry) = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
-    const auto result = cpu.registers().reg(n) & shifted;
+    const auto result = cpu.R(n) & shifted;
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0;
@@ -830,20 +795,18 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
         return;
     }
 
-    const auto m = utils::getPart<3, 4>(opCode);
+    const auto m = utils::getPart<3, 4, uint16_t, uint8_t>(opCode);
     if constexpr (check<withLink>) {
         UNPREDICTABLE_IF(m == 15);
     }
 
-    const auto& Rm = cpu.registers().reg(m);
-
     if constexpr (check<withLink>) {
         const auto nextInstruction = cpu.registers().PC() - 2;
         cpu.registers().LR() = nextInstruction | 0b1u;
-        cpu.blxWritePC(Rm);
+        cpu.blxWritePC(cpu.R(m));
     }
     else {
-        cpu.bxWritePC(Rm);
+        cpu.bxWritePC(cpu.R(m));
     }
 }
 
@@ -951,14 +914,16 @@ void cmdAdr(T opCode, Cpu& cpu)
     }
 
     const auto PC = cpu.registers().PC();
-    auto& Rd = cpu.registers().reg(d);
 
+    uint32_t result;
     if (add) {
-        Rd = (PC & ~utils::ONES<4, uint32_t>)+imm32;
+        result = (PC & utils::ZEROS<4, uint32_t>) + imm32;
     }
     else {
-        Rd = (PC & ~utils::ONES<4, uint32_t>)-imm32;
+        result = (PC & utils::ZEROS<4, uint32_t>) - imm32;
     }
+
+    cpu.setR(d, result);
 }
 
 template <Encoding encoding, typename T>
@@ -987,7 +952,7 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
         add = U;
     }
 
-    const auto base = cpu.registers().PC() & ~utils::ONES<2, uint32_t>;
+    const auto base = cpu.registers().PC() & utils::ZEROS<2, uint32_t>;
 
     // TODO: finish memory write
 }

@@ -27,7 +27,6 @@ Cpu::Cpu(const Memory::Config& memoryConfig)
     , m_memory{memoryConfig}
     , m_currentMode{}
     , m_exceptionActive{}
-    , m_ifThenState{}
 {
 }
 
@@ -47,7 +46,7 @@ void Cpu::reset()
     // const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
 
     // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
-    m_registers.SP_process() &= ~utils::ONES<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
+    m_registers.SP_process() &= utils::ZEROS<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
     m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
     // tmp = MemA_with_priv[vectortable+4, 4, AccType_VECTABLE];
@@ -108,14 +107,15 @@ auto Cpu::basicMemoryRead<uint32_t>(AddressDescriptor desc) -> uint32_t
 
 auto Cpu::currentCondition() const -> uint8_t
 {
-    if (m_ifThenState & 0x0fu) {
-        return static_cast<uint8_t>(m_ifThenState >> 4u);
+    const auto ITSTATE = m_registers.ITSTATE();
+
+    if (ITSTATE & 0x0fu) {
+        return static_cast<uint8_t>(ITSTATE >> 4u);
     }
-    else if (m_ifThenState == 0x00u) {
+    else if (ITSTATE == 0x00u) {
         return 0b1110u;
     }
     UNPREDICTABLE;
-    return {};
 }
 
 auto Cpu::conditionPassed() const -> bool
@@ -151,7 +151,6 @@ auto Cpu::conditionPassed() const -> bool
             break;
         default:
             UNPREDICTABLE;
-            result = false;
     }
 
     if ((condition & 0b1u) && (condition != 0x0fu)) {
@@ -163,21 +162,29 @@ auto Cpu::conditionPassed() const -> bool
 
 auto Cpu::isInItBlock() const -> bool
 {
-    return m_ifThenState & 0b1111u;
+    return m_registers.ITSTATE() & utils::ONES<4, uint8_t>;
 }
 
 auto Cpu::isLastInItBlock() const -> bool
 {
-    return (m_ifThenState & 0b1111u) == 0b1000u;
+    return (m_registers.ITSTATE() & utils::ONES<4, uint8_t>) == 0b1000u;
 }
 
 void Cpu::advanceCondition()
 {
-    if (m_ifThenState & 0b111u) {
-        m_ifThenState |= (static_cast<uint8_t>(m_ifThenState << 1u) | 0b1u) & 0b11111u;
+    using namespace utils;
+
+    auto& EPSR = m_registers.EPSR();
+    auto ITSTATE = m_registers.ITSTATE();
+
+    if (ITSTATE & 0b111u) {
+        ITSTATE = static_cast<uint8_t>((ITSTATE & ZEROS<5, uint8_t>) | ((ITSTATE << 1u) & ONES<5, uint8_t>));
+        EPSR.ITlo = getPart<2, 6>(ITSTATE) & ONES<6, uint8_t>;
+        EPSR.IThi = getPart<0, 2>(ITSTATE) & ONES<2, uint8_t>;
     }
     else {
-        m_ifThenState = 0x00u;
+        EPSR.ITlo = 0u;
+        EPSR.IThi = 0u;
     }
 }
 
@@ -248,6 +255,21 @@ void Cpu::pushStack(ExceptionType exceptionType)
         SP_main = (SP_main - frameSize) & spMask;
         framePtr = SP_main;
     }
+}
+
+void Cpu::exceptionTaken(ExceptionType exceptionType)
+{
+    using namespace utils;
+
+    // R[0] - R[3], R[12] are UNKNOWN
+    const auto vectorTablePtr = combine<uint32_t>(Part<0, 7>{0u}, Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
+    const auto exceptionHandlerPtr = alignedMemoryRead<uint32_t>(vectorTablePtr + exceptionType * 4u);
+    branchWritePC(exceptionHandlerPtr);
+
+    m_currentMode = ExecutionMode::Handler;
+    // APSR is UNKNOWN
+    m_registers.IPSR().exceptionNumber = getPart<0, 9, uint16_t>(exceptionType) & ONES<9, uint16_t>;
+    // m_registers.EPSR().T =
 }
 
 inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)

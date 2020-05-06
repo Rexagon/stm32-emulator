@@ -53,14 +53,14 @@ struct __attribute__((__packed__)) ExecutionProgramStatusRegister {
                     ///< Reserved
 
     uint8_t ITlo : 6;  ///< bits[15:10]
-                       ///< low 6 bits of IT
+                       ///< high 6 bits of IT
 
     static constexpr uint8_t FlagTBitNumber = 24;
     bool T : 1;  ///< bit[24]
                  ///< T bit, that is set to 1 to indicate that the processor executes Thumb instructions
 
     uint8_t IThi : 2;  ///< bits[26:25]
-                       ///< high two bits of IT
+                       ///< low two bits of ITd
 
     uint8_t : 5;  ///< bits[31:27]
                   ///< Reserved

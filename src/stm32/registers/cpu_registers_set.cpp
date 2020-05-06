@@ -27,7 +27,7 @@ void CpuRegistersSet::reset()
     m_controlRegister.SPSEL = false;
 }
 
-auto CpuRegistersSet::reg(uint16_t reg) -> uint32_t&
+auto CpuRegistersSet::getRegister(uint8_t reg) const -> uint32_t
 {
     switch (reg) {
         case RegisterType::R0:
@@ -43,22 +43,48 @@ auto CpuRegistersSet::reg(uint16_t reg) -> uint32_t&
         case RegisterType::R10:
         case RegisterType::R11:
         case RegisterType::R12:
-            return m_generalPurposeRegisters[static_cast<int>(reg)];
+            return m_generalPurposeRegisters[reg];
 
         case RegisterType::SP:
-            if (m_controlRegister.SPSEL) {
-                // TODO: check if current mode is Thread and return UNPREDICTABLE otherwise
-                return m_stackPointers[StackPointerType::Process];
-            }
-            else {
-                return m_stackPointers[StackPointerType::Main];
-            }
+            return SP() & utils::ZEROS<2, uint32_t>;
 
         case RegisterType::LR:
             return m_linkRegister;
 
         case RegisterType::PC:
-            return m_programCounter;
+            return m_programCounter + 4u;
+
+        default:
+            UNPREDICTABLE;
+    }
+}
+
+void CpuRegistersSet::setRegister(uint8_t reg, uint32_t value)
+{
+    switch (reg) {
+        case RegisterType::R0:
+        case RegisterType::R1:
+        case RegisterType::R2:
+        case RegisterType::R3:
+        case RegisterType::R4:
+        case RegisterType::R5:
+        case RegisterType::R6:
+        case RegisterType::R7:
+        case RegisterType::R8:
+        case RegisterType::R9:
+        case RegisterType::R10:
+        case RegisterType::R11:
+        case RegisterType::R12:
+            m_generalPurposeRegisters[reg] = value;
+            break;
+
+        case RegisterType::SP:
+            SP() = value & utils::ZEROS<2, uint32_t>;
+            break;
+
+        case RegisterType::LR:
+            m_linkRegister = value;
+            break;
 
         default:
             UNPREDICTABLE;
@@ -68,7 +94,6 @@ auto CpuRegistersSet::reg(uint16_t reg) -> uint32_t&
 auto CpuRegistersSet::SP() -> uint32_t&
 {
     if (m_controlRegister.SPSEL) {
-        // TODO: check if current mode is Thread and return UNPREDICTABLE otherwise
         return m_stackPointers[StackPointerType::Process];
     }
     else {
@@ -76,14 +101,21 @@ auto CpuRegistersSet::SP() -> uint32_t&
     }
 }
 
-auto CpuRegistersSet::SP_main() -> uint32_t&
+auto CpuRegistersSet::SP() const -> const uint32_t&
 {
-    return m_stackPointers[StackPointerType::Main];
+    if (m_controlRegister.SPSEL) {
+        return m_stackPointers[StackPointerType::Process];
+    }
+    else {
+        return m_stackPointers[StackPointerType::Main];
+    }
 }
 
-auto CpuRegistersSet::SP_process() -> uint32_t&
+auto CpuRegistersSet::ITSTATE() const -> uint8_t
 {
-    return m_stackPointers[StackPointerType::Process];
+    using namespace utils;
+
+    return combine<uint8_t>(Part<0, 2>{m_executionProgramStatusRegister.IThi}, Part<2, 6>{m_executionProgramStatusRegister.ITlo});
 }
 
-}  // namespace stm32
+}  // namespace stm32::rg

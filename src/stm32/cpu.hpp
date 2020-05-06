@@ -11,7 +11,7 @@
 
 namespace stm32
 {
-enum ExceptionType : uint8_t {
+enum ExceptionType : uint16_t {
     Reset = 1,
     NMI = 2,
     HardFault = 3,
@@ -62,10 +62,14 @@ public:
     auto executionPriority() const -> int32_t;
 
     void pushStack(ExceptionType exceptionType);
+    void exceptionTaken(ExceptionType exceptionType);
 
     inline void setEventRegister() { m_eventRegister = true; }
     inline void clearEventRegister() { m_eventRegister = false; }
     inline auto wasEventRegistered() -> bool { return m_eventRegister; }
+
+    inline auto R(uint8_t reg) const -> uint32_t { return m_registers.getRegister(reg); }
+    inline void setR(uint8_t reg, uint32_t value) { m_registers.setRegister(reg, value); }
 
     inline auto registers() -> rg::CpuRegistersSet& { return m_registers; }
     inline auto systemRegisters() -> rg::SystemControlRegistersSet& { return m_systemRegisters; }
@@ -85,8 +89,6 @@ private:
     std::bitset<512> m_exceptionActive;
 
     bool m_eventRegister = false;
-
-    uint8_t m_ifThenState;
 };
 
 template <typename T>
