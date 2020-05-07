@@ -40,9 +40,9 @@ public:
     void reset();
     void step();
 
-    void branchWritePC(uint32_t address);
-    void bxWritePC(uint32_t address);
-    void blxWritePC(uint32_t address);
+    void branchWritePC(uint32_t address, bool skipIncrementingPC = true);
+    void bxWritePC(uint32_t address, bool skipIncrementingPC = true);
+    void blxWritePC(uint32_t address, bool skipIncrementingPC = true);
     inline void loadWritePC(uint32_t address) { bxWritePC(address); }
     inline void aluWritePC(uint32_t address) { branchWritePC(address); }
 
@@ -57,13 +57,19 @@ public:
     auto isInPrivilegedMode() const -> bool;
     auto executionPriority() const -> int32_t;
 
+    void exceptionEntry(ExceptionType exceptionType);
     void pushStack(ExceptionType exceptionType);
     void exceptionTaken(ExceptionType exceptionType);
     auto returnAddress(ExceptionType exceptionType) -> uint32_t;
 
-    inline void setEventRegister() { m_eventRegister = true; }
-    inline void clearEventRegister() { m_eventRegister = false; }
-    inline auto wasEventRegistered() -> bool { return m_eventRegister; }
+    auto currentInstructionAddress() const { return m_currentInstructionAddress; }
+    auto nextInstructionAddress() const -> uint32_t;
+
+    void instructionSynchronizationBarrier(uint8_t option);
+
+    inline void setEventRegister() { m_wasEventRegistered = true; }
+    inline void clearEventRegister() { m_wasEventRegistered = false; }
+    inline auto wasEventRegistered() -> bool { return m_wasEventRegistered; }
 
     inline auto R(uint8_t reg) const -> uint32_t { return m_registers.getRegister(reg); }
     inline void setR(uint8_t reg, uint32_t value) { m_registers.setRegister(reg, value); }
@@ -88,8 +94,11 @@ private:
 
     ExecutionMode m_currentMode;
     std::bitset<512> m_exceptionActive;
+    bool m_wasEventRegistered = false;
 
-    bool m_eventRegister = false;
+    bool m_skipIncrementingPC = false;
+    uint32_t m_currentInstructionAddress = 0u;
+    uint32_t m_nextInstructionAddress = 0u;
 };
 
 }  // namespace stm32

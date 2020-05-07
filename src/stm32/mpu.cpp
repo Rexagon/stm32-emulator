@@ -11,7 +11,7 @@ namespace stm32
 namespace details
 {
 template <typename T>
-auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessType) -> T
+inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessType) -> T
 {
     if (!utils::isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
@@ -29,7 +29,7 @@ auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessTy
 }
 
 template <typename T>
-void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, AccessType accessType)
+inline void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, AccessType accessType)
 {
     if (!utils::isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;

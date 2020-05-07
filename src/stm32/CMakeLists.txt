@@ -31,6 +31,7 @@ set(${SUBPROJ_NAME}_HEADERS
 
 set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
+        "cpu_instructions.cpp"
         "memory.cpp"
         "mpu.cpp"
         "stm32.cpp"
