@@ -3,6 +3,8 @@
 
 #include "memory.hpp"
 
+#include "utils/math.hpp"
+
 namespace stm32 {
 namespace {
 inline auto decodeBitBand(uint32_t address, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart) -> std::pair<uint32_t, uint8_t>
@@ -160,6 +162,99 @@ auto Memory::findRegion(uint32_t address) const -> MemoryRegion*
 
         stepSize >>= 1u;
     }
+}
+
+auto Memory::defaultMemoryAttributes(uint32_t address) -> MemoryAttributes
+{
+    MemoryAttributes attributes{};
+    switch (utils::getPart<29, 3>(address)) {
+        case 0b000u:
+            attributes.type = MemoryType::Normal;
+            attributes.inner = CacheAttribute::WT;
+            attributes.shareable = false;
+            break;
+        case 0b001u:
+            attributes.type = MemoryType::Normal;
+            attributes.inner = CacheAttribute::WBWA;
+            attributes.shareable = false;
+            break;
+        case 0b010u:
+            attributes.type = MemoryType::Device;
+            attributes.inner = CacheAttribute::NonCacheable;
+            attributes.shareable = false;
+            break;
+        case 0b011u:
+            attributes.type = MemoryType::Normal;
+            attributes.inner = CacheAttribute::WBWA;
+            attributes.shareable = false;
+            break;
+        case 0b100u:
+            attributes.type = MemoryType::Normal;
+            attributes.inner = CacheAttribute::WT;
+            attributes.shareable = false;
+            break;
+        case 0b101u:
+            attributes.type = MemoryType::Device;
+            attributes.inner = CacheAttribute::NonCacheable;
+            attributes.shareable = true;
+            break;
+        case 0b110u:
+            attributes.type = MemoryType::Device;
+            attributes.inner = CacheAttribute::NonCacheable;
+            attributes.shareable = false;
+            break;
+        case 0b111u:
+            if (utils::getPart<20, 8>(address) == 0u) {
+                attributes.type = MemoryType::StronglyOrdered;
+                attributes.inner = CacheAttribute::NonCacheable;
+                attributes.shareable = true;
+            }
+            else {
+                attributes.type = MemoryType::Device;
+                attributes.inner = CacheAttribute::NonCacheable;
+                attributes.shareable = false;
+            }
+            break;
+    }
+
+    attributes.outer = attributes.inner;
+    return attributes;
+}
+
+auto Memory::defaultMemoryPermissions(uint32_t address) -> MemoryPermissions
+{
+    MemoryPermissions permissions;
+    permissions.accessPermissions = 0b011u;
+
+    switch (utils::getPart<29, 3>(address))
+    {
+        case 0b000u:
+            permissions.executeNever = false;
+            break;
+        case 0b001u:
+            permissions.executeNever = false;
+            break;
+        case 0b010u:
+            permissions.executeNever = true;
+            break;
+        case 0b011u:
+            permissions.executeNever = false;
+            break;
+        case 0b100u:
+            permissions.executeNever = false;
+            break;
+        case 0b101u:
+            permissions.executeNever = true;
+            break;
+        case 0b110u:
+            permissions.executeNever = true;
+            break;
+        case 0b111u:
+            permissions.executeNever = true;
+            break;
+    }
+
+    return permissions;
 }
 
 }  // namespace stm32

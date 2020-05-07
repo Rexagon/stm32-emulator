@@ -3,14 +3,29 @@
 
 #include "mpu_registers_set.hpp"
 
+#include "../utils/general.hpp"
+
 namespace stm32::rg
 {
 MpuRegistersSet::MpuRegistersSet()
+    : m_mpuTypeRegister{}
+    , m_mpuControlRegister{}
+    , m_mpuRegionNumberRegister{}
+    , m_mpuRegionBaseAddressRegisters{}
+    , m_mpuRegionAttributeAndSizeRegisters{}
 {
 }
 
 void MpuRegistersSet::reset()
 {
+    m_mpuTypeRegister.registerData = 0x00000800u;
+    m_mpuControlRegister.registerData = 0u;
+    m_mpuRegionNumberRegister.registerData = 0u;
+
+    for (size_t i = 0; i < m_mpuRegionBaseAddressRegisters.size(); ++i) {
+        m_mpuRegionBaseAddressRegisters[i].registerData = 0u;
+        m_mpuRegionAttributeAndSizeRegisters[i].registerData = 0u;
+    }
 }
 
-}  // namespace stm32::sc
+}  // namespace stm32::rg

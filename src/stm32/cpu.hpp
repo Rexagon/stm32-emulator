@@ -4,6 +4,7 @@
 
 #include "memory.hpp"
 #include "registers/cpu_registers_set.hpp"
+#include "registers/mpu_registers_set.hpp"
 #include "registers/nvic_registers_set.hpp"
 #include "registers/sys_tick_registers_set.hpp"
 #include "registers/system_control_registers_set.hpp"
@@ -59,6 +60,7 @@ public:
     void advanceCondition();
 
     auto isInPrivilegedMode() const -> bool;
+    auto validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor;
     auto executionPriority() const -> int32_t;
 
     void pushStack(ExceptionType exceptionType);
@@ -70,11 +72,15 @@ public:
 
     inline auto R(uint8_t reg) const -> uint32_t { return m_registers.getRegister(reg); }
     inline void setR(uint8_t reg, uint32_t value) { m_registers.setRegister(reg, value); }
-
     inline auto registers() -> rg::CpuRegistersSet& { return m_registers; }
+
     inline auto systemRegisters() -> rg::SystemControlRegistersSet& { return m_systemRegisters; }
+
     inline auto sysTickRegisters() -> rg::SysTickRegistersSet& { return m_sysTickRegisters; }
+
     inline auto nvicRegisters() -> rg::NvicRegistersSet& { return m_nvicRegisters; }
+
+    inline auto mpuRegisters() -> rg::MpuRegistersSet& { return m_mpuRegisters; }
 
     inline auto memory() -> Memory& { return m_memory; }
 
@@ -82,6 +88,7 @@ private:
     rg::CpuRegistersSet m_registers;
     rg::SystemControlRegistersSet m_systemRegisters;
     rg::SysTickRegistersSet m_sysTickRegisters;
+    rg::MpuRegistersSet m_mpuRegisters;
     rg::NvicRegistersSet m_nvicRegisters;
     Memory m_memory;
 
@@ -95,7 +102,7 @@ template <typename T>
 auto Cpu::alignedMemoryRead(uint32_t address) -> T
 {
     if (!utils::isAddressAligned<T>(address)) {
-        m_systemRegisters.UFSR().UNALIGNED_ = true;
+        m_systemRegisters.CFSR().usageFault.UNALIGNED_ = true;
         // TODO: ExceptionTaken(UsageFault)
     }
 }

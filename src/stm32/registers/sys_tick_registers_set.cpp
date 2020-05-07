@@ -3,8 +3,6 @@
 
 #include "sys_tick_registers_set.hpp"
 
-#include "../utils/general.hpp"
-
 namespace stm32::rg
 {
 SysTickRegistersSet::SysTickRegistersSet()
@@ -17,10 +15,10 @@ SysTickRegistersSet::SysTickRegistersSet()
 
 void SysTickRegistersSet::reset()
 {
-    resetRegisterValue(m_sysTickControlAndStatusRegister);
+    m_sysTickControlAndStatusRegister.registerData = 0u;
     // STRVR is unknown on reset
     // STRVR is unknown on reset
-    resetRegisterValue(m_sysTickCalibrationValueRegister);  // TODO: check value on real microcontroller
+    m_sysTickCalibrationValueRegister.registerData = 0u;  // TODO: check value on real microcontroller
 }
 
-}  // namespace stm32::sc
+}  // namespace stm32::rg

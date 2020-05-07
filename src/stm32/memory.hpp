@@ -40,6 +40,12 @@ struct MemoryPermissions {
     bool executeNever;
 };
 
+enum AccessType {
+    Unprivileged,
+    VecTable,
+    InstructionFetch,
+};
+
 class MemoryRegion {
 public:
     explicit MemoryRegion(uint32_t regionStart, uint32_t regionEnd);
@@ -177,6 +183,9 @@ public:
     auto read(uint32_t address) const -> uint8_t;
 
     inline auto config() const -> const Config& { return m_config; }
+
+    static auto defaultMemoryAttributes(uint32_t address) -> MemoryAttributes;
+    static auto defaultMemoryPermissions(uint32_t address) -> MemoryPermissions;
 
 private:
     auto findRegion(uint32_t address) const -> MemoryRegion*;

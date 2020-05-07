@@ -23,6 +23,7 @@ Cpu::Cpu(const Memory::Config& memoryConfig)
     : m_registers{}
     , m_systemRegisters{}
     , m_sysTickRegisters{}
+    , m_mpuRegisters{}
     , m_nvicRegisters{}
     , m_memory{memoryConfig}
     , m_currentMode{}
@@ -40,6 +41,7 @@ void Cpu::reset()
     m_systemRegisters.reset();
     m_sysTickRegisters.reset();
     m_nvicRegisters.reset();
+    m_mpuRegisters.reset();
     // TODO: clear exclusive local
     clearEventRegister();
 
@@ -191,6 +193,53 @@ void Cpu::advanceCondition()
 auto Cpu::isInPrivilegedMode() const -> bool
 {
     return m_currentMode == ExecutionMode::Handler || !m_registers.CONTROL().nPRIV;
+}
+
+auto Cpu::validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor
+{
+    const auto isPrivileged = accessType != AccessType::Unprivileged && isInPrivilegedMode();
+
+    AddressDescriptor result{};
+    result.physicalAddress = address;
+    result.attributes = Memory::defaultMemoryAttributes(address);
+
+    auto permissions = Memory::defaultMemoryPermissions(address);
+
+    auto hit = false;
+
+    auto isPpbAccess = utils::getPart<20, 12>(address) == 0b111000000000;
+    if (accessType == AccessType::VecTable || isPpbAccess) {
+        hit = true;  // // use default map for PPB and vector table lookups
+    }
+    else if (!m_mpuRegisters.MPU_CTRL().ENABLE) {
+        UNPREDICTABLE_IF(m_mpuRegisters.MPU_CTRL().HFNMIENA);
+        hit = true;  // always use default map if MPU disabled
+    }
+    else if (!m_mpuRegisters.MPU_CTRL().HFNMIENA && executionPriority() < 0) {
+        hit = true;  // optionally use default for HardFault, NMI and FAULTMASK
+    }
+    else {  // MPU is enabled so check each individual region
+        if (m_mpuRegisters.MPU_CTRL().PRIVDEFENA && isPrivileged) {
+            hit = true;  // optional default as background for Privileged accesses
+        }
+
+        for (uint8_t r = 0; r < m_mpuRegisters.MPU_TYPE().DREGION; ++r) {
+            const auto& MPU_RBAR = m_mpuRegisters.MPU_RBAR(r);
+            const auto& MPU_RASR = m_mpuRegisters.MPU_RASR(r);
+
+            if (!MPU_RASR.ENABLE) {
+                continue;
+            }
+
+            // MPU region enabled so perform checks
+            const auto lsBit = MPU_RASR.SIZE + 1u;
+            UNPREDICTABLE_IF(lsBit < 5u);
+            UNPREDICTABLE_IF((lsBit < 8u) && (MPU_RASR.ATTRS.C || MPU_RASR.ATTRS.B || MPU_RASR.ATTRS.S || MPU_RASR.ATTRS.XN ||
+                                              MPU_RASR.ATTRS.AP > 0u || MPU_RASR.ATTRS.TEX > 0u));
+
+            if (lsBit == 32u || (address >> lsBit) == (MPU_RBAR.ADDR >> lsBit))
+        }
+    }
 }
 
 auto Cpu::executionPriority() const -> int32_t

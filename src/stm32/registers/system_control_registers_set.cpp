@@ -30,31 +30,31 @@ SystemControlRegistersSet::SystemControlRegistersSet()
 
 void SystemControlRegistersSet::reset()
 {
-    resetRegisterValue(m_cpuIdBaseRegister, 0x412FC231u);
-    resetRegisterValue(m_interruptControlAndStateRegister);
-    resetRegisterValue(m_vectorTableOffsetRegister);
-    resetRegisterValue(m_applicationInterruptAndResetControlRegister);
-    resetRegisterValue(m_systemControlRegister);
-    resetRegisterValue(m_configurationAndControlRegister);
+    m_cpuIdBaseRegister.registerData = 0x412FC231u;
+    m_interruptControlAndStateRegister.registerData = 0u;
+    m_vectorTableOffsetRegister.registerData = 0u;
+    m_applicationInterruptAndResetControlRegister.registerData = 0u;
+    m_systemControlRegister.registerData = 0u;
+    m_configurationAndControlRegister.registerData = 0u;
 
-    resetRegisterValue(m_systemHandlerPriorityRegisters[0]);
-    resetRegisterValue(m_systemHandlerPriorityRegisters[1]);
-    resetRegisterValue(m_systemHandlerPriorityRegisters[2]);
-    resetRegisterValue(m_systemHandlerControlAndStateRegister);
+    m_systemHandlerPriorityRegisters[0].registerData = 0u;
+    m_systemHandlerPriorityRegisters[1].registerData = 0u;
+    m_systemHandlerPriorityRegisters[2].registerData = 0u;
+    m_systemHandlerControlAndStateRegister.registerData = 0u;
 
-    resetRegisterValue(m_configurationAndControlRegister);
-    resetRegisterValue(m_hardFaultStatusRegister);
-    resetRegisterValue(m_auxiliaryFaultStatusRegister);
+    m_configurationAndControlRegister.registerData = 0u;
+    m_hardFaultStatusRegister.registerData = 0u;
+    m_auxiliaryFaultStatusRegister.registerData = 0u;
 
     // MMFAR is unknown on reset
     // BFAR is unknown on reset
 
-    resetRegisterValue(m_coprocessorAccessControlRegister);
-    resetRegisterValue(m_auxiliaryControlRegister);
+    m_coprocessorAccessControlRegister.registerData = 0u;
+    m_auxiliaryControlRegister.registerData = 0u;
 
-    resetRegisterValue(m_interruptControllerTypeRegister, 0x00000111u);  // TODO: check value on real microcontroller
+    m_interruptControllerTypeRegister.registerData = 0x00000111u;  // TODO: check value on real microcontroller
 
-    resetRegisterValue(m_softwareTriggeredInterruptRegister);
+    m_softwareTriggeredInterruptRegister.registerData = 0u;
 }
 
 }  // namespace stm32::sc

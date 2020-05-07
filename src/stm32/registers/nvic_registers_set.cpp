@@ -21,13 +21,13 @@ NvicRegistersSet::NvicRegistersSet()
 void NvicRegistersSet::reset()
 {
     for (uint8_t i = 0; i < m_interruptEnableStates.size(); ++i) {
-        resetRegisterValue(m_interruptEnableStates[i]);
-        resetRegisterValue(m_interruptPendingStates[i]);
-        resetRegisterValue(m_interruptActiveBitRegisters[i]);
+        m_interruptEnableStates[i] = 0u;
+        m_interruptPendingStates[i] = 0u;
+        m_interruptActiveBitRegisters[i].registerData = 0u;
     }
 
     for (uint8_t i = 0; i < m_interruptPriorityRegisters.size(); ++i) {
-        resetRegisterValue(m_interruptPriorityRegisters[i]);
+        m_interruptPriorityRegisters[i].registerData = 0u;
     }
 }
 

@@ -25,11 +25,9 @@ public:
     inline auto SHPR3() const -> const SystemHandlerPriorityRegister& { return m_systemHandlerPriorityRegisters[2]; }
     inline auto SHCSR() const -> const SystemHandlerControlAndStateRegister& { return m_systemHandlerControlAndStateRegister; }
 
+    inline auto CFSR() -> ConfigurableFaultStatusRegister& { return m_configurableFaultStatusRegister; }
     inline auto CFSR() const -> const ConfigurableFaultStatusRegister& { return m_configurableFaultStatusRegister; }
-    inline auto MMFSR() const -> const MemManageStatusRegister& { return m_configurableFaultStatusRegister.memManage; }
-    inline auto BFSR() const -> const BusFaultStatusRegister& { return m_configurableFaultStatusRegister.busFault; }
-    inline auto UFSR() -> UsageFaultStatusRegister& { return m_configurableFaultStatusRegister.usageFault; }
-    inline auto UFSR() const -> const UsageFaultStatusRegister& { return m_configurableFaultStatusRegister.usageFault; }
+
     inline auto HFSR() const -> const HardFaultStatusRegister& { return m_hardFaultStatusRegister; }
     inline auto AFSR() const -> const AuxiliaryFaultStatusRegister& { return m_auxiliaryFaultStatusRegister; }
 
