@@ -66,8 +66,6 @@ public:
         return m_mpuRegionAttributeAndSizeRegisters[region];
     }
 
-    static auto defaultTexDecode(const MpuRegionAttribute& attributes) -> MemoryAttributes;
-
 private:
     MpuTypeRegister m_mpuTypeRegister;
     MpuControlRegister m_mpuControlRegister;

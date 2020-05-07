@@ -5,8 +5,10 @@
 
 #include "utils/math.hpp"
 
-namespace stm32 {
-namespace {
+namespace stm32
+{
+namespace
+{
 inline auto decodeBitBand(uint32_t address, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart) -> std::pair<uint32_t, uint8_t>
 {
     // bit_word_offset = (byte_offset * 32) + (bit_number * 4)
@@ -53,7 +55,8 @@ void Memory::attachRegion(MemoryRegion& region)
     m_memoryRegions.insert(it, &region);
 }
 
-void Memory::write(uint32_t address, uint8_t data)
+template <>
+void Memory::write<uint8_t>(uint32_t address, uint8_t data)
 {
     if (address < m_config.flashMemoryEnd) {
         if (address < m_config.flashMemoryStart) {
@@ -94,7 +97,24 @@ void Memory::write(uint32_t address, uint8_t data)
     }
 }
 
-auto Memory::read(uint32_t address) const -> uint8_t
+template <>
+void Memory::write<uint16_t>(uint32_t address, uint16_t value)
+{
+    write(address, utils::getPart<0, 8>(value));
+    write(address + 1u, utils::getPart<8, 8>(value));
+}
+
+template <>
+void Memory::write<uint32_t>(uint32_t address, uint32_t value)
+{
+    write(address, utils::getPart<0, 8>(value));
+    write(address + 1u, utils::getPart<8, 8>(value));
+    write(address + 2u, utils::getPart<16, 8>(value));
+    write(address + 3u, utils::getPart<24, 8>(value));
+}
+
+template <>
+auto Memory::read<uint8_t>(uint32_t address) const -> uint8_t
 {
     if (address < m_config.flashMemoryEnd) {
         if (address < m_config.flashMemoryStart) {
@@ -136,6 +156,21 @@ auto Memory::read(uint32_t address) const -> uint8_t
     return 0;
 }
 
+template <>
+auto Memory::read<uint16_t>(uint32_t address) const -> uint16_t
+{
+    return utils::combine<uint16_t>(utils::Part<0, 8>{read<uint8_t>(address)}, utils::Part<8, 8>{read<uint8_t>(address + 1u)});
+}
+
+template <>
+auto Memory::read<uint32_t>(uint32_t address) const -> uint32_t
+{
+    return utils::combine<uint32_t>(utils::Part<0, 8>{read<uint8_t>(address)},
+                                    utils::Part<8, 8>{read<uint8_t>(address + 1u)},
+                                    utils::Part<16, 8>{read<uint8_t>(address + 2u)},
+                                    utils::Part<24, 8>{read<uint8_t>(address + 3u)});
+}
+
 auto Memory::findRegion(uint32_t address) const -> MemoryRegion*
 {
     if (m_memoryRegions.empty()) {
@@ -162,99 +197,6 @@ auto Memory::findRegion(uint32_t address) const -> MemoryRegion*
 
         stepSize >>= 1u;
     }
-}
-
-auto Memory::defaultMemoryAttributes(uint32_t address) -> MemoryAttributes
-{
-    MemoryAttributes attributes{};
-    switch (utils::getPart<29, 3>(address)) {
-        case 0b000u:
-            attributes.type = MemoryType::Normal;
-            attributes.inner = CacheAttribute::WT;
-            attributes.shareable = false;
-            break;
-        case 0b001u:
-            attributes.type = MemoryType::Normal;
-            attributes.inner = CacheAttribute::WBWA;
-            attributes.shareable = false;
-            break;
-        case 0b010u:
-            attributes.type = MemoryType::Device;
-            attributes.inner = CacheAttribute::NonCacheable;
-            attributes.shareable = false;
-            break;
-        case 0b011u:
-            attributes.type = MemoryType::Normal;
-            attributes.inner = CacheAttribute::WBWA;
-            attributes.shareable = false;
-            break;
-        case 0b100u:
-            attributes.type = MemoryType::Normal;
-            attributes.inner = CacheAttribute::WT;
-            attributes.shareable = false;
-            break;
-        case 0b101u:
-            attributes.type = MemoryType::Device;
-            attributes.inner = CacheAttribute::NonCacheable;
-            attributes.shareable = true;
-            break;
-        case 0b110u:
-            attributes.type = MemoryType::Device;
-            attributes.inner = CacheAttribute::NonCacheable;
-            attributes.shareable = false;
-            break;
-        case 0b111u:
-            if (utils::getPart<20, 8>(address) == 0u) {
-                attributes.type = MemoryType::StronglyOrdered;
-                attributes.inner = CacheAttribute::NonCacheable;
-                attributes.shareable = true;
-            }
-            else {
-                attributes.type = MemoryType::Device;
-                attributes.inner = CacheAttribute::NonCacheable;
-                attributes.shareable = false;
-            }
-            break;
-    }
-
-    attributes.outer = attributes.inner;
-    return attributes;
-}
-
-auto Memory::defaultMemoryPermissions(uint32_t address) -> MemoryPermissions
-{
-    MemoryPermissions permissions;
-    permissions.accessPermissions = 0b011u;
-
-    switch (utils::getPart<29, 3>(address))
-    {
-        case 0b000u:
-            permissions.executeNever = false;
-            break;
-        case 0b001u:
-            permissions.executeNever = false;
-            break;
-        case 0b010u:
-            permissions.executeNever = true;
-            break;
-        case 0b011u:
-            permissions.executeNever = false;
-            break;
-        case 0b100u:
-            permissions.executeNever = false;
-            break;
-        case 0b101u:
-            permissions.executeNever = true;
-            break;
-        case 0b110u:
-            permissions.executeNever = true;
-            break;
-        case 0b111u:
-            permissions.executeNever = true;
-            break;
-    }
-
-    return permissions;
 }
 
 }  // namespace stm32

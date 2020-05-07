@@ -13,6 +13,7 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 set(${SUBPROJ_NAME}_HEADERS
         "cpu.hpp"
         "memory.hpp"
+        "mpu.hpp"
         "opcodes.hpp"
         "stm32.hpp"
         "utils/general.hpp"
@@ -31,6 +32,7 @@ set(${SUBPROJ_NAME}_HEADERS
 set(${SUBPROJ_NAME}_SOURCES
         "cpu.cpp"
         "memory.cpp"
+        "mpu.cpp"
         "stm32.cpp"
         "registers/cpu_registers_set.cpp"
         "registers/mpu_registers_set.cpp"

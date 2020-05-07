@@ -19,7 +19,7 @@ TEST(memory, memory_consistency)
 
     for (const auto& [address, data] : testData) {
         memory.write(address, data);
-        ASSERT_EQ(memory.read(address), data);
+        ASSERT_EQ(memory.read<uint8_t>(address), data);
     }
 }
 
@@ -38,7 +38,7 @@ TEST(memory, reserved_addresses)
 
     for (const auto& [address, data] : testData) {
         memory.write(address, data);
-        ASSERT_EQ(memory.read(address), 0);
+        ASSERT_EQ(memory.read<uint8_t>(address), 0);
     }
 }
 
@@ -58,8 +58,10 @@ TEST(memory, bit_band_region_test)
         memory.write(address, data);
 
         for (uint8_t i = 0; i < 8u; ++i) {
-            const auto bitValue = memory.read(details::createBitBandAddress(address, i, Memory::AddressSpace::SramBitBandAliasStart,
-                                                                            Memory::AddressSpace::SramBitBandRegionStart));
+            const auto bitValue = memory.read<uint8_t>(details::createBitBandAddress(address,
+                                                                                     i,
+                                                                                     Memory::AddressSpace::SramBitBandAliasStart,
+                                                                                     Memory::AddressSpace::SramBitBandRegionStart));
 
             ASSERT_EQ(bitValue, static_cast<uint32_t>(data >> i) & 0x1u);
         }
@@ -108,6 +110,6 @@ TEST(memory, bit_band_alias_test)
         }
 
         const auto& [address, data] = targetData;
-        ASSERT_EQ(memory.read(address), data);
+        ASSERT_EQ(memory.read<uint8_t>(address), data);
     }
 }

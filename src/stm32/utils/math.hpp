@@ -334,6 +334,8 @@ auto alignAddress(uint32_t address) -> T
     return address & ZEROS<std::log(sizeof(T)), uint32_t>;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-parameter"
 template <typename T>
 auto isAddressAligned(uint32_t address) -> bool
 {
@@ -347,5 +349,6 @@ auto isAddressAligned(uint32_t address) -> bool
         return (address & ZEROS<2, uint32_t>) == 0;
     }
 }
+#pragma GCC diagnostic pop
 
 }  // namespace stm32::utils

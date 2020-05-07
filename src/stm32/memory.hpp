@@ -5,47 +5,6 @@
 
 namespace stm32
 {
-enum class MemoryType : uint8_t {
-    Normal = 0b00u,
-    Device = 0b01u,
-    StronglyOrdered = 0b10u,
-};
-
-enum class CacheAttribute : uint8_t {
-    NonCacheable = 0b00u,
-    WBWA = 0b01u,   //  Write-back, write and read allocate
-    WT = 0b10u,     // Write-through, no write allocate
-    WBnWA = 0b11u,  // Write-back, no write allocate
-};
-
-// Memory attributes descriptor
-struct __attribute__((__packed__)) MemoryAttributes {
-    MemoryType type : 2;       // bits[1:0]
-    CacheAttribute inner : 2;  // bits[3:2]
-    CacheAttribute outer : 2;  // bits[5:4]
-    bool shareable : 1;        // bit[6]
-
-    uint8_t : 1;  // bit[7]
-                  // reserved
-};
-
-// Descriptor used to access the underlying memory array
-struct AddressDescriptor {
-    MemoryAttributes attributes;
-    uint32_t physicalAddress;
-};
-
-struct MemoryPermissions {
-    uint8_t accessPermissions;
-    bool executeNever;
-};
-
-enum AccessType {
-    Normal,
-    Unprivileged,
-    VecTable,
-    InstructionFetch,
-};
 
 class MemoryRegion {
 public:
@@ -180,13 +139,12 @@ public:
 
     void attachRegion(MemoryRegion& region);
 
-    void write(uint32_t address, uint8_t data);
-    auto read(uint32_t address) const -> uint8_t;
+    template <typename T>
+    void write(uint32_t address, T data);
+    template <typename T>
+    auto read(uint32_t address) const -> T;
 
     inline auto config() const -> const Config& { return m_config; }
-
-    static auto defaultMemoryAttributes(uint32_t address) -> MemoryAttributes;
-    static auto defaultMemoryPermissions(uint32_t address) -> MemoryPermissions;
 
 private:
     auto findRegion(uint32_t address) const -> MemoryRegion*;

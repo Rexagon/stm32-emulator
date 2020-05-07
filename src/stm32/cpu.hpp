@@ -3,8 +3,8 @@
 #include <bitset>
 
 #include "memory.hpp"
+#include "mpu.hpp"
 #include "registers/cpu_registers_set.hpp"
-#include "registers/mpu_registers_set.hpp"
 #include "registers/nvic_registers_set.hpp"
 #include "registers/sys_tick_registers_set.hpp"
 #include "registers/system_control_registers_set.hpp"
@@ -46,15 +46,6 @@ public:
     inline void loadWritePC(uint32_t address) { bxWritePC(address); }
     inline void aluWritePC(uint32_t address) { branchWritePC(address); }
 
-    template <typename T>
-    auto basicMemoryRead(AddressDescriptor desc) -> T;
-    template <typename T>
-    auto basicMemoryWrite(AddressDescriptor desc, T value);
-    template <typename T>
-    auto alignedMemoryRead(uint32_t address, AccessType accessType = AccessType::Normal) -> T;
-    template <typename T>
-    void alignedMemoryWrite(uint32_t address, T value, AccessType accessType = AccessType::Normal);
-
     inline auto currentMode() -> ExecutionMode& { return m_currentMode; }
 
     auto currentCondition() const -> uint8_t;
@@ -64,8 +55,6 @@ public:
     void advanceCondition();
 
     auto isInPrivilegedMode() const -> bool;
-    auto validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor;
-    void checkPermissions(MemoryPermissions permissions, uint32_t address, AccessType accessType, bool write);
     auto executionPriority() const -> int32_t;
 
     void pushStack(ExceptionType exceptionType);
@@ -86,62 +75,21 @@ public:
 
     inline auto nvicRegisters() -> rg::NvicRegistersSet& { return m_nvicRegisters; }
 
-    inline auto mpuRegisters() -> rg::MpuRegistersSet& { return m_mpuRegisters; }
-
     inline auto memory() -> Memory& { return m_memory; }
 
 private:
     rg::CpuRegistersSet m_registers;
     rg::SystemControlRegistersSet m_systemRegisters;
     rg::SysTickRegistersSet m_sysTickRegisters;
-    rg::MpuRegistersSet m_mpuRegisters;
     rg::NvicRegistersSet m_nvicRegisters;
     Memory m_memory;
+
+    Mpu m_mpu;
 
     ExecutionMode m_currentMode;
     std::bitset<512> m_exceptionActive;
 
     bool m_eventRegister = false;
 };
-
-template <typename T>
-auto Cpu::alignedMemoryRead(uint32_t address, AccessType accessType) -> T
-{
-    if (!utils::isAddressAligned<T>(address)) {
-        m_systemRegisters.CFSR().usageFault.UNALIGNED_ = true;
-        exceptionTaken(ExceptionType::UsageFault);
-    }
-
-    const auto descriptor = validateAddress(address, accessType, false);
-    auto value = basicMemoryRead<T>(descriptor);
-    if (m_systemRegisters.AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
-    }
-
-    return value;
-}
-
-template <typename T>
-void Cpu::alignedMemoryWrite(uint32_t address, T value, AccessType accessType)
-{
-    if (!utils::isAddressAligned<T>(address)) {
-        m_systemRegisters.CFSR().usageFault.UNALIGNED_ = true;
-        exceptionTaken(ExceptionType::UsageFault);
-    }
-
-    const auto descriptor = validateAddress(address, accessType, true);
-
-    /*
-    if (descriptor.attributes.shareable) {
-        clearExclusiveByAddress(descriptor.physicaladdress, ProcessorID(), size);
-    }
-    */
-
-    if (m_systemRegisters.AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
-    }
-
-    basicMemoryWrite(descriptor, value);
-}
 
 }  // namespace stm32
