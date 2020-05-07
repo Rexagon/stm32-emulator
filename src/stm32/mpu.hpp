@@ -59,6 +59,11 @@ public:
     template <typename T>
     void alignedMemoryWrite(uint32_t address, T value, AccessType accessType = AccessType::Normal);
 
+    template <typename T>
+    auto unalignedMemoryRead(uint32_t address, AccessType accessType = AccessType::Normal) -> T;
+    template <typename T>
+    void unalignedMemoryWrite(uint32_t address, T value, AccessType accessType = AccessType::Normal);
+
     auto validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor;
     void checkPermissions(MemoryPermissions permissions, uint32_t address, AccessType accessType, bool write);
 

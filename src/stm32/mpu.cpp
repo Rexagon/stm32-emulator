@@ -45,6 +45,49 @@ inline void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, Ac
     cpu.memory().write(descriptor.physicalAddress, value);
 }
 
+template <typename T>
+inline auto unalignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessType) -> T
+{
+    if (utils::isAddressAligned<T>(address)) {
+        return alignedMemoryRead<T>(cpu, mpu, address, accessType);
+    }
+    else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
+        cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
+        cpu.exceptionTaken(ExceptionType::UsageFault);
+        return {};
+    }
+
+    T value{};
+    for (uint8_t i = 0; i < sizeof(T); ++i) {
+        value = value | static_cast<T>(static_cast<T>(alignedMemoryRead<uint8_t>(cpu, mpu, address, accessType)) << (8u * i));
+    }
+    if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
+        value = utils::reverseEndianness(value);
+    }
+
+    return value;
+}
+
+template <typename T>
+inline void unalignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, AccessType accessType)
+{
+    if (utils::isAddressAligned<T>(address)) {
+        alignedMemoryWrite<T>(cpu, mpu, address, value, accessType);
+    }
+    else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
+        cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
+        cpu.exceptionTaken(ExceptionType::UsageFault);
+    }
+
+    if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
+        value = utils::reverseEndianness(value);
+    }
+
+    for (uint8_t i = 0; i < sizeof(T); ++i) {
+        alignedMemoryWrite<uint8_t>(cpu, mpu, address, static_cast<uint8_t>(value >> (8u * i)), accessType);
+    }
+}
+
 }  // namespace details
 
 Mpu::Mpu(Cpu& cpu)
@@ -92,6 +135,42 @@ template <>
 void Mpu::alignedMemoryWrite(uint32_t address, uint32_t value, AccessType accessType)
 {
     return details::alignedMemoryWrite(m_cpu, *this, address, value, accessType);
+}
+
+template <>
+auto Mpu::unalignedMemoryRead<uint8_t>(uint32_t address, AccessType accessType) -> uint8_t
+{
+    return details::unalignedMemoryRead<uint8_t>(m_cpu, *this, address, accessType);
+}
+
+template <>
+auto Mpu::unalignedMemoryRead<uint16_t>(uint32_t address, AccessType accessType) -> uint16_t
+{
+    return details::unalignedMemoryRead<uint16_t>(m_cpu, *this, address, accessType);
+}
+
+template <>
+auto Mpu::unalignedMemoryRead<uint32_t>(uint32_t address, AccessType accessType) -> uint32_t
+{
+    return details::unalignedMemoryRead<uint32_t>(m_cpu, *this, address, accessType);
+}
+
+template <>
+void Mpu::unalignedMemoryWrite(uint32_t address, uint8_t value, AccessType accessType)
+{
+    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
+}
+
+template <>
+void Mpu::unalignedMemoryWrite(uint32_t address, uint16_t value, AccessType accessType)
+{
+    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
+}
+
+template <>
+void Mpu::unalignedMemoryWrite(uint32_t address, uint32_t value, AccessType accessType)
+{
+    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
 }
 
 auto Mpu::validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor

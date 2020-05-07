@@ -148,9 +148,10 @@ inline void handleSpecialDataInstruction(uint16_t opCode, Cpu& cpu)
     }
 }
 
-inline void handleLoadFromLiteralPool(uint16_t /*opCode*/, Cpu& /*cpu*/)
+inline void handleLoadFromLiteralPool(uint16_t opCode, Cpu& cpu)
 {
-    // TODO: A7.7.43
+    // see: A7.7.43
+    opcodes::cmdLoadRegisterLiteral<opcodes::Encoding::T1>(opCode, cpu);
 }
 
 inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)

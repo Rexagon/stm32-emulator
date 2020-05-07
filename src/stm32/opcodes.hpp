@@ -799,9 +799,10 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
     if constexpr (check<withLink>) {
         UNPREDICTABLE_IF(m == 15);
     }
+    UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
 
     if constexpr (check<withLink>) {
-        const auto nextInstruction = cpu.registers().PC() - 2;
+        const auto nextInstruction = cpu.currentInstructionAddress() + 2u;
         cpu.registers().LR() = nextInstruction | 0b1u;
         cpu.blxWritePC(cpu.R(m));
     }
@@ -853,8 +854,7 @@ void cmdBranch(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    auto& PC = cpu.registers().PC();
-    cpu.branchWritePC(PC + imm32);
+    cpu.branchWritePC(cpu.currentInstructionAddress() + 4u + imm32);
 }
 
 template <Encoding encoding, typename T>
@@ -910,14 +910,14 @@ void cmdAdr(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(d >= 13);
     }
 
-    const auto PC = cpu.registers().PC();
+    const auto PC = (cpu.currentInstructionAddress() + 4u) & utils::ZEROS<4, uint32_t>;
 
     uint32_t result;
     if (add) {
-        result = (PC & utils::ZEROS<4, uint32_t>)+imm32;
+        result = PC + imm32;
     }
     else {
-        result = (PC & utils::ZEROS<4, uint32_t>)-imm32;
+        result = PC - imm32;
     }
 
     cpu.setR(d, result);
@@ -938,7 +938,7 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
         const auto [imm8, Rt] = utils::split<T, Part<0, 7>, Part<8, 3>>(opCode);
 
         t = Rt;
-        imm32 = static_cast<uint32_t>(imm8);
+        imm32 = utils::combine<uint32_t>(Part<0, 2>{0u}, Part<2, 8>{imm8});
         add = true;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -947,11 +947,32 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
         t = Rt;
         imm32 = imm12;
         add = U;
+
+        UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    const auto base = cpu.registers().PC() & utils::ZEROS<2, uint32_t>;
+    const auto base = (cpu.currentInstructionAddress() + 4u) & utils::ZEROS<2, uint32_t>;
 
-    // TODO: finish memory write
+    uint32_t address;
+    if (add) {
+        address = base + imm32;
+    }
+    else {
+        address = base - imm32;
+    }
+
+    const auto data = cpu.mpu().unalignedMemoryRead<uint32_t>(address);
+    if (t == 15) {
+        if ((data & utils::ONES<2, uint32_t>) == 0u) {
+            cpu.loadWritePC(data);
+        }
+        else {
+            UNPREDICTABLE;
+        }
+    }
+    else {
+        cpu.setR(t, data);
+    }
 }
 
 inline void cmdCps(uint16_t opCode, Cpu& cpu)

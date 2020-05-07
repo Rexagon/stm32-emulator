@@ -81,6 +81,8 @@ public:
 
     inline auto nvicRegisters() -> rg::NvicRegistersSet& { return m_nvicRegisters; }
 
+    inline auto mpu() -> Mpu& { return m_mpu; }
+
     inline auto memory() -> Memory& { return m_memory; }
 
 private:
