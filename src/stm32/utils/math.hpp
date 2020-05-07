@@ -51,35 +51,35 @@ struct Extractor<V, Part<offset, bitCount, T>> {
 }  // namespace details
 
 template <typename V, typename... Parts>
-auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
+inline auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
 {
     return std::tuple(details::Extractor<V, Parts>::extract(value)...);
 }
 
 template <typename V, typename... Parts>
-auto combine(Parts... part) -> V
+inline auto combine(Parts... part) -> V
 {
     return (details::Extractor<V, Parts>::create(part.value) | ...);
 }
 
 template <uint8_t Offset, uint8_t N, typename R = uint8_t, typename V>
-constexpr auto getPart(const V& value) -> R
+inline constexpr auto getPart(const V& value) -> R
 {
     return static_cast<R>(static_cast<V>(value >> Offset) & ONES<N, V>);
 }
 
 template <typename T>
-constexpr auto isNegative(const T& value) -> bool
+inline constexpr auto isNegative(const T& value) -> bool
 {
     return value & LEFT_BIT<T>;
 }
 
-constexpr auto reverseEndianness(const uint8_t& value) -> uint8_t
+inline constexpr auto reverseEndianness(const uint8_t& value) -> uint8_t
 {
     return value;
 }
 
-constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
+inline constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
 {
 #ifdef __GNUC__
     return __builtin_bswap16(value);
@@ -89,7 +89,7 @@ constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
 #endif
 }
 
-constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
+inline constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
 {
 #ifdef __GNUC__
     return __builtin_bswap32(value);
@@ -97,6 +97,14 @@ constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
     const auto [hw1lo, hw1hi, hw2lo, hw2hi] = split<uint16_t, Part<0, 8>, Part<8, 8>, Part<16, 8>, Part<24, 8>>(value);
     return combite<uint16_t>(Part<0, 8>{hw2hi}, Part<8, 8>{hw2lo}, Part<16, 8>{hw1hi}, Part<24, 8>{hw1lo});
 #endif
+}
+
+template <uint8_t bits, typename T>
+constexpr auto signExtend(const T& value) -> uint32_t
+{
+    static_assert(bits > 0);
+    const auto maskedSign = static_cast<T>(value & ZEROS<bits - 1, T>);
+    return static_cast<T>(~static_cast<T>(maskedSign - 1u) & (~maskedSign | maskedSign)) | value;
 }
 
 template <typename T>

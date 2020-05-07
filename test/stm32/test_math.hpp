@@ -24,6 +24,20 @@ TEST(math, parts)
     ASSERT_EQ((getPart<4, 5>(0x0ff0u)), 0x1fu);
 }
 
+TEST(math, signExtend)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ((signExtend<4, uint8_t>(0b0100u)), 0b00000100u);
+    ASSERT_EQ((signExtend<4, uint8_t>(0b1100u)), 0b11111100u);
+
+    ASSERT_EQ((signExtend<1, uint8_t>(0b1u)), 0b11111111u);
+    ASSERT_EQ((signExtend<1, uint8_t>(0b0u)), 0b00000000u);
+
+    ASSERT_EQ((signExtend<8, uint8_t>(0b01001100u)), 0b01001100u);
+    ASSERT_EQ((signExtend<8, uint8_t>(0b11001100u)), 0b11001100u);
+}
+
 TEST(math, LSL)
 {
     using namespace stm32::utils;

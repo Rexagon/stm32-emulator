@@ -823,22 +823,21 @@ void cmdBranch(T opCode, Cpu& cpu)
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, cond] = utils::split<T, Part<0, 8, uint32_t>, Part<8, 4>>(opCode);
 
-        imm32 = imm8 << 1;  // TODO: sign extend
+        imm32 = utils::signExtend<9>(imm8 << 1);
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto imm11 = utils::getPart<0, 11, uint32_t>(opCode);
 
-        imm32 = imm11 << 1;  // TODO: sign extend
+        imm32 = utils::signExtend<12>(imm11 << 1);
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto [imm11, J2, J1, imm6, cond, S] =
             utils::getPart<T, Part<0, 11>, Part<11, 1>, Part<13, 1>, Part<16, 6>, Part<22, 4>, Part<26, 1>>(opCode);
 
-        // TODO: sign extend
-
-        imm32 = utils::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 6>{imm6}, Part<18, 1>{J1}, Part<19, 1>{J2}, Part<20, 1>{S});
+        imm32 = utils::signExtend<21>(
+            utils::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 6>{imm6}, Part<18, 1>{J1}, Part<19, 1>{J2}, Part<20, 1>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
@@ -848,10 +847,8 @@ void cmdBranch(T opCode, Cpu& cpu)
         const auto I1 = ~(J1 ^ S);
         const auto I2 = ~(J2 ^ S);
 
-        // TODO: sign extend
-
-        imm32 =
-            utils::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 10>{imm10}, Part<22, 1>{I2}, Part<23, 1>{I1}, Part<24, 1>{S});
+        imm32 = utils::signExtend<25>(
+            utils::combine<T>(Part<0, 1>{0u}, Part<1, 11>{imm11}, Part<12, 10>{imm10}, Part<22, 1>{I2}, Part<23, 1>{I1}, Part<24, 1>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
@@ -917,10 +914,10 @@ void cmdAdr(T opCode, Cpu& cpu)
 
     uint32_t result;
     if (add) {
-        result = (PC & utils::ZEROS<4, uint32_t>) + imm32;
+        result = (PC & utils::ZEROS<4, uint32_t>)+imm32;
     }
     else {
-        result = (PC & utils::ZEROS<4, uint32_t>) - imm32;
+        result = (PC & utils::ZEROS<4, uint32_t>)-imm32;
     }
 
     cpu.setR(d, result);
