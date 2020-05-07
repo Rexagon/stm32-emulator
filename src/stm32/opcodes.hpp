@@ -97,7 +97,7 @@ inline void cmdShiftRegister(T opCode, Cpu& cpu)
         setFlags = S;
     }
 
-    const auto shiftN = utils::getPart<0, 8, uint32_t, uint8_t>(cpu.R(m));
+    const auto shiftN = utils::getPart<0, 8>(cpu.R(m));
 
     const auto [result, carry] = utils::shiftWithCarry(cpu.R(n), shiftType, shiftN, APSR.C);
     cpu.setR(d, result);
@@ -795,7 +795,7 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
         return;
     }
 
-    const auto m = utils::getPart<3, 4, uint16_t, uint8_t>(opCode);
+    const auto m = utils::getPart<3, 4>(opCode);
     if constexpr (check<withLink>) {
         UNPREDICTABLE_IF(m == 15);
     }

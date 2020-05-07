@@ -31,6 +31,7 @@ public:
     inline auto HFSR() const -> const HardFaultStatusRegister& { return m_hardFaultStatusRegister; }
     inline auto AFSR() const -> const AuxiliaryFaultStatusRegister& { return m_auxiliaryFaultStatusRegister; }
 
+    inline auto MMFAR() -> MemManageFaultAddressRegister& { return m_memManageFaultAddressRegister; }
     inline auto MMFAR() const -> const MemManageFaultAddressRegister& { return m_memManageFaultAddressRegister; }
     inline auto BFAR() const -> const BusFaultAddressRegister& { return m_busFaultAddressRegister; }
 

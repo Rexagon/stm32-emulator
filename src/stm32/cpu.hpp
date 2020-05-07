@@ -49,7 +49,11 @@ public:
     template <typename T>
     auto basicMemoryRead(AddressDescriptor desc) -> T;
     template <typename T>
-    auto alignedMemoryRead(uint32_t address) -> T;
+    auto basicMemoryWrite(AddressDescriptor desc, T value);
+    template <typename T>
+    auto alignedMemoryRead(uint32_t address, AccessType accessType = AccessType::Normal) -> T;
+    template <typename T>
+    void alignedMemoryWrite(uint32_t address, T value, AccessType accessType = AccessType::Normal);
 
     inline auto currentMode() -> ExecutionMode& { return m_currentMode; }
 
@@ -61,10 +65,12 @@ public:
 
     auto isInPrivilegedMode() const -> bool;
     auto validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor;
+    void checkPermissions(MemoryPermissions permissions, uint32_t address, AccessType accessType, bool write);
     auto executionPriority() const -> int32_t;
 
     void pushStack(ExceptionType exceptionType);
     void exceptionTaken(ExceptionType exceptionType);
+    auto returnAddress(ExceptionType exceptionType) -> uint32_t;
 
     inline void setEventRegister() { m_eventRegister = true; }
     inline void clearEventRegister() { m_eventRegister = false; }
@@ -99,12 +105,43 @@ private:
 };
 
 template <typename T>
-auto Cpu::alignedMemoryRead(uint32_t address) -> T
+auto Cpu::alignedMemoryRead(uint32_t address, AccessType accessType) -> T
 {
     if (!utils::isAddressAligned<T>(address)) {
         m_systemRegisters.CFSR().usageFault.UNALIGNED_ = true;
-        // TODO: ExceptionTaken(UsageFault)
+        exceptionTaken(ExceptionType::UsageFault);
     }
+
+    const auto descriptor = validateAddress(address, accessType, false);
+    auto value = basicMemoryRead<T>(descriptor);
+    if (m_systemRegisters.AIRCR().ENDIANNESS) {
+        value = utils::reverseEndianness(value);
+    }
+
+    return value;
+}
+
+template <typename T>
+void Cpu::alignedMemoryWrite(uint32_t address, T value, AccessType accessType)
+{
+    if (!utils::isAddressAligned<T>(address)) {
+        m_systemRegisters.CFSR().usageFault.UNALIGNED_ = true;
+        exceptionTaken(ExceptionType::UsageFault);
+    }
+
+    const auto descriptor = validateAddress(address, accessType, true);
+
+    /*
+    if (descriptor.attributes.shareable) {
+        clearExclusiveByAddress(descriptor.physicaladdress, ProcessorID(), size);
+    }
+    */
+
+    if (m_systemRegisters.AIRCR().ENDIANNESS) {
+        value = utils::reverseEndianness(value);
+    }
+
+    basicMemoryWrite(descriptor, value);
 }
 
 }  // namespace stm32

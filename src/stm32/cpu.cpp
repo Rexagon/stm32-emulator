@@ -107,6 +107,28 @@ auto Cpu::basicMemoryRead<uint32_t>(AddressDescriptor desc) -> uint32_t
                                     utils::Part<24, 8>{m_memory.read(desc.physicalAddress + 3)});
 }
 
+template <>
+auto Cpu::basicMemoryWrite<uint8_t>(AddressDescriptor desc, uint8_t value)
+{
+    return m_memory.write(desc.physicalAddress, value);
+}
+
+template <>
+auto Cpu::basicMemoryWrite<uint16_t>(AddressDescriptor desc, uint16_t value)
+{
+    m_memory.write(desc.physicalAddress + 0, utils::getPart<0, 8>(value));
+    m_memory.write(desc.physicalAddress + 1, utils::getPart<8, 8>(value));
+}
+
+template <>
+auto Cpu::basicMemoryWrite<uint32_t>(AddressDescriptor desc, uint32_t value)
+{
+    m_memory.write(desc.physicalAddress + 0, utils::getPart<0, 8>(value));
+    m_memory.write(desc.physicalAddress + 1, utils::getPart<8, 8>(value));
+    m_memory.write(desc.physicalAddress + 2, utils::getPart<16, 8>(value));
+    m_memory.write(desc.physicalAddress + 3, utils::getPart<24, 8>(value));
+}
+
 auto Cpu::currentCondition() const -> uint8_t
 {
     const auto ITSTATE = m_registers.ITSTATE();
@@ -207,7 +229,7 @@ auto Cpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
 
     auto hit = false;
 
-    auto isPpbAccess = utils::getPart<20, 12>(address) == 0b111000000000;
+    auto isPpbAccess = utils::getPart<20, 12, uint16_t>(address) == 0b111000000000u;
     if (accessType == AccessType::VecTable || isPpbAccess) {
         hit = true;  // // use default map for PPB and vector table lookups
     }
@@ -223,6 +245,7 @@ auto Cpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
             hit = true;  // optional default as background for Privileged accesses
         }
 
+        // highest matching region wins
         for (uint8_t r = 0; r < m_mpuRegisters.MPU_TYPE().DREGION; ++r) {
             const auto& MPU_RBAR = m_mpuRegisters.MPU_RBAR(r);
             const auto& MPU_RASR = m_mpuRegisters.MPU_RASR(r);
@@ -234,11 +257,96 @@ auto Cpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
             // MPU region enabled so perform checks
             const auto lsBit = MPU_RASR.SIZE + 1u;
             UNPREDICTABLE_IF(lsBit < 5u);
-            UNPREDICTABLE_IF((lsBit < 8u) && (MPU_RASR.ATTRS.C || MPU_RASR.ATTRS.B || MPU_RASR.ATTRS.S || MPU_RASR.ATTRS.XN ||
-                                              MPU_RASR.ATTRS.AP > 0u || MPU_RASR.ATTRS.TEX > 0u));
+            UNPREDICTABLE_IF((lsBit < 8u) && (MPU_RASR.ATTRS.registerData != 0u));
 
-            if (lsBit == 32u || (address >> lsBit) == (MPU_RBAR.ADDR >> lsBit))
+            if (lsBit == 32u || (address >> lsBit) == (MPU_RBAR.registerData >> lsBit)) {
+                const auto subRegion = (address >> (lsBit - 3u)) & 0b111u;
+                if ((static_cast<uint8_t>(MPU_RASR.SRD >> subRegion) & 0b1u) == 0u) {
+                    permissions.accessPermissions = MPU_RASR.ATTRS.AP;
+                    permissions.executeNever = MPU_RASR.ATTRS.XN;
+                    result.attributes = rg::MpuRegistersSet::defaultTexDecode(MPU_RASR.ATTRS);
+                    hit = true;
+                }
+            }
         }
+    }
+
+    if (utils::getPart<29, 3>(address) == 0b111u) {
+        permissions.executeNever = true;
+    }
+
+    if (hit) {
+        checkPermissions(permissions, address, accessType, write);
+    }
+    else {
+        if (accessType == AccessType::InstructionFetch) {
+            m_systemRegisters.CFSR().memManage.IACCVIOL = true;
+            m_systemRegisters.CFSR().memManage.MMARVALID = false;
+        }
+        else {
+            m_systemRegisters.CFSR().memManage.DACCVIOL = true;
+            m_systemRegisters.MMFAR().ADDRESS = address;
+            m_systemRegisters.CFSR().memManage.MMARVALID = true;
+        }
+
+        exceptionTaken(ExceptionType::MemManage);
+    }
+
+    return result;
+}
+
+void Cpu::checkPermissions(MemoryPermissions permissions, uint32_t address, AccessType accessType, bool write)
+{
+    const auto isPrivileged = accessType != AccessType::Unprivileged && isInPrivilegedMode();
+
+    bool fault;
+    switch (permissions.accessPermissions) {
+        case 0b000u:
+            fault = true;
+            break;
+
+        case 0b001u:
+            fault = !isPrivileged;
+            break;
+
+        case 0b010u:
+            fault = !isPrivileged && write;
+            break;
+
+        case 0b011u:
+            fault = false;
+            break;
+
+        case 0b100u:
+            UNPREDICTABLE;
+
+        case 0b101u:
+            fault = !isPrivileged || write;
+            break;
+
+        case 0b110u:
+        case 0b111u:
+            fault = write;
+            break;
+
+        default:
+            UNPREDICTABLE;
+    }
+
+    if (accessType == AccessType::InstructionFetch) {
+        if (fault || permissions.executeNever) {
+            m_systemRegisters.CFSR().memManage.IACCVIOL = true;
+            m_systemRegisters.CFSR().memManage.MMARVALID = false;
+            exceptionTaken(ExceptionType::MemManage);
+        }
+    }
+    else if (fault) {
+        m_systemRegisters.CFSR().memManage.DACCVIOL = true;
+        if (!m_systemRegisters.CFSR().memManage.MMARVALID) {
+            m_systemRegisters.MMFAR().ADDRESS = address;
+            m_systemRegisters.CFSR().memManage.MMARVALID = true;
+        }
+        exceptionTaken(ExceptionType::MemManage);
     }
 }
 
@@ -283,6 +391,8 @@ auto Cpu::executionPriority() const -> int32_t
 
 void Cpu::pushStack(ExceptionType exceptionType)
 {
+    using namespace utils;
+
     const auto frameSize = 0x20u;
     const auto forceAlign = m_systemRegisters.CCR().STKALIGN;
 
@@ -304,6 +414,26 @@ void Cpu::pushStack(ExceptionType exceptionType)
         SP_main = (SP_main - frameSize) & spMask;
         framePtr = SP_main;
     }
+
+    const auto [xPSRlo, xPSRhi] = split<uint32_t, Part<0, 9, uint32_t>, Part<10, 22, uint32_t>>(m_registers.xPSR());
+
+    alignedMemoryWrite(framePtr + 0x0u, R(0));
+    alignedMemoryWrite(framePtr + 0x4u, R(1));
+    alignedMemoryWrite(framePtr + 0x8u, R(2));
+    alignedMemoryWrite(framePtr + 0xCu, R(3));
+    alignedMemoryWrite(framePtr + 0x10u, R(12));
+    alignedMemoryWrite(framePtr + 0x14u, m_registers.LR());
+    alignedMemoryWrite(framePtr + 0x18u, returnAddress(exceptionType));
+    alignedMemoryWrite(framePtr + 0x1Cu,
+                       combine<uint32_t>(Part<0, 9, uint32_t>{xPSRlo}, Part<9, 1>{framePtrAlign}, Part<10, 22, uint32_t>{xPSRhi}));
+
+    if (m_currentMode == ExecutionMode::Handler) {
+        m_registers.LR() = combine<uint32_t>(Part<0, 4>{0b0001u}, Part<4, 28, uint32_t>{ONES<28, uint32_t>});
+    }
+    else {
+        m_registers.LR() =
+            combine<uint32_t>(Part<0, 2>{0b01u}, Part<2, 1>{m_registers.CONTROL().SPSEL}, Part<3, 29, uint32_t>{ONES<29, uint32_t>});
+    }
 }
 
 void Cpu::exceptionTaken(ExceptionType exceptionType)
@@ -317,8 +447,14 @@ void Cpu::exceptionTaken(ExceptionType exceptionType)
 
     m_currentMode = ExecutionMode::Handler;
     // APSR is UNKNOWN
-    m_registers.IPSR().exceptionNumber = getPart<0, 9, uint16_t>(exceptionType) & ONES<9, uint16_t>;
+    m_registers.IPSR().exceptionNumber = getPart<0, 9>(static_cast<uint16_t>(exceptionType)) & ONES<9, uint16_t>;
     // m_registers.EPSR().T =
+}
+
+auto Cpu::returnAddress(ExceptionType /*exceptionType*/) -> uint32_t
+{
+    // TODO: B1-590
+    return uint32_t{};
 }
 
 inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)

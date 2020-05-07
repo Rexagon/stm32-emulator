@@ -62,10 +62,10 @@ auto combine(Parts... part) -> V
     return (details::Extractor<V, Parts>::create(part.value) | ...);
 }
 
-template <uint8_t Offset, uint8_t N, typename V, typename R = V>
+template <uint8_t Offset, uint8_t N, typename R = uint8_t, typename V>
 constexpr auto getPart(const V& value) -> R
 {
-    return static_cast<V>(value >> Offset) & ONES<N, V>;
+    return static_cast<R>(static_cast<V>(value >> Offset) & ONES<N, V>);
 }
 
 template <typename T>
@@ -318,7 +318,7 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
     }
     else {
         const auto unrotatedValue = static_cast<uint32_t>(getPart<0, 7>(immediate)) | BIT<7, uint32_t>;
-        return rorWithCarry(unrotatedValue, getPart<7, 5, uint16_t, uint8_t>(immediate));
+        return rorWithCarry(unrotatedValue, getPart<7, 5>(immediate));
     }
 }
 

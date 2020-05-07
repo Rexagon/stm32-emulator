@@ -41,6 +41,7 @@ struct MemoryPermissions {
 };
 
 enum AccessType {
+    Normal,
     Unprivileged,
     VecTable,
     InstructionFetch,

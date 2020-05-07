@@ -17,7 +17,7 @@
 
 #define DEFINE_BYTEREG(StructName, definition) union StructName { \
     struct __attribute__((packed)) definition; \
-    uint16_t registerData; \
+    uint8_t registerData; \
 }
 
 #define RESERVE_BYTE(bits) uint8_t : bits

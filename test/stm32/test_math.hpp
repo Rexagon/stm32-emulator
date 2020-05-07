@@ -108,7 +108,7 @@ TEST(math, thumbExpandImmediateWithCarry)
     };
 
     ASSERT_EQ(pack(0b01u, 0b00, 0x7fu), 0x47f);
-    ASSERT_EQ((getPart<7, 5, uint16_t, uint8_t>(0x47f)), 0x8u);
+    ASSERT_EQ((getPart<7, 5, uint8_t>(0x47f)), 0x8u);
     ASSERT_EQ((rorWithCarry(0x000000ffu, 0x8u)), (std::pair{0xff000000u, true}));
 
     ASSERT_EQ(thumbExpandImmediateWithCarry(pack(0, 0b00, 0xeeu), false), (std::pair{0x000000eeu, false}));

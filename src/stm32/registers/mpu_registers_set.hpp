@@ -3,6 +3,7 @@
 #include <array>
 
 #include "mpu_registers.hpp"
+#include "../memory.hpp"
 
 namespace stm32::rg
 {
@@ -64,6 +65,8 @@ public:
         assert(region < m_mpuRegionAttributeAndSizeRegisters.size());
         return m_mpuRegionAttributeAndSizeRegisters[region];
     }
+
+    static auto defaultTexDecode(const MpuRegionAttribute& attributes) -> MemoryAttributes;
 
 private:
     MpuTypeRegister m_mpuTypeRegister;
