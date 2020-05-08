@@ -555,6 +555,45 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
     }
 }
 
+template <Encoding encoding, typename Type, bool isSignedExtend, typename T>
+void cmdExtend(T opCode, Cpu& cpu)
+{
+    static_assert(std::is_same_v<Type, uint8_t> || std::is_same_v<Type, uint16_t>);
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t d;
+    uint32_t rotated;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rd, Rm] = utils::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        d = Rd;
+        rotated = cpu.R(Rm);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, rotate, Rd] = utils::split<T, Part<0, 4>, Part<4, 2>, Part<8, 4>>(opCode);
+
+        UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
+
+        d = Rd;
+        const auto rotation = utils::combine<uint8_t>(Part<0, 3>{0u}, Part<3, 2>{rotate});
+        rotated = utils::ror(cpu.R(Rm), rotation);
+    }
+
+    uint32_t result;
+    if constexpr (check<isSignedExtend>) {
+        result = utils::signExtend<sizeof(Type) * 8>(rotated);
+    }
+    else {
+        result = static_cast<uint32_t>(rotated);
+    }
+
+    cpu.setR(d, result);
+}
+
 template <Encoding encoding, typename T>
 void cmdMovImmediate(T opCode, Cpu& cpu)
 {
@@ -855,6 +894,22 @@ void cmdBranch(T opCode, Cpu& cpu)
     }
 
     cpu.branchWritePC(cpu.currentInstructionAddress() + 4u + imm32);
+}
+
+inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)
+{
+    const auto [Rn, imm5, i, op] = utils::split<uint16_t, Part<0, 3>, Part<3, 5>, Part<9, 1>, Part<11, 1>>(opCode);
+
+    const auto n = Rn;
+    const auto imm32 = utils::combine<uint32_t>(Part<0, 1>{0u}, Part<1, 5>{imm5}, Part<6, 1>{i});
+    const auto nonZero = op;
+
+    UNPREDICTABLE_IF(cpu.isInItBlock());
+
+    if (nonZero != (cpu.R(n) == 0u)) {
+        const auto PC = cpu.currentInstructionAddress() + 4u;
+        cpu.branchWritePC(PC + imm32);
+    }
 }
 
 template <Encoding encoding, typename T>

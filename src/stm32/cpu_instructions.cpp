@@ -259,29 +259,29 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-452
             return opcodes::cmdAddSubSpPlusImmediate<opcodes::Encoding::T1, /*isSub*/ true>(opCode, cpu);
         case 0b0001'000u ... 0b0001'111u:
-            // TODO: A7-219
-            return;
+            // see: A7-219
+            return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b001000'0u ... 0b001000'1u:
-            // TODO: A7-461
-            return;
+            // see: A7-461
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignedExtend*/ true>(opCode, cpu);
         case 0b001001'0u ... 0b001001'1u:
-            // TODO: A7-459
-            return;
+            // see: A7-459
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignedExtend*/ true>(opCode, cpu);
         case 0b001010'0u ... 0b001010'1u:
-            // TODO: A7-500
-            return;
+            // see: A7-500
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignedExtend*/ false>(opCode, cpu);
         case 0b001011'0u ... 0b001011'1u:
-            // TODO: A7-498
-            return;
+            // see: A7-498
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignedExtend*/ false>(opCode, cpu);
         case 0b0011'000u ... 0b0011'111u:
-            // TODO: A7-219
-            return;
+            // see: A7-219
+            return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b0110011u:
             // see: B5-731
             return opcodes::cmdCps(opCode, cpu);
         case 0b1001'000u ... 0b1001'111u:
-            // TODO: A7-219
-            return;
+            // see: A7-219
+            return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b101000'0u ... 0b101000'1u:
             // TODO: A7-363
             return;
@@ -293,7 +293,7 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             return;
         case 0b1011'000u ... 0b1011'111u:
             // TODO A7-219
-            return;
+            return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b110'0000u ... 0b110'1111u:
             // TODO: A7-348
             return;
