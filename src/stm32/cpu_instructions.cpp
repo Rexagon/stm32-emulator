@@ -301,31 +301,34 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-348
             return opcodes::cmdPop<opcodes::Encoding::T1>(opCode, cpu);
         case 0b1110'000u ... 0b1110'111u:
-            // TODO: A7-215
-            return;
+            // see: A7-215
+            return;  // SKIP BECAUSE DEBUG IS UNIMPLEMENTED!
         case 0b1111'000u ... 0b1111'111u:
             // see A5-133
             switch (getPart<0, 4>(opCode)) {
                 case 0b0000u:
                     switch (getPart<4, 4>(opCode)) {
+                        case 0b0000u:
+                            // see: A7-331
+                            return opcodes::cmdHint<opcodes::Hint::Nop>(opCode, cpu);
                         case 0b0001u:
-                            // TODO: A7-562
-                            return;
+                            // see: A7-562
+                            return opcodes::cmdHint<opcodes::Hint::Yield>(opCode, cpu);
                         case 0b0010u:
                             // TODO: A7-560
-                            return;
+                            return opcodes::cmdHint<opcodes::Hint::WaitForEvent>(opCode, cpu);
                         case 0b0011u:
                             // TODO: A7-561
-                            return;
+                            return opcodes::cmdHint<opcodes::Hint::WaitForInterrupt>(opCode, cpu);
                         case 0b0100u:
                             // TODO: A7-385
-                            return;
+                            return opcodes::cmdHint<opcodes::Hint::SendEvent>(opCode, cpu);
                         default:
                             return;  // ignore other
                     }
                 default:
-                    // TODO: A7-242
-                    return;
+                    // see: A7-242
+                    return opcodes::cmdIfThen(opCode, cpu);
             }
         default:
             UNPREDICTABLE;

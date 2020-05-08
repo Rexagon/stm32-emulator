@@ -960,6 +960,35 @@ inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)
     }
 }
 
+inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
+{
+    const auto [mask, firstCond] = utils::split<uint16_t, Part<0, 4>, Part<4, 4>>(opCode);
+
+    UNPREDICTABLE_IF(firstCond == 0b1111u || (firstCond == 0b111u && utils::bitCount(mask) != 1u));
+    UNPREDICTABLE_IF(cpu.isInItBlock());
+
+    const auto ITSTATE = utils::combine<uint8_t>(Part<0, 4>{mask}, Part<4, 4>{firstCond});
+    cpu.registers().setITSTATE(ITSTATE);
+}
+
+enum class Hint {
+    Nop,
+    Yield,
+    WaitForEvent,
+    WaitForInterrupt,
+    SendEvent,
+};
+
+template <Hint /*hint*/, typename T>
+void cmdHint(T /*opCode*/, Cpu& cpu)
+{
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    // TODO: implement hint's logic
+}
+
 template <Encoding encoding, typename T>
 void cmdPermanentlyUndefined(T /*opCode*/, Cpu& cpu)
 {
@@ -971,7 +1000,6 @@ void cmdPermanentlyUndefined(T /*opCode*/, Cpu& cpu)
 
     // TODO: raise UNDEFINED
 }
-
 
 inline void cmdCallSupervisor(uint16_t /*opCode*/, Cpu& cpu)
 {

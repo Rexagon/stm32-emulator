@@ -79,6 +79,7 @@ public:
     inline auto CONTROL() const -> const ControlRegister& { return m_controlRegister; }
 
     auto ITSTATE() const -> uint8_t;
+    void setITSTATE(uint8_t value);
 
 private:
     std::array<uint32_t, 12> m_generalPurposeRegisters{};

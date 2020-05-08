@@ -145,17 +145,14 @@ void Cpu::advanceCondition()
 {
     using namespace utils;
 
-    auto& EPSR = m_registers.EPSR();
     auto ITSTATE = m_registers.ITSTATE();
 
     if (ITSTATE & 0b111u) {
         ITSTATE = static_cast<uint8_t>((ITSTATE & ZEROS<5, uint8_t>) | ((ITSTATE << 1u) & ONES<5, uint8_t>));
-        EPSR.ITlo = getPart<2, 6>(ITSTATE) & ONES<6, uint8_t>;
-        EPSR.IThi = getPart<0, 2>(ITSTATE) & ONES<2, uint8_t>;
+        m_registers.setITSTATE(ITSTATE);
     }
     else {
-        EPSR.ITlo = 0u;
-        EPSR.IThi = 0u;
+        m_registers.setITSTATE(0u);
     }
 }
 

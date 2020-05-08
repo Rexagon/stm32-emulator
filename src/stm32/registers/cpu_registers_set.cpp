@@ -118,4 +118,12 @@ auto CpuRegistersSet::ITSTATE() const -> uint8_t
     return combine<uint8_t>(Part<0, 2>{m_executionProgramStatusRegister.IThi}, Part<2, 6>{m_executionProgramStatusRegister.ITlo});
 }
 
+void CpuRegistersSet::setITSTATE(uint8_t value)
+{
+    using namespace utils;
+
+    m_executionProgramStatusRegister.ITlo = utils::getPart<2, 6>(value) & ONES<6, uint8_t>;
+    m_executionProgramStatusRegister.IThi = getPart<0, 2>(value) & ONES<2, uint8_t>;
+}
+
 }  // namespace stm32::rg
