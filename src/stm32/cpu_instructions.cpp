@@ -286,16 +286,16 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b101000'0u ... 0b101000'1u:
-            // TODO: A7-363
-            return;
+            // see: A7-363
+            return opcodes::cmdReverse<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
         case 0b101001'0u ... 0b101001'1u:
-            // TODO: A7-364
-            return;
+            // see: A7-364
+            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSigned*/ false>(opCode, cpu);
         case 0b101011'0u ... 0b101011'1u:
-            // TODO: A7-365
-            return;
+            // see: A7-365
+            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSigned*/ true>(opCode, cpu);
         case 0b1011'000u ... 0b1011'111u:
-            // TODO A7-219
+            // see A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b110'0000u ... 0b110'1111u:
             // see: A7-348

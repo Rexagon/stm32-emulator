@@ -594,6 +594,54 @@ void cmdExtend(T opCode, Cpu& cpu)
     cpu.setR(d, result);
 }
 
+template <Encoding encoding, typename Type, bool isSigned = false, typename T>
+void cmdReverse(T opCode, Cpu& cpu)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t d, m;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rd, Rm] = utils::split<T, Part<0, 3>, Part<3, 3>>(opCode);
+
+        d = Rd;
+        m = Rm;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, Rd, Rm_] = utils::split<T, Part<0, 4>, Part<8, 4>, Part<16, 4>>(opCode);
+
+        UNPREDICTABLE_IF(Rm != Rm_);
+
+        d = Rd;
+        m = Rm;
+
+        UNPREDICTABLE_IF(d >= 13 || m >= 13);
+    }
+
+    uint32_t result;
+    if constexpr (std::is_same_v<Type, uint32_t>) {
+        result = utils::reverseEndianness(cpu.R(m));
+    }
+    else {
+        if constexpr (check<isSigned>) {
+            const auto [lo, hi] = utils::split<uint32_t, Part<0, 8>, Part<8, 8>>(cpu.R(m));
+
+            result = utils::combine<uint32_t>(Part<0, 8>{hi}, Part<8, 24, uint32_t>{utils::signExtend<8>(lo)});
+        }
+        else {
+            const auto [lo, hi] = utils::split<uint32_t, Part<0, 16, uint16_t>, Part<16, 16, uint16_t>>(cpu.R(m));
+
+            result = utils::combine<uint32_t>(Part<0, 16, uint16_t>{utils::reverseEndianness(lo)},
+                                              Part<16, 16, uint16_t>{utils::reverseEndianness(hi)});
+        }
+    }
+
+    cpu.setR(d, result);
+}
+
 template <Encoding encoding, typename T>
 void cmdMovImmediate(T opCode, Cpu& cpu)
 {
