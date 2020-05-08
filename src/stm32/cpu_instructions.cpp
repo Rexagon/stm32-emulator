@@ -276,6 +276,9 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
         case 0b0011'000u ... 0b0011'111u:
             // see: A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
+        case 0b010'0000u ... 0b010'1111u:
+            // see: A7-350
+            return opcodes::cmdPush<opcodes::Encoding::T1>(opCode, cpu);
         case 0b0110011u:
             // see: B5-731
             return opcodes::cmdCps(opCode, cpu);
@@ -295,8 +298,8 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             // TODO A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b110'0000u ... 0b110'1111u:
-            // TODO: A7-348
-            return;
+            // see: A7-348
+            return opcodes::cmdPop<opcodes::Encoding::T1>(opCode, cpu);
         case 0b1110'000u ... 0b1110'111u:
             // TODO: A7-215
             return;

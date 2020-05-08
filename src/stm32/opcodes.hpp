@@ -1030,6 +1030,110 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
     }
 }
 
+template <Encoding encoding, typename T>
+inline void cmdPush(T opCode, Cpu& cpu)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint16_t registers;
+    // bool unalignedAllowed; // TODO: check unaligned write
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [registerList, M] = utils::split<T, Part<0, 7>, Part<8, 1>>(opCode);
+
+        registers = utils::combine<uint16_t>(Part<0, 8>{registerList}, Part<14, 1>{M});
+        // unalignedAllowed = false;
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [registerList, M] = utils::split<T, Part<0, 13, uint16_t>, Part<14, 1>>(opCode);
+
+        registers = utils::combine<uint16_t>(Part<0, 13, uint16_t>{registerList}, Part<15, 1>{M});
+        // unalignedAllowed = false;
+
+        UNPREDICTABLE_IF((utils::bitCount(registers) < 2u));
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto Rt = utils::getPart<12, 4>(opCode);
+
+        UNPREDICTABLE_IF(Rt >= 13);
+
+        registers = 0b1u << Rt;
+        // unalignedAllowed = true;
+    }
+
+    uint32_t bottomAddress = cpu.registers().SP() - 4u * utils::bitCount(registers);
+
+    uint32_t address = bottomAddress;
+    for (uint8_t i = 0; i < 14u; registers = static_cast<uint16_t>(registers >> 1u), ++i) {
+        if ((registers & 0b1u) == 0u) {
+            continue;
+        }
+
+        cpu.memory().write(address, cpu.R(i));
+        address += 4u;
+    }
+
+    cpu.registers().SP() = bottomAddress;
+}
+
+template <Encoding encoding, typename T>
+inline void cmdPop(T opCode, Cpu& cpu)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint16_t registers;
+    // bool unalignedAccess;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [registerList, P] = utils::split<T, Part<0, 8>, Part<8, 1>>(opCode);
+
+        registers = utils::combine<uint16_t>(Part<0, 8>{registerList}, Part<15, 1>{P});
+        // unalignedAccess = false;
+
+        UNPREDICTABLE_IF((registers & 0x80u) && cpu.isInItBlock() && !cpu.isLastInItBlock());
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [registerList, M, P] = utils::split<T, Part<0, 13, uint16_t>, Part<14, 1>, Part<15, 1>>(opCode);
+
+        registers = utils::combine<uint16_t>(Part<0, 13, uint16_t>{registerList}, Part<14, 1>{M}, Part<15, 1>{P});
+        // unalignedAccess = false;
+
+        UNPREDICTABLE_IF(utils::bitCount(registers) < 2u || (P == 1u && M == 1u));
+        UNPREDICTABLE_IF((registers & 0x80u) && cpu.isInItBlock() && !cpu.isLastInItBlock());
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
+        const auto Rt = utils::getPart<12, 4>(opCode);
+
+        UNPREDICTABLE_IF(Rt >= 13 || (Rt == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock()));
+
+        registers = 0b1u << Rt;
+        // unalignedAllowed = true;
+    }
+
+    uint32_t address = cpu.registers().SP();
+
+    cpu.registers().SP() = cpu.registers().SP() + 4 * utils::bitCount(registers);
+
+    for (uint8_t i = 0; i < 14u; registers = static_cast<uint16_t>(registers >> 1u), ++i) {
+        if ((registers & 0b1u) == 0u) {
+            continue;
+        }
+
+        cpu.setR(i, cpu.memory().read<uint32_t>(address));
+        address += 4u;
+    }
+
+    if (registers & 0b1u) {
+        cpu.loadWritePC(cpu.memory().read<uint32_t>(address));
+    }
+}
+
 inline void cmdCps(uint16_t opCode, Cpu& cpu)
 {
     if (!cpu.isInPrivilegedMode()) {

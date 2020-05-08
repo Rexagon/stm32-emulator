@@ -32,8 +32,9 @@ constexpr T ONES = (T(0b1u) << N) - T(0b1u);
 template <uint8_t N, typename T>
 constexpr T ZEROS = static_cast<T>(~ONES<N, T>);
 
-template <uint8_t /* offset */, uint8_t /* bitCount */, typename T = uint8_t>
+template <uint8_t /* offset */, uint8_t bitCount, typename T = uint8_t>
 struct Part {
+    static_assert((sizeof(T) * 8u) >= bitCount);
     T value;
 };
 
@@ -66,6 +67,22 @@ template <uint8_t Offset, uint8_t N, typename R = uint8_t, typename V>
 inline constexpr auto getPart(const V& value) -> R
 {
     return static_cast<R>(static_cast<V>(value >> Offset) & ONES<N, V>);
+}
+
+template <typename T>
+inline constexpr auto bitCount(const T& value) -> uint32_t
+{
+#ifdef __GNUC__
+    return static_cast<uint32_t>(__builtin_popcount(value));
+#else
+    auto n = value;
+    size_t count{};
+    while (n) {
+        n &= (n - 1u);
+        count++;
+    }
+    return count;
+#endif
 }
 
 template <typename T>
@@ -317,7 +334,7 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
             case 0b11u: {
                 const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
-                return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<16, 16>{value}, Part<24, 8>{value}), carryIn};
+                return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<16, 8>{value}, Part<24, 8>{value}), carryIn};
             }
             default:
                 UNPREDICTABLE;
