@@ -266,7 +266,7 @@ void Cpu::exceptionTaken(ExceptionType exceptionType)
 
     m_currentMode = ExecutionMode::Handler;
 
-    m_registers.IPSR().exceptionNumber = getPart<0, 9>(static_cast<uint16_t>(exceptionType)) & ONES<9, uint16_t>;
+    m_registers.IPSR().exceptionNumber = getPart<0, 9, uint16_t>(static_cast<uint16_t>(exceptionType)) & ONES<9, uint16_t>;
 
     m_registers.EPSR().T = exceptionHandlerPtr & RIGHT_BIT<uint32_t>;
     m_registers.EPSR().ITlo = 0u;

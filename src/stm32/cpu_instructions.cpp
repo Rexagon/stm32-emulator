@@ -190,44 +190,44 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
         case 0b0110u:
             switch (getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
-                    // TODO: A7-426
-                    return;
+                    // see: A7-426
+                    return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
-                    // TODO: A7-252
-                    return;
+                    // see: A7-252
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
         case 0b0111u:
             switch (getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
-                    // TODO: A7-430
-                    return;
+                    // see: A7-430
+                    return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
-                    // TODO: A7-258
-                    return;
+                    // see: A7-258
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
         case 0b1000u:
             switch (getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
-                    // TODO: A7-442
-                    return;
+                    // see: A7-442
+                    return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
-                    // TODO: A7-274
-                    return;
+                    // see: A7-274
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
         case 0b1001u:
             switch (getPart<9, 3>(opCode)) {
                 case 0b0'00u ... 0b0'11u:
-                    // TODO: A7-426
-                    return;
+                    // see: A7-426
+                    return opcodes::cmdStoreImmediate<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
-                    // TODO: A7-252
-                    return;
+                    // see: A7-252
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }

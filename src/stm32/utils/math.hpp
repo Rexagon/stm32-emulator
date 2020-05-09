@@ -66,6 +66,7 @@ inline auto combine(Parts... part) -> V
 template <uint8_t offset, uint8_t bitCount, typename R = uint8_t, typename V>
 inline constexpr auto getPart(const V& value) -> R
 {
+    static_assert((sizeof(R) * 8u) >= bitCount);
     return static_cast<R>(static_cast<V>(value >> offset) & ONES<bitCount, V>);
 }
 
@@ -388,9 +389,25 @@ auto replicate(T sign) -> T
 }
 
 template <typename T>
+constexpr auto getAlignmentBitCount() -> uint32_t
+{
+    static_assert(std::is_same_v<T, uint32_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint8_t>);
+
+    if constexpr (std::is_same_v<T, uint32_t>) {
+        return 2u;
+    }
+    else if constexpr (std::is_same_v<T, uint16_t>) {
+        return 1u;
+    }
+    else if constexpr (std::is_same_v<T, uint8_t>) {
+        return 2u;
+    }
+}
+
+template <typename T>
 auto alignAddress(uint32_t address) -> T
 {
-    return address & ZEROS<std::log(sizeof(T)), uint32_t>;
+    return address & ZEROS<getAlignmentBitCount<T>(), uint32_t>;
 }
 
 #pragma GCC diagnostic push

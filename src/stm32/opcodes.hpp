@@ -1416,8 +1416,186 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
     }
 
     if (t == 15) {
-        UNPREDICTABLE_IF((utils::getPart<0, 2>(address)));
-        cpu.loadWritePC(address);
+        UNPREDICTABLE_IF((utils::getPart<0, 2>(data)));
+        cpu.loadWritePC(static_cast<uint32_t>(data));
+    }
+    else {
+        cpu.setR(t, data);
+    }
+}
+
+template <Encoding encoding, typename Type, typename T>
+void cmdStoreImmediate(T opCode, Cpu& cpu)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> ||
+                  (std::is_same_v<Type, uint32_t> && is_in<encoding, Encoding::T4>));
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t t, n, index, add, writeBack;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rt, Rn, imm5] = utils::split<T, _<0, 3>, _<3, 3>, _<6, 5, uint32_t>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(opCode << utils::getAlignmentBitCount<Type>());
+        index = true;
+        add = true;
+        writeBack = false;
+    }
+    else if constexpr (std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+        const auto [imm8, Rt] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
+
+        t = Rt;
+        n = rg::RegisterType::SP;
+        imm32 = static_cast<uint32_t>(imm8 << 2u);
+        index = true;
+        add = true;
+        writeBack = false;
+    }
+    else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
+        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12>, _<12, 4>, _<16, 4>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(imm12);
+        index = true;
+        add = true;
+        writeBack = false;
+
+        if constexpr (std::is_same_v<Type, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15);
+        }
+        else {
+            UNPREDICTABLE_IF(t >= 13);
+        }
+    }
+    else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) ||
+                       (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>)) {
+        const auto [imm8, W, U, P, Rt, Rn] = utils::split<T, _<0, 8>, _<8, 1>, _<9, 1>, _<10, 1>, _<12, 4>, _<16, 4>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(imm8);
+        index = P;
+        add = U;
+        writeBack = W;
+
+        UNPREDICTABLE_IF(writeBack && n == t);
+        if constexpr (std::is_same_v<Type, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15);
+        }
+        else {
+            UNPREDICTABLE_IF(t >= 13);
+        }
+    }
+
+    const auto offsetAddress = add ? (cpu.R(n) + imm32) : (cpu.R(n) - imm32);
+    const auto address = index ? offsetAddress : cpu.R(n);
+
+    if constexpr (std::is_same_v<Type, uint32_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, cpu.R(t));
+    }
+    else if constexpr (std::is_same_v<Type, uint16_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, utils::getPart<0, 16, uint16_t>(cpu.R(t)));
+    }
+    else if constexpr (std::is_same_v<Type, uint8_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, utils::getPart<0, 8, uint8_t>(cpu.R(t)));
+    }
+
+    if (writeBack) {
+        cpu.setR(n, offsetAddress);
+    }
+}
+
+template <Encoding encoding, typename Type, typename T>
+void cmdLoadImmediate(T opCode, Cpu& cpu)
+{
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> ||
+                  (std::is_same_v<Type, uint32_t> && is_in<encoding, Encoding::T4>));
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t t, n, index, add, writeBack;
+    uint32_t imm32;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rt, Rn, imm5] = utils::split<T, _<0, 3>, _<3, 3>, _<6, 5, uint32_t>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(opCode << utils::getAlignmentBitCount<Type>());
+        index = true;
+        add = true;
+        writeBack = false;
+    }
+    else if constexpr (std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+        const auto [imm8, Rt] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
+
+        t = Rt;
+        n = rg::RegisterType::SP;
+        imm32 = static_cast<uint32_t>(imm8 << 2u);
+        index = true;
+        add = true;
+        writeBack = false;
+    }
+    else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
+        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12>, _<12, 4>, _<16, 4>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(imm12);
+        index = true;
+        add = true;
+        writeBack = false;
+
+        if constexpr (std::is_same_v<Type, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        }
+        else {
+            UNPREDICTABLE_IF(t == 13);
+        }
+    }
+    else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) ||
+                       (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>)) {
+        const auto [imm8, W, U, P, Rt, Rn] = utils::split<T, _<0, 8>, _<8, 1>, _<9, 1>, _<10, 1>, _<12, 4>, _<16, 4>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        imm32 = static_cast<uint32_t>(imm8);
+        index = P;
+        add = U;
+        writeBack = W;
+
+        UNPREDICTABLE_IF(writeBack && n == t);
+        if constexpr (std::is_same_v<Type, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        }
+        else if constexpr (std::is_same_v<Type, uint16_t>) {
+            UNPREDICTABLE_IF((t == 13) || t == 15 && (W == 1));
+        }
+        else if constexpr (std::is_same_v<Type, uint8_t>) {
+            UNPREDICTABLE_IF((t == 13) || t == 15 && (P == 0 || U == 1 || W == 1));
+        }
+    }
+
+    const auto offsetAddress = add ? (cpu.R(n) + imm32) : (cpu.R(n) - imm32);
+    const auto address = index ? offsetAddress : cpu.R(n);
+
+    const auto data = cpu.mpu().unalignedMemoryRead<Type>(address);
+    if (writeBack) {
+        cpu.setR(n, offsetAddress);
+    }
+
+    if (t == 15) {
+        UNPREDICTABLE_IF((utils::getPart<0, 2>(data)));
+        cpu.loadWritePC(static_cast<uint32_t>(data));
     }
     else {
         cpu.setR(t, data);
