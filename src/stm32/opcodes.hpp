@@ -1312,6 +1312,118 @@ void cmdLoadMultiple(T opCode, Cpu& cpu)
     }
 }
 
+template <Encoding encoding, typename Type, typename T>
+void cmdStoreRegister(T opCode, Cpu& cpu)
+{
+    static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>);
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t t, n;
+    uint32_t offset;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rt, Rn, Rm] = utils::split<T, _<0, 3>, _<3, 3>, _<6, 3>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        offset = cpu.R(Rm);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, imm2, Rt, Rn] = utils::split<T, _<0, 4>, _<4, 2>, _<12, 4>, _<16, 4>>(opCode);
+
+        UNPREDICTABLE_IF(Rm >= 13);
+        if constexpr (std::is_same_v<Type, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15);
+        }
+        else {
+            UNPREDICTABLE_IF(t >= 13);
+        }
+
+        t = Rt;
+        n = Rn;
+        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
+    }
+
+    const auto address = cpu.R(n) + offset;
+    if constexpr (std::is_same_v<Type, uint32_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, cpu.R(t));
+    }
+    else if constexpr (std::is_same_v<Type, uint16_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, utils::getPart<0, 16, uint16_t>(cpu.R(t)));
+    }
+    else if constexpr (std::is_same_v<Type, uint8_t>) {
+        cpu.mpu().unalignedMemoryWrite(address, utils::getPart<0, 8, uint8_t>(cpu.R(t)));
+    }
+}
+
+template <Encoding encoding, typename Type, bool isSignExtended = false, typename T>
+void cmdLoadRegister(T opCode, Cpu& cpu)
+{
+    static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>);
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+
+    if (!cpu.conditionPassed()) {
+        return;
+    }
+
+    uint8_t t, n;
+    uint32_t offset;
+    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+        const auto [Rt, Rn, Rm] = utils::split<T, _<0, 3>, _<3, 3>, _<6, 3>>(opCode);
+
+        t = Rt;
+        n = Rn;
+        offset = cpu.R(Rm);
+    }
+    else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+        const auto [Rm, imm2, Rt, Rn] = utils::split<T, _<0, 4>, _<4, 2>, _<12, 4>, _<16, 4>>(opCode);
+
+        UNPREDICTABLE_IF(Rm >= 13);
+
+        if constexpr (std::is_same_v<T, uint32_t>) {
+            UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        }
+        else {
+            UNPREDICTABLE_IF(t == 15);
+        }
+
+        t = Rt;
+        n = Rn;
+        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
+    }
+
+    const auto address = cpu.R(n) + offset;
+    uint32_t data;
+    if constexpr (std::is_same_v<T, uint32_t>) {
+        data = cpu.mpu().unalignedMemoryRead<uint32_t>(address);
+    }
+    else if constexpr (std::is_same_v<T, uint16_t>) {
+        data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint16_t>(address));
+
+        if constexpr (check<isSignExtended>) {
+            data = utils::signExtend<16>(data);
+        }
+    }
+    else if constexpr (std::is_same_v<T, uint8_t>) {
+        data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint8_t>(address));
+
+        if constexpr (check<isSignExtended>) {
+            data = utils::signExtend<8>(data);
+        }
+    }
+
+    if (t == 15) {
+        UNPREDICTABLE_IF((utils::getPart<0, 2>(address)));
+        cpu.loadWritePC(address);
+    }
+    else {
+        cpu.setR(t, data);
+    }
+}
+
 inline void cmdCps(uint16_t opCode, Cpu& cpu)
 {
     if (!cpu.isInPrivilegedMode()) {

@@ -154,36 +154,36 @@ inline void handleLoadFromLiteralPool(uint16_t opCode, Cpu& cpu)
     opcodes::cmdLoadRegisterLiteral<opcodes::Encoding::T1>(opCode, cpu);
 }
 
-inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& /*cpu*/)
+inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
 {
     // see A5.2.4
     switch (getPart<12, 4>(opCode)) {
         case 0b0101u:
             switch (getPart<9, 3>(opCode)) {
                 case 0b000u:
-                    // TODO: A7-428
-                    return;
+                    // see: A7-428
+                    return opcodes::cmdStoreRegister<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
                 case 0b001u:
-                    // TODO: A7-444
-                    return;
+                    // see: A7-444
+                    return opcodes::cmdStoreRegister<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
                 case 0b010u:
-                    // TODO: A7-432
-                    return;
+                    // see: A7-432
+                    return opcodes::cmdStoreRegister<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
                 case 0b011u:
-                    // TODO: A7-286
-                    return;
+                    // see: A7-286
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
                 case 0b100u:
-                    // TODO: A7-256
-                    return;
+                    // see: A7-256
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
                 case 0b101u:
-                    // TODO: A7-278
-                    return;
+                    // see: A7-278
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
                 case 0b110u:
-                    // TODO: A7-262
-                    return;
+                    // see: A7-262
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
                 case 0b111u:
-                    // TODO: A7-294
-                    return;
+                    // see: A7-294
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
