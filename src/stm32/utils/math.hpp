@@ -63,10 +63,34 @@ inline auto combine(Parts... part) -> V
     return (details::Extractor<V, Parts>::create(part.value) | ...);
 }
 
-template <uint8_t Offset, uint8_t N, typename R = uint8_t, typename V>
+template <uint8_t offset, uint8_t bitCount, typename R = uint8_t, typename V>
 inline constexpr auto getPart(const V& value) -> R
 {
-    return static_cast<R>(static_cast<V>(value >> Offset) & ONES<N, V>);
+    return static_cast<R>(static_cast<V>(value >> offset) & ONES<bitCount, V>);
+}
+
+template <uint8_t number, typename V>
+inline constexpr auto isBitSet(const V& value) -> bool
+{
+    return value & BIT<number, V>;
+}
+
+template <uint8_t number, typename V>
+inline constexpr auto isBitClear(const V& value) -> bool
+{
+    return !isBitSet<number>(value);
+}
+
+template <typename V>
+inline auto isBitSet(const V& value, uint8_t number) -> bool
+{
+    return value & static_cast<V>(V{1u} << number);
+}
+
+template <typename V>
+inline auto isBitClear(const V& value, uint8_t number) -> bool
+{
+    return !isBitSet(value, number);
 }
 
 template <typename T>
@@ -82,6 +106,16 @@ inline constexpr auto bitCount(const T& value) -> uint32_t
         count++;
     }
     return count;
+#endif
+}
+
+template <typename T>
+inline constexpr auto lowestSetBit(const T& value) -> uint32_t
+{
+#ifdef __GNUC__
+    return static_cast<uint32_t>(__builtin_ffs(value)) - 1u;
+#else
+    static_assert(false);
 #endif
 }
 

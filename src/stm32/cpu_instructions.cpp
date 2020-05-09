@@ -335,14 +335,16 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
     }
 }
 
-inline void handleStoreMultipleRegisters(uint16_t /*opCode*/, Cpu& /*cpu*/)
+inline void handleStoreMultipleRegisters(uint16_t opCode, Cpu& cpu)
 {
-    // TODO: A7.7.156
+    // see: A7.7.156
+    return opcodes::cmdStoreMultiple<opcodes::Encoding::T1>(opCode, cpu);
 }
 
-inline void handleLoadMultipleRegisters(uint16_t /*opCode*/, Cpu& /*cpu*/)
+inline void handleLoadMultipleRegisters(uint16_t opCode, Cpu& cpu)
 {
-    // TODO: A7.7.40
+    // see: A7.7.40
+    return opcodes::cmdLoadMultiple<opcodes::Encoding::T1>(opCode, cpu);
 }
 
 inline void handleConditionalBranch(uint16_t opCode, Cpu& cpu)
