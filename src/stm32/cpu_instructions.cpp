@@ -4,20 +4,12 @@
 #include "cpu.hpp"
 #include "opcodes.hpp"
 
-namespace
-{
-inline bool is32bitInstruction(uint16_t opCodeHw1)
-{
-    const auto value = opCodeHw1 >> 11u;
-    return value == 0b11101u || value == 0b11110u || value == 0b11111u;
-}
-
-}  // namespace
-
 namespace stm32
 {
 using namespace utils;
 
+namespace hw
+{
 inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)
 {
     /// see A5.2.1
@@ -315,13 +307,13 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
                             // see: A7-562
                             return opcodes::cmdHint<opcodes::Hint::Yield>(opCode, cpu);
                         case 0b0010u:
-                            // TODO: A7-560
+                            // see: A7-560
                             return opcodes::cmdHint<opcodes::Hint::WaitForEvent>(opCode, cpu);
                         case 0b0011u:
-                            // TODO: A7-561
+                            // see: A7-561
                             return opcodes::cmdHint<opcodes::Hint::WaitForInterrupt>(opCode, cpu);
                         case 0b0100u:
-                            // TODO: A7-385
+                            // see: A7-385
                             return opcodes::cmdHint<opcodes::Hint::SendEvent>(opCode, cpu);
                         default:
                             return;  // ignore other
@@ -368,6 +360,81 @@ inline void handleUnconditionalBranch(uint16_t opCode, Cpu& cpu)
     // see: A7.7.12
     opcodes::cmdBranch<opcodes::Encoding::T2>(opCode, cpu);
 }
+}  // namespace hw
+
+namespace wo
+{
+inline void loadMultipleAndStoreMultiple(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-142
+}
+
+inline void loadStoreDualOrExclusive(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-143
+}
+
+inline void dataProcessingShiftedRegister(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-148
+}
+
+inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-156
+}
+
+inline void dataProcessingModifiedImmediate(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-136
+}
+
+inline void dataProcessingPlainBinaryImmediate(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-139
+}
+
+inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-140
+}
+
+inline void storeSingleDataItem(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-147
+}
+
+inline void loadByteAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-146
+}
+
+inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-145
+}
+
+inline void loadWord(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-144
+}
+
+inline void dataProcessingRegister(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-150
+}
+
+inline void multiplicationAndAbsoluteDifference(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-154
+}
+
+inline void longMultiplicationAndDivision(uint32_t /*opCode*/, Cpu& /*cpu*/)
+{
+    // TODO: A5-154
+}
+
+}  // namespace wo
 
 void Cpu::step()
 {
@@ -376,64 +443,146 @@ void Cpu::step()
 
     const auto opCodeHw1 = m_memory.read<uint16_t>(PC & ~RIGHT_BIT<uint32_t>);
 
-    if (is32bitInstruction(opCodeHw1)) {
-        /*
-        const auto opCodeHw2Low = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t>);
-        const auto opCodeHw2High = m_memory.read(PC & ~math::RIGHT_BIT<uint32_t> + 1);
-        PC += 2u;
+    const auto op1 = getPart<11, 2>(opCodeHw1);
 
-        const auto opCode = math::combine<uint32_t>(math::Part<0, 8>{opCodeHw1Low},
-                                                    math::Part<8, 8>{opCodeHw1High},
-                                                    math::Part<16, 8>{opCodeHw2Low},
-                                                    math::Part<24, 8>{opCodeHw2High});
-        */
-        // TODO: handle 32 bit instructions
-    }
-    else {
+    if (op1 == 0u) {
         switch (getPart<2, 6>(opCodeHw1)) {
             case 0b00'0000u ... 0b00'1111u:
-                handleMathInstruction(opCodeHw1, *this);
+                hw::handleMathInstruction(opCodeHw1, *this);
                 break;
             case 0b010000u:
-                handleDataProcessingInstruction(opCodeHw1, *this);
+                hw::handleDataProcessingInstruction(opCodeHw1, *this);
                 break;
             case 0b010001u:
-                handleSpecialDataInstruction(opCodeHw1, *this);
+                hw::handleSpecialDataInstruction(opCodeHw1, *this);
                 break;
             case 0b01001'0u ... 0b01001'1u:
-                handleLoadFromLiteralPool(opCodeHw1, *this);
+                hw::handleLoadFromLiteralPool(opCodeHw1, *this);
                 break;
             case 0b0101'00u ... 0b0101'11u:
             case 0b011'000u ... 0b011'111u:
             case 0b100'000u ... 0b100'111u:
-                handleLoadStoreSingleDataItem(opCodeHw1, *this);
+                hw::handleLoadStoreSingleDataItem(opCodeHw1, *this);
                 break;
             case 0b10100'0u ... 0b10100'1u:
-                handleGeneratePcRelativeAddress(opCodeHw1, *this);
+                hw::handleGeneratePcRelativeAddress(opCodeHw1, *this);
                 break;
             case 0b10101'0u ... 0b10101'1u:
-                handleGenerateSpRelativeAddress(opCodeHw1, *this);
+                hw::handleGenerateSpRelativeAddress(opCodeHw1, *this);
                 break;
             case 0b1011'00u ... 0b1011'11u:
-                handleMiscInstruction(opCodeHw1, *this);
+                hw::handleMiscInstruction(opCodeHw1, *this);
                 break;
             case 0b11000'0u ... 0b11000'1u:
-                handleStoreMultipleRegisters(opCodeHw1, *this);
+                hw::handleStoreMultipleRegisters(opCodeHw1, *this);
                 break;
             case 0b11001'0u ... 0b11001'1u:
-                handleLoadMultipleRegisters(opCodeHw1, *this);
+                hw::handleLoadMultipleRegisters(opCodeHw1, *this);
                 break;
             case 0b1101'00u ... 0b1101'11u:
-                handleConditionalBranch(opCodeHw1, *this);
+                hw::handleConditionalBranch(opCodeHw1, *this);
                 break;
             case 0b11100'0u ... 0b11100'0u:
-                handleUnconditionalBranch(opCodeHw1, *this);
+                hw::handleUnconditionalBranch(opCodeHw1, *this);
                 break;
             default:
                 UNPREDICTABLE;
         }
 
         PC += 2u;
+    }
+    else {
+        const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ~RIGHT_BIT<uint32_t>) + 2u);
+        const auto opCode = combine<uint32_t>(Part<0, 16, uint16_t>{opCodeHw2}, Part<16, 16, uint16_t>{opCodeHw1});
+
+        const auto op2 = getPart<4, 7>(opCodeHw1);
+
+        switch (op1) {
+            case 0b01u:
+                switch (op2) {
+                    case 0b00000'00u ... 0b00000'11u:
+                    case 0b00010'00u ... 0b00010'11u:
+                    case 0b00100'00u ... 0b00100'11u:
+                    case 0b00110'00u ... 0b00110'11u:
+                        wo::loadMultipleAndStoreMultiple(opCode, *this);
+                        break;
+                    case 0b00001'00u ... 0b00001'11u:
+                    case 0b00011'00u ... 0b00011'11u:
+                    case 0b00101'00u ... 0b00101'11u:
+                    case 0b00111'00u ... 0b00111'11u:
+                        wo::loadStoreDualOrExclusive(opCode, *this);
+                        break;
+                    case 0b01'00000u ... 0b01'11111u:
+                        wo::dataProcessingShiftedRegister(opCode, *this);
+                        break;
+                    case 0b1'000000u ... 0b1'111111u:
+                        wo::coprocessorInstructions(opCode, *this);
+                        break;
+                    default:
+                        UNPREDICTABLE;
+                }
+                break;
+            case 0b10u:
+                switch (op2) {
+                    case 0b00'00000u ... 0b00'11111u:
+                    case 0b10'00000u ... 0b10'11111u:
+                        UNPREDICTABLE_IF((!isBitClear<15>(opCodeHw2)));
+                        wo::dataProcessingModifiedImmediate(opCode, *this);
+                        break;
+                    case 0b01'00000u ... 0b01'11111u:
+                    case 0b11'00000u ... 0b11'11111u:
+                        UNPREDICTABLE_IF((!isBitClear<15>(opCodeHw2)));
+                        wo::dataProcessingPlainBinaryImmediate(opCode, *this);
+                        break;
+                    default:
+                        UNPREDICTABLE_IF((!isBitSet<15>(opCodeHw2)));
+                        wo::branchesAndMiscControl(opCode, *this);
+                        break;
+                }
+                break;
+            case 0b11u:
+                switch (op2) {
+                    case 0b00'00000u ... 0b00'11111u:
+                        if ((op2 & 0b0001110u) == 0u) {
+                            wo::storeSingleDataItem(opCode, *this);
+                        }
+                        else {
+                            switch (getPart<0, 3>(op2)) {
+                                case 0b001u:
+                                    wo::loadByteAndMemoryHints(opCode, *this);
+                                    break;
+                                case 0b011u:
+                                    wo::loadHalfwordAndMemoryHints(opCode, *this);
+                                    break;
+                                case 0b101u:
+                                    wo::loadWord(opCode, *this);
+                                    break;
+                                default:
+                                    UNPREDICTABLE;
+                            }
+                        }
+                        break;
+                    case 0b010'0000u ... 0b010'1111u:
+                        wo::dataProcessingRegister(opCode, *this);
+                        break;
+                    case 0b0110'000u ... 0b0110'111u:
+                        wo::multiplicationAndAbsoluteDifference(opCode, *this);
+                        break;
+                    case 0b0111'000u ... 0b0111'111u:
+                        wo::longMultiplicationAndDivision(opCode, *this);
+                        break;
+                    case 0b1'000000u ... 0b1'111111u:
+                        wo::coprocessorInstructions(opCode, *this);
+                        break;
+                    default:
+                        UNPREDICTABLE;
+                }
+                break;
+            default:
+                UNPREDICTABLE;
+        }
+
+        PC += 4u;
     }
 }
 
