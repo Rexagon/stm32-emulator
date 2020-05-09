@@ -19,9 +19,6 @@ constexpr bool is_in = ((v == vs) || ...);
 template <Encoding TargetEnc, Encoding Enc, typename TargetOpCodeType, typename OpCodeType>
 constexpr bool is_valid_opcode_encoding = (Enc == TargetEnc) && std::is_same_v<OpCodeType, TargetOpCodeType>;
 
-template <bool b>
-constexpr bool check = b;  // Clion unused code highlighting fix
-
 template <Encoding encoding, utils::ShiftType shiftType, typename T>
 inline void cmdShiftImmediate(T opCode, Cpu& cpu)
 {
@@ -144,7 +141,7 @@ void cmdAddSubImmediate(T opCode, Cpu& cpu)
         n = Rn;
         setFlags = S;
 
-        const auto combined = utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i});
+        const auto combined = utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i});
         imm32 = utils::thumbExpandImmediateWithCarry(combined, APSR.C).first;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
@@ -153,10 +150,10 @@ void cmdAddSubImmediate(T opCode, Cpu& cpu)
         d = Rd;
         n = Rn;
         setFlags = 0;
-        imm32 = utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i});
+        imm32 = utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i});
     }
 
-    if constexpr (check<isSub>) {
+    if constexpr (isSub) {
         imm32 = ~imm32;
     }
 
@@ -192,7 +189,7 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         setFlags = !cpu.isInItBlock();
         shifted = cpu.R(Rm);
     }
-    else if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+    else if constexpr (!isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rdn, Rm, DN] = utils::split<T, _<0, 3>, _<3, 4>, _<7, 1>>(opCode);
 
         d = utils::combine<uint8_t>(_<0, 3>{Rdn}, _<3, 1>{DN});
@@ -204,8 +201,8 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         setFlags = false;
         shifted = cpu.R(Rm);
     }
-    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
-                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
+    else if constexpr ((isSub && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (!isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
         const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
             utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
 
@@ -219,13 +216,13 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
-    if constexpr (check<isSub>) {
+    if constexpr (isSub) {
         shifted = ~shifted;
     }
 
     const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), shifted, isSub);
 
-    if (check<!isSub> && d == 15) {
+    if (!isSub && d == 15) {
         cpu.aluWritePC(result);
     }
     else {
@@ -252,23 +249,23 @@ void cmdAddSubSpPlusImmediate(T opCode, Cpu& cpu)
 
     uint8_t d, setFlags;
     uint32_t imm32;
-    if constexpr (check<!isSub> && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+    if constexpr (!isSub && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, Rd] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
 
         d = Rd;
         setFlags = false;
         imm32 = imm8 << 2u;
     }
-    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) ||
-                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>)) {
+    else if constexpr ((isSub && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) ||
+                       (!isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>)) {
         const auto imm7 = utils::getPart<0, 7, uint32_t>(opCode);
 
         d = rg::RegisterType::SP;
         setFlags = false;
         imm32 = imm7 << 2u;
     }
-    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) ||
-                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>)) {
+    else if constexpr ((isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) ||
+                       (!isSub && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>)) {
         const auto [imm8, Rd, imm3, S, i] = utils::split<T, _<0, 8>, _<8, 4>, _<12, 3>, _<20, 1>, _<26, 1>>(opCode);
 
         d = Rd;
@@ -277,8 +274,8 @@ void cmdAddSubSpPlusImmediate(T opCode, Cpu& cpu)
 
         UNPREDICTABLE_IF(d == 15 && S == 0);
     }
-    else if constexpr ((check<isSub> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
-                       (check<!isSub> && is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>)) {
+    else if constexpr ((isSub && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (!isSub && is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>)) {
         const auto [imm8, Rd, imm3, i] = utils::split<T, _<0, 8>, _<8, 4>, _<12, 3>, _<26, 1>>(opCode);
 
         d = Rd;
@@ -325,7 +322,7 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
         shifted = cpu.R(Rm);
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
-        const auto [Rm, type, imm2, Rd, imm3, Rn, S] = utils::split<T, _<0, 4>, _<4, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
+        const auto [Rm, type, imm2, Rd, imm3, Rn, S] = utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
 
         UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13);
 
@@ -336,7 +333,7 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
         shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
-    if constexpr (check<isSbc>) {
+    if constexpr (isSbc) {
         shifted = ~shifted;
     }
 
@@ -380,7 +377,7 @@ void cmdRsbImmediate(T opCode, Cpu& cpu)
         d = Rd;
         n = Rn;
         setFlags = S;
-        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i}), APSR.C).first;
+        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
     }
 
     const auto [result, carry, overflow] = utils::addWithCarry(~cpu.R(n), imm32, true);
@@ -416,12 +413,13 @@ void cmdMul(T opCode, Cpu& cpu)
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [Rm, Rd, Rn] = utils::split<T, _<0, 4>, _<8, 4>, _<16, 4>>(opCode);
-        UNPREDICTABLE_IF(Rd >= 13 || n >= 13 || m >= 13);
 
         d = Rd;
         n = Rn;
         m = Rm;
         setFlags = false;
+
+        UNPREDICTABLE_IF(d >= 13 || n >= 13 || m >= 13);
     }
 
     const auto result = cpu.R(n) * cpu.R(m);
@@ -548,7 +546,7 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
     }
 }
 
-template <Encoding encoding, typename Type, bool isSignedExtend, typename T>
+template <Encoding encoding, typename Type, bool isSignExtended, typename T>
 void cmdExtend(T opCode, Cpu& cpu)
 {
     static_assert(std::is_same_v<Type, uint8_t> || std::is_same_v<Type, uint16_t>);
@@ -577,7 +575,7 @@ void cmdExtend(T opCode, Cpu& cpu)
     }
 
     uint32_t result;
-    if constexpr (check<isSignedExtend>) {
+    if constexpr (isSignExtended) {
         result = utils::signExtend<sizeof(Type) * 8>(rotated);
     }
     else {
@@ -587,7 +585,7 @@ void cmdExtend(T opCode, Cpu& cpu)
     cpu.setR(d, result);
 }
 
-template <Encoding encoding, typename Type, bool isSigned = false, typename T>
+template <Encoding encoding, typename Type, bool isSignExtended = false, typename T>
 void cmdReverse(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
@@ -619,7 +617,7 @@ void cmdReverse(T opCode, Cpu& cpu)
         result = utils::reverseEndianness(cpu.R(m));
     }
     else {
-        if constexpr (check<isSigned>) {
+        if constexpr (isSignExtended) {
             const auto [lo, hi] = utils::split<uint32_t, _<0, 8>, _<8, 8>>(cpu.R(m));
 
             result = utils::combine<uint32_t>(_<0, 8>{hi}, _<8, 24, uint32_t>{utils::signExtend<8>(lo)});
@@ -650,11 +648,11 @@ void cmdMovImmediate(T opCode, Cpu& cpu)
     uint32_t imm32;
     bool carry;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
-        const auto [imm8, Rd] = utils::split<T, _<0, 8>, _<8, 3>>(opCode);
+        const auto [imm8, Rd] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
 
         d = Rd;
         setFlags = !cpu.isInItBlock();
-        imm32 = static_cast<uint32_t>(imm8);
+        imm32 = imm8;
         carry = APSR.C;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
@@ -664,14 +662,14 @@ void cmdMovImmediate(T opCode, Cpu& cpu)
         d = Rd;
         setFlags = S;
         std::tie(imm32, carry) =
-            utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i}), APSR.C);
+            utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto [imm8, Rd, imm3, imm4, i] = utils::split<T, _<0, 8>, _<8, 4>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
 
         d = Rd;
         setFlags = false;
-        imm32 = utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i}, _<13, 4>{imm4});
+        imm32 = utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}, _<12, 4>{imm4});
         carry = APSR.C;
     }
 
@@ -712,7 +710,7 @@ void cmdMovRegister(T opCode, Cpu& cpu)
 
         d = Rd;
         m = Rm;
-        setFlags = false;
+        setFlags = true;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint16_t, T>) {
         const auto [Rm, Rd, S] = utils::split<T, _<0, 4>, _<8, 4>, _<20, 1>>(opCode);
@@ -757,17 +755,17 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
     uint8_t n;
     uint32_t imm32;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
-        const auto [imm8, Rn] = utils::split<T, _<0, 8>, _<8, 3>>(opCode);
+        const auto [imm8, Rn] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
 
         n = Rn;
-        imm32 = static_cast<uint32_t>(imm8);
+        imm32 = imm8;
     }
     if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [imm8, imm3, Rn, i] = utils::split<T, _<0, 8>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
         UNPREDICTABLE_IF(Rn == 15);
 
         n = Rn;
-        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<12, 1>{i}), APSR.C).first;
+        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
     }
 
     const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), ~imm32, true);
@@ -781,7 +779,7 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
 template <Encoding encoding, bool isNegative, typename T>
 void cmdCmpRegister(T opCode, Cpu& cpu)
 {
-    static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (check<!isNegative> && encoding == Encoding::T3));
+    static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (!isNegative && encoding == Encoding::T3));
 
     if (!cpu.conditionPassed()) {
         return;
@@ -793,20 +791,21 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
     uint32_t shifted;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [Rn, Rm] = utils::split<T, _<0, 3>, _<3, 3>>(opCode);
+
         n = Rn;
         shifted = cpu.R(Rm);
     }
-    else if constexpr (check<!isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+    else if constexpr (!isNegative && is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto [Rn, Rm, N] = utils::split<T, _<0, 3>, _<3, 4>, _<7, 1>>(opCode);
 
-        n = utils::combine<uint8_t>(_<0, 3>{Rn}, _<4, 1>{N});
-        UNPREDICTABLE_IF(n < 8 || Rm < 8);
-        UNPREDICTABLE_IF(n == 15 && Rm == 15);
+        n = utils::combine<uint8_t>(_<0, 3>{Rn}, _<3, 1>{N});
+        UNPREDICTABLE_IF(n < 8 && Rm < 8);
+        UNPREDICTABLE_IF(n == 15 || Rm == 15);
 
         shifted = cpu.R(Rm);
     }
-    else if constexpr ((check<!isNegative> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
-                       (check<isNegative> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
+    else if constexpr ((!isNegative && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (isNegative && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
         const auto [Rm, type, imm2, imm3, Rn] = utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<12, 3>, _<16, 4>>(opCode);
 
         const auto [shiftType, shiftN] = utils::decodeImmediateShift(type, utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3}));
@@ -817,7 +816,7 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
         shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
-    if constexpr (check<!isNegative>) {
+    if constexpr (!isNegative) {
         shifted = ~shifted;
     }
 
@@ -875,12 +874,12 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
     }
 
     const auto m = utils::getPart<3, 4>(opCode);
-    if constexpr (check<withLink>) {
+    if constexpr (withLink) {
         UNPREDICTABLE_IF(m == 15);
     }
     UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
 
-    if constexpr (check<withLink>) {
+    if constexpr (withLink) {
         const auto nextInstruction = cpu.currentInstructionAddress() + 2u;
         cpu.registers().LR() = nextInstruction | 0b1u;
         cpu.blxWritePC(cpu.R(m));
@@ -903,13 +902,13 @@ void cmdBranch(T opCode, Cpu& cpu)
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, cond] = utils::split<T, _<0, 8, uint32_t>, _<8, 4>>(opCode);
 
-        imm32 = utils::signExtend<9>(imm8 << 1);
+        imm32 = utils::signExtend<9>(imm8 << 1u);
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
         const auto imm11 = utils::getPart<0, 11, uint32_t>(opCode);
 
-        imm32 = utils::signExtend<12>(imm11 << 1);
+        imm32 = utils::signExtend<12>(imm11 << 1u);
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
@@ -1055,7 +1054,7 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
     uint8_t t, add;
     uint32_t imm32;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
-        const auto [imm8, Rt] = utils::split<T, _<0, 7, uint32_t>, _<8, 3>>(opCode);
+        const auto [imm8, Rt] = utils::split<T, _<0, 8, uint32_t>, _<8, 3>>(opCode);
 
         t = Rt;
         imm32 = static_cast<uint32_t>(imm8 << 2u);
@@ -1083,12 +1082,8 @@ void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
 
     const auto data = cpu.mpu().unalignedMemoryRead<uint32_t>(address);
     if (t == 15) {
-        if ((data & utils::ONES<2, uint32_t>) == 0u) {
-            cpu.loadWritePC(data);
-        }
-        else {
-            UNPREDICTABLE;
-        }
+        UNPREDICTABLE_IF((utils::getPart<0, 2>(data)));
+        cpu.loadWritePC(data);
     }
     else {
         cpu.setR(t, data);
@@ -1161,7 +1156,7 @@ inline void cmdPop(T opCode, Cpu& cpu)
         registers = utils::combine<uint16_t>(_<0, 8>{registerList}, _<15, 1>{P});
         // unalignedAccess = false;
 
-        UNPREDICTABLE_IF((registers & 0x80u) && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        UNPREDICTABLE_IF(utils::isBitSet<15>(registers) && cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
         const auto [registerList, M, P] = utils::split<T, _<0, 13, uint16_t>, _<14, 1>, _<15, 1>>(opCode);
@@ -1170,7 +1165,7 @@ inline void cmdPop(T opCode, Cpu& cpu)
         // unalignedAccess = false;
 
         UNPREDICTABLE_IF(utils::bitCount(registers) < 2u || (P == 1u && M == 1u));
-        UNPREDICTABLE_IF((registers & 0x80u) && cpu.isInItBlock() && !cpu.isLastInItBlock());
+        UNPREDICTABLE_IF(utils::isBitSet<15>(registers) && cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto Rt = utils::getPart<12, 4>(opCode);
@@ -1335,16 +1330,17 @@ void cmdStoreRegister(T opCode, Cpu& cpu)
         const auto [Rm, imm2, Rt, Rn] = utils::split<T, _<0, 4>, _<4, 2>, _<12, 4>, _<16, 4>>(opCode);
 
         UNPREDICTABLE_IF(Rm >= 13);
+
+        t = Rt;
+        n = Rn;
+        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
+
         if constexpr (std::is_same_v<Type, uint32_t>) {
             UNPREDICTABLE_IF(t == 15);
         }
         else {
             UNPREDICTABLE_IF(t >= 13);
         }
-
-        t = Rt;
-        n = Rn;
-        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
     }
 
     const auto address = cpu.R(n) + offset;
@@ -1383,16 +1379,16 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
 
         UNPREDICTABLE_IF(Rm >= 13);
 
+        t = Rt;
+        n = Rn;
+        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
+
         if constexpr (std::is_same_v<T, uint32_t>) {
             UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
         }
         else {
             UNPREDICTABLE_IF(t == 15);
         }
-
-        t = Rt;
-        n = Rn;
-        offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
     }
 
     const auto address = cpu.R(n) + offset;
@@ -1403,14 +1399,14 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
     else if constexpr (std::is_same_v<T, uint16_t>) {
         data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint16_t>(address));
 
-        if constexpr (check<isSignExtended>) {
+        if constexpr (isSignExtended) {
             data = utils::signExtend<16>(data);
         }
     }
     else if constexpr (std::is_same_v<T, uint8_t>) {
         data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint8_t>(address));
 
-        if constexpr (check<isSignExtended>) {
+        if constexpr (isSignExtended) {
             data = utils::signExtend<8>(data);
         }
     }

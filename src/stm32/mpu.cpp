@@ -256,7 +256,7 @@ void Mpu::checkPermissions(MemoryPermissions permissions, uint32_t address, Acce
 {
     const auto isPrivileged = accessType != AccessType::Unprivileged && m_cpu.isInPrivilegedMode();
 
-    bool fault;
+    bool fault{};
     switch (permissions.accessPermissions) {
         case 0b000u:
             fault = true;

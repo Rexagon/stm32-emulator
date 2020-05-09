@@ -263,16 +263,16 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b001000'0u ... 0b001000'1u:
             // see: A7-461
-            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignedExtend*/ true>(opCode, cpu);
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
         case 0b001001'0u ... 0b001001'1u:
             // see: A7-459
-            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignedExtend*/ true>(opCode, cpu);
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
         case 0b001010'0u ... 0b001010'1u:
             // see: A7-500
-            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignedExtend*/ false>(opCode, cpu);
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
         case 0b001011'0u ... 0b001011'1u:
             // see: A7-498
-            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignedExtend*/ false>(opCode, cpu);
+            return opcodes::cmdExtend<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
         case 0b0011'000u ... 0b0011'111u:
             // see: A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
@@ -290,10 +290,10 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdReverse<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
         case 0b101001'0u ... 0b101001'1u:
             // see: A7-364
-            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSigned*/ false>(opCode, cpu);
+            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
         case 0b101011'0u ... 0b101011'1u:
             // see: A7-365
-            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSigned*/ true>(opCode, cpu);
+            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
         case 0b1011'000u ... 0b1011'111u:
             // see A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
