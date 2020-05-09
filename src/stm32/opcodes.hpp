@@ -322,7 +322,8 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
         shifted = cpu.R(Rm);
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
-        const auto [Rm, type, imm2, Rd, imm3, Rn, S] = utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
+        const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
+            utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
 
         UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13);
 
@@ -1226,7 +1227,7 @@ void cmdStoreMultiple(T opCode, Cpu& cpu)
 
         registerCount = utils::bitCount(registers);
 
-        UNPREDICTABLE_IF(writeBack && ((registers >> n) & 0b1u) > 0u);
+        UNPREDICTABLE_IF(writeBack && utils::isBitSet(registers, n));
     }
 
     auto address = cpu.R(n);
@@ -1275,7 +1276,7 @@ void cmdLoadMultiple(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(utils::bitCount(registers));
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
-        const auto [registerList, M, P, Rn, W] = utils::split<T, _<0, 13>, _<14, 1>, _<15, 1>, _<16, 4>, _<21, 1>>(opCode);
+        const auto [registerList, M, P, Rn, W] = utils::split<T, _<0, 13, uint16_t>, _<14, 1>, _<15, 1>, _<16, 4>, _<21, 1>>(opCode);
 
         n = Rn;
         registers = utils::combine<uint16_t>(_<0, 13, uint16_t>{registerList}, _<14, 1>{M}, _<15, 1>{P});

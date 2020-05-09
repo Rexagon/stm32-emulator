@@ -364,9 +364,41 @@ inline void handleUnconditionalBranch(uint16_t opCode, Cpu& cpu)
 
 namespace wo
 {
-inline void loadMultipleAndStoreMultiple(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-142
+    const auto [Rn, L, W, op] = split<uint32_t, Part<0, 4>, Part<4, 1>, Part<5, 1>, Part<7, 2>>(opCode);
+
+    // see: A5-142
+    switch (op) {
+        case 0b01u:
+            if (L == 0) {
+                return opcodes::cmdStoreMultiple<opcodes::Encoding::T2>(opCode, cpu);
+            }
+            else {
+                if (W != 1u && Rn != 0b1101u) {
+                    return opcodes::cmdLoadMultiple<opcodes::Encoding::T2>(opCode, cpu);
+                }
+                else {
+                    return opcodes::cmdPop<opcodes::Encoding::T2>(opCode, cpu);
+                }
+            }
+        case 0b10u:
+            if (L == 0) {
+                if (W != 1u || Rn != 0b1101u) {
+                    // TODO: A7-424
+                    return;
+                }
+                else {
+                    return opcodes::cmdPush<opcodes::Encoding::T2>(opCode, cpu);
+                }
+            }
+            else {
+                // TODO: A7-250
+                return;
+            }
+        default:
+            UNPREDICTABLE;
+    }
 }
 
 inline void loadStoreDualOrExclusive(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -492,7 +524,7 @@ void Cpu::step()
         PC += 2u;
     }
     else {
-        const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ~RIGHT_BIT<uint32_t>) + 2u);
+        const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ~RIGHT_BIT<uint32_t>)+2u);
         const auto opCode = combine<uint32_t>(Part<0, 16, uint16_t>{opCodeHw2}, Part<16, 16, uint16_t>{opCodeHw1});
 
         const auto op2 = getPart<4, 7>(opCodeHw1);
