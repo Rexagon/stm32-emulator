@@ -143,7 +143,7 @@ inline void handleSpecialDataInstruction(uint16_t opCode, Cpu& cpu)
 inline void handleLoadFromLiteralPool(uint16_t opCode, Cpu& cpu)
 {
     // see: A7.7.43
-    opcodes::cmdLoadRegisterLiteral<opcodes::Encoding::T1>(opCode, cpu);
+    opcodes::cmdLoadLiteral<opcodes::Encoding::T1>(opCode, cpu);
 }
 
 inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
@@ -366,7 +366,7 @@ namespace wo
 {
 inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rn, L, W, op] = split<uint32_t, Part<0, 4>, Part<4, 1>, Part<5, 1>, Part<7, 2>>(opCode);
+    const auto [Rn, L, W, op] = split<uint32_t, Part<16, 4>, Part<20, 1>, Part<21, 1>, Part<23, 2>>(opCode);
 
     // see: A5-142
     switch (op) {
@@ -446,9 +446,38 @@ inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
     // TODO: A5-145
 }
 
-inline void loadWord(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void loadWord(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-144
+    const auto [op2, Rn, op1] = split<uint32_t, Part<6, 6>, Part<16, 4>, Part<23, 2>>(opCode);
+
+    // see: A5-144
+    if (Rn != 0b1111u) {
+        switch (op1) {
+            case 0b01u:
+                return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint32_t>(opCode, cpu);
+            case 0b00u:
+                if (op2 & 0b100100u || getPart<2, 4>(op2) == 0b1100u) {
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t>(opCode, cpu);
+                }
+                else if (getPart<2, 4>(op2) == 0b1110u) {
+                    // TODO: A7-256
+                    return;
+                }
+                else if (op2 == 0u) {
+                    return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    else {
+        if (isBitSet<1>(op1)) {
+            return opcodes::cmdLoadLiteral<opcodes::Encoding::T2>(opCode, cpu);
+        }
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void dataProcessingRegister(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -616,6 +645,6 @@ void Cpu::step()
 
         PC += 4u;
     }
-}
+}  // namespace wo
 
 }  // namespace stm32

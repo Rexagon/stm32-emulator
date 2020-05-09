@@ -1044,7 +1044,7 @@ void cmdAdr(T opCode, Cpu& cpu)
 }
 
 template <Encoding encoding, typename T>
-void cmdLoadRegisterLiteral(T opCode, Cpu& cpu)
+void cmdLoadLiteral(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
@@ -1543,7 +1543,7 @@ void cmdLoadImmediate(T opCode, Cpu& cpu)
     }
     else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
-        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12>, _<12, 4>, _<16, 4>>(opCode);
+        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12, uint16_t>, _<12, 4>, _<16, 4>>(opCode);
 
         t = Rt;
         n = Rn;
