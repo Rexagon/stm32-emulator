@@ -15,7 +15,7 @@ TEST(math, parts)
 {
     using namespace stm32::utils;
 
-    const auto [first, second] = split<uint16_t, Part<0, 8>, Part<4, 5>>(0x1f22u);
+    const auto [first, second] = split<Part<0, 8>, Part<4, 5>>(uint16_t{0x1f22u});
     ASSERT_EQ(first, 0x22u);
     ASSERT_EQ(second, 0x12u);
 

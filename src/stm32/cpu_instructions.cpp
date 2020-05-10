@@ -366,7 +366,7 @@ namespace wo
 {
 inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rn, L, W, op] = split<uint32_t, _<16, 4>, _<20, 1>, _<21, 1>, _<23, 2>>(opCode);
+    const auto [Rn, L, W, op] = split<_<16, 4>, _<20, 1>, _<21, 1>, _<23, 2>>(opCode);
 
     // see: A5-142
     switch (op) {
@@ -407,7 +407,7 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 
 inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& /*cpu*/)
 {
-    const auto [op3, op2, op1] = split<uint32_t, _<4, 4>, _<20, 2>, _<23, 2>>(opCode);
+    const auto [op3, op2, op1] = split<_<4, 4>, _<20, 2>, _<23, 2>>(opCode);
 
     // see: A5-143
     if (op1 == 0b00u && op2 == 0b00u) {
@@ -462,7 +462,7 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& /*cpu*/)
 
 inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rd, Rn, S, op] = split<uint32_t, _<8, 4>, _<16, 4>, _<20, 1>, _<21, 4>>(opCode);
+    const auto [Rd, Rn, S, op] = split<_<8, 4>, _<16, 4>, _<20, 1>, _<21, 4>>(opCode);
 
     // see: A5-148
     switch (op) {
@@ -485,7 +485,7 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::ORR>(opCode, cpu);
             }
             else {
-                const auto [type, imm2, imm3] = split<uint32_t, _<4, 2>, _<6, 2>, _<12, 3>>(opCode);
+                const auto [type, imm2, imm3] = split<_<4, 2>, _<6, 2>, _<12, 3>>(opCode);
 
                 switch (type) {
                     case 0b00u:
@@ -578,7 +578,7 @@ inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rd, Rn, op] = split<uint32_t, _<8, 4>, _<16, 4>, _<20, 6>>(opCode);
+    const auto [Rd, Rn, op] = split<_<8, 4>, _<16, 4>, _<20, 6>>(opCode);
 
     // see: A5-136
     switch (op) {
@@ -653,9 +653,64 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
     }
 }
 
-inline void dataProcessingPlainBinaryImmediate(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-139
+    const auto [Rn, op] = split<_<16, 4>, _<20, 5>>(opCode);
+
+    // see: A5-139
+    switch (op) {
+        case 0b00000u:
+            if (Rn != 0b1111u) {
+                // see: A7-189
+                return opcodes::cmdAddSubImmediate<opcodes::Encoding::T4, /*isSub*/ false>(opCode, cpu);
+            }
+            else {
+                // see: A7-197
+                return opcodes::cmdAdr<opcodes::Encoding::T3>(opCode, cpu);
+            }
+        case 0b00100u:
+            // see: A7-312
+            return opcodes::cmdMovImmediate<opcodes::Encoding::T3>(opCode, cpu);
+        case 0b01010u:
+            if (Rn != 0b1111u) {
+                // see: A7-448
+                return opcodes::cmdAddSubImmediate<opcodes::Encoding::T4, /*isSub*/ true>(opCode, cpu);
+            }
+            else {
+                // see: A7-197
+                return opcodes::cmdAdr<opcodes::Encoding::T2>(opCode, cpu);
+            }
+        case 0b01100u:
+            // TODO: A7-317
+            return;
+        case 0b10000u:
+        case 0b10010u:
+            // TODO: A7-415
+            return;
+        case 0b10100u:
+            // TODO: A7-382
+            return;
+        case 0b10110u:
+            if (Rn != 0b1111u) {
+                // TODO: A7-210
+                return;
+            }
+            else {
+                // TODO: A7-209
+                return;
+            }
+        case 0b11000u:
+        case 0b11010u:
+            // TODO: A7-490
+            return;
+        case 0b11100u:
+            // TODO: A7-470
+            return;
+        default:
+            break;
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -665,7 +720,7 @@ inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
 {
-    const auto [op2, op1] = split<uint32_t, _<6, 6>, _<21, 3>>(opCode);
+    const auto [op2, op1] = split<_<6, 6>, _<21, 3>>(opCode);
 
     // see: A5-147
     switch (op1) {
@@ -722,7 +777,7 @@ inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void loadWord(uint32_t opCode, Cpu& cpu)
 {
-    const auto [op2, Rn, op1] = split<uint32_t, _<6, 6>, _<16, 4>, _<23, 2>>(opCode);
+    const auto [op2, Rn, op1] = split<_<6, 6>, _<16, 4>, _<23, 2>>(opCode);
 
     // see: A5-144
     if (Rn != 0b1111u) {
@@ -760,7 +815,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
 
 inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
 {
-    const auto [op2, Rn, op1] = split<uint32_t, _<4, 4>, _<16, 4>, _<20, 4>>(opCode);
+    const auto [op2, Rn, op1] = split<_<4, 4>, _<16, 4>, _<20, 4>>(opCode);
 
     // see: A5-150
     switch (op1) {

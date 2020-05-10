@@ -234,7 +234,7 @@ void Cpu::pushStack(ExceptionType exceptionType)
         framePtr = SP_main;
     }
 
-    const auto [xPSRlo, xPSRhi] = split<uint32_t, Part<0, 9, uint32_t>, Part<10, 22, uint32_t>>(m_registers.xPSR());
+    const auto [xPSRlo, xPSRhi] = split<Part<0, 9, uint32_t>, Part<10, 22, uint32_t>>(m_registers.xPSR());
 
     m_mpu.alignedMemoryWrite(framePtr + 0x0u, R(0));
     m_mpu.alignedMemoryWrite(framePtr + 0x4u, R(1));

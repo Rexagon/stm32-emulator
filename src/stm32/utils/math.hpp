@@ -54,7 +54,7 @@ struct Extractor<V, Part<offset, bitCount, T>> {
 };
 }  // namespace details
 
-template <typename V, typename... Parts>
+template <typename... Parts, typename V>
 inline auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
 {
     return std::tuple(details::Extractor<V, Parts>::extract(value)...);
