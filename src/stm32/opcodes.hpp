@@ -914,19 +914,22 @@ void cmdBranch(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
-        const auto [imm11, J2, J1, imm6, cond, S] = utils::getPart<T, _<0, 11>, _<11, 1>, _<13, 1>, _<16, 6>, _<22, 4>, _<26, 1>>(opCode);
+        const auto [imm11, J2, J1, imm6, cond, S] =
+            utils::split<_<0, 11, uint16_t>, _<11, 1>, _<13, 1>, _<16, 6>, _<22, 4>, _<26, 1>>(opCode);
 
-        imm32 = utils::signExtend<21>(utils::combine<T>(_<1, 11>{imm11}, _<12, 6>{imm6}, _<18, 1>{J1}, _<19, 1>{J2}, _<20, 1>{S}));
+        imm32 =
+            utils::signExtend<21>(utils::combine<T>(_<1, 11, uint16_t>{imm11}, _<12, 6>{imm6}, _<18, 1>{J1}, _<19, 1>{J2}, _<20, 1>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
-        const auto [imm11, J2, J1, imm10, S] = utils::getPart<T, _<0, 11>, _<11, 1>, _<13, 1>, _<16, 10>, _<26, 1>>(opCode);
+        const auto [imm11, J2, J1, imm10, S] = utils::split<_<0, 11, uint16_t>, _<11, 1>, _<13, 1>, _<16, 10, uint16_t>, _<26, 1>>(opCode);
 
-        const auto I1 = ~(J1 ^ S);
-        const auto I2 = ~(J2 ^ S);
+        const auto I1 = static_cast<uint8_t>(~(J1 ^ S));
+        const auto I2 = static_cast<uint8_t>(~(J2 ^ S));
 
-        imm32 = utils::signExtend<25>(utils::combine<T>(_<1, 11>{imm11}, _<12, 10>{imm10}, _<22, 1>{I2}, _<23, 1>{I1}, _<24, 1>{S}));
+        imm32 = utils::signExtend<25>(
+            utils::combine<T>(_<1, 11, uint16_t>{imm11}, _<12, 10, uint16_t>{imm10}, _<22, 1>{I2}, _<23, 1>{I1}, _<24, 1>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }

@@ -713,9 +713,87 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE;
 }
 
-inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-140
+    const auto [op1, op] = split<_<12, 3>, _<20, 7>>(opCode);
+
+    // see: A5-140
+    switch (op1 & 0b101u) {
+        case 0b000u:
+            if ((op & 0b0111000u) != 0b0111000u) {
+                // see: A7-207
+                return opcodes::cmdBranch<opcodes::Encoding::T3>(opCode, cpu);
+            }
+            else {
+                switch (op) {
+                    case 0b011100'0u ... 0b011100'1u:
+                        // TODO: A7-323
+                        return;
+                    case 0b0111010u:
+                        if (getPart<8, 3>(opCode) == 0b000u) {
+                            switch (getPart<0, 8>(opCode)) {
+                                case 0b00000000u:
+                                    // see: A7-331
+                                    return opcodes::cmdHint<opcodes::Hint::Nop>(opCode, cpu);
+                                case 0b00000001u:
+                                    // see: A7-562
+                                    return opcodes::cmdHint<opcodes::Hint::Yield>(opCode, cpu);
+                                case 0b00000010u:
+                                    // see: A7-560
+                                    return opcodes::cmdHint<opcodes::Hint::WaitForEvent>(opCode, cpu);
+                                case 0b00000011u:
+                                    // see: A7-561
+                                    return opcodes::cmdHint<opcodes::Hint::WaitForInterrupt>(opCode, cpu);
+                                case 0b00000100u:
+                                    // see: A7-385
+                                    return opcodes::cmdHint<opcodes::Hint::SendEvent>(opCode, cpu);
+                                default:
+                                    return;  // ignore
+                            }
+                        }
+                        else {
+                            UNPREDICTABLE;
+                        }
+                    case 0b0111011u:
+                        switch (getPart<4, 4>(opCode)) {
+                            case 0b0010u:
+                                // TODO: A7-223
+                                return;
+                            case 0b0100u:
+                                // TODO: A7-237
+                                return;
+                            case 0b0101u:
+                                // TODO: A7-235
+                                return;
+                            case 0b0110u:
+                                // TODO: A7-241
+                                return;
+                            default:
+                                break;
+                        }
+                        break;
+                    case 0b011111'0u ... 0b011111'1u:
+                        // TODO: A7-322
+                        return;
+                    case 0b1111111u:
+                        // see: A7-471
+                        return opcodes::cmdPermanentlyUndefined<opcodes::Encoding::T2>(opCode, cpu);
+                    default:
+                        break;
+                }
+            }
+            break;
+        case 0b001u:
+            // see: A7-207
+            return opcodes::cmdBranch<opcodes::Encoding::T4>(opCode, cpu);
+        case 0b101u:
+            // TODO: A7-216
+            return;
+        default:
+            break;
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
