@@ -405,9 +405,59 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
     }
 }
 
-inline void loadStoreDualOrExclusive(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& /*cpu*/)
 {
-    // TODO: A5-143
+    const auto [op3, op2, op1] = split<uint32_t, _<4, 4>, _<20, 2>, _<23, 2>>(opCode);
+
+    // see: A5-143
+    if (op1 == 0b00u && op2 == 0b00u) {
+        // TODO: A7-438
+        return;
+    }
+    if (op1 == 0b00u && op2 == 0b01u) {
+        // TODO: A7-270
+        return;
+    }
+    if ((op2 == 0b10u && isBitClear<1>(op1)) || (isBitClear<0>(op2) && isBitSet<1>(op1))) {
+        // TODO: A7-436
+        return;
+    }
+    if ((op2 == 0b11u && isBitClear<1>(op1)) || (isBitSet<1>(op2) && isBitSet<1>(op1))) {
+        // TODO: A7-266 / A7-268
+        return;
+    }
+    if (op1 == 0b01u && op2 == 0b00u) {
+        switch (op3) {
+            case 0b0100u:
+                // TODO: A7-439
+                return;
+            case 0b0101u:
+                // TODO: A7-440
+                return;
+            default:
+                break;
+        }
+    }
+    if (op1 == 0b01u && op2 == 0b01u) {
+        switch (op3) {
+            case 0b0000u:
+                // TODO: A7-462
+                return;
+            case 0b0001u:
+                // TODO: A7-262
+                return;
+            case 0b0100u:
+                // TODO: A7-271
+                return;
+            case 0b0101u:
+                // TODO: A7-272
+                return;
+            default:
+                break;
+        }
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
