@@ -708,9 +708,85 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE;
 }
 
-inline void dataProcessingRegister(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-150
+    const auto [op2, Rn, op1] = split<uint32_t, _<4, 4>, _<16, 4>, _<20, 4>>(opCode);
+
+    // see: A5-150
+    switch (op1) {
+        case 0b000'0u ... 0b000'1u:
+            if (op2 == 0b0000u) {
+                // see: A7-300
+                return opcodes::cmdShiftRegister<opcodes::Encoding::T2, ShiftType::LSL>(opCode, cpu);
+            }
+            else if (isBitSet<3>(op2) && Rn == 0b1111u) {
+                if (isBitClear<0>(op1)) {
+                    // see: A7-461
+                    return opcodes::cmdExtend<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
+                else {
+                    // see: A7-500
+                    return opcodes::cmdExtend<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
+            }
+            break;
+        case 0b001'0u ... 0b001'1u:
+            if (op2 == 0b0000u) {
+                // see: a7-304
+                return opcodes::cmdShiftRegister<opcodes::Encoding::T2, ShiftType::LSR>(opCode, cpu);
+            }
+            break;
+        case 0b010'0u ... 0b010'1u:
+            if (op2 == 0b0000u) {
+                // see: A7-205
+                return opcodes::cmdShiftRegister<opcodes::Encoding::T2, ShiftType::ASR>(opCode, cpu);
+            }
+            else if (isBitSet<3>(op2) && Rn == 0b1111u) {
+                if (isBitClear<0>(op1)) {
+                    // see: A7-459
+                    return opcodes::cmdExtend<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
+                else {
+                    // see: A7-498
+                    return opcodes::cmdExtend<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
+            }
+            break;
+        case 0b011'0u ... 0b011'1u:
+            if (op2 == 0b0000u) {
+                // see: A7-368
+                return opcodes::cmdShiftRegister<opcodes::Encoding::T2, ShiftType::ROR>(opCode, cpu);
+            }
+            break;
+        case 0b1001u:
+            switch (op2) {
+                case 0b1000u:
+                    // see: A7-363
+                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
+                case 0b1001u:
+                    // see: A7-364
+                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint16_t>(opCode, cpu);
+                case 0b1010u:
+                    // TODO: A7-362
+                    return;
+                case 0b1011u:
+                    // see: A7-365
+                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+                default:
+                    break;
+            }
+            break;
+        case 0b1011u:
+            if (op2 == 0b1000u) {
+                // TODO: A7-224
+                return;
+            }
+            break;
+        default:
+            break;
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void multiplicationAndAbsoluteDifference(uint32_t /*opCode*/, Cpu& /*cpu*/)
