@@ -843,9 +843,77 @@ inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
     }
 }
 
-inline void loadByteAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& /*cpu*/)
 {
-    // TODO: A5-146
+    const auto [op2, Rt, Rn, op1] = split<_<6, 6>, _<12, 4>, _<16, 4>, _<23, 2>>(opCode);
+
+    // see: A5-146
+    if (Rt != 0b1111u) {
+        if (isBitClear<1>(op1)) {
+            if (Rn == 0b1111u) {
+                // TODO: A7-260
+                return;
+            }
+            if (op1 == 0b01u || (op1 == 0b00u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u))) {
+                // TODO: A7-258
+                return;
+            }
+            if (op1 == 0b00u && getPart<2, 4>(op2) == 0b1110u) {
+                // TODO: A7-264
+                return;
+            }
+            if (op1 == 0b00u && op2 == 0b000000u) {
+                // TODO: A7-262
+                return;
+            }
+        }
+        else {
+            if (Rn == 0b1111u) {
+                // TODO: A7-284
+                return;
+            }
+            if (op1 == 0b11 || (op1 == 0b10u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u))) {
+                // TODO: A7-282
+                return;
+            }
+            if (op1 == 0b10u && getPart<2, 4>(op2) == 0b1110u) {
+                // TODO: A7-288
+                return;
+            }
+            if (op1 == 0b10u && op2 == 0b000000u) {
+                // TODO: A7-286
+                return;
+            }
+        }
+    }
+    else {
+        if (isBitClear<1>(op1)) {
+            if (Rn == 0b1111u) {
+                // TODO: A7-341
+                return;
+            }
+            if (op1 == 0b01u || (op1 == 0b00u && getPart<2, 4>(op2) == 0b1100u)) {
+                // TODO: A7-340
+                return;
+            }
+            if (op1 == 0b00u && op2 == 0b000000u) {
+                // TODO: A7-342
+                return;
+            }
+        }
+        else {
+            if (Rn == 0b1111u || op1 == 0b11u || (op1 == 0b10u && getPart<2, 4>(op2) == 0b1100u)) {
+                // TODO: A7-344
+                return;
+            }
+            if (op1 == 0b10u && op2 == 0b000000u) {
+                // TODO: A7-346
+                return;
+            }
+        }
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
