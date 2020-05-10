@@ -972,14 +972,81 @@ inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE;
 }
 
-inline void multiplicationAndAbsoluteDifference(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void multiplicationAndAbsoluteDifference(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-154
+    const auto [op2, Ra, op1] = split<_<4, 2>, _<12, 4>, _<20, 3>>(opCode);
+
+    // see: A5-154
+    switch (op1) {
+        case 0b000u:
+            switch (op2) {
+                case 0b00u:
+                    if (Ra != 0b1111u) {
+                        // TODO: A7-310
+                        return;
+                    }
+                    else {
+                        // see: A7-324
+                        return opcodes::cmdMul<opcodes::Encoding::T2>(opCode, cpu);
+                    }
+                case 0b01u:
+                    // TODO: A7-311
+                    return;
+                default:
+                    break;
+            }
+    }
+
+    UNPREDICTABLE;
 }
 
-inline void longMultiplicationAndDivision(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& /*cpu*/)
 {
-    // TODO: A5-154
+    const auto [op2, op1] = split<_<4, 4>, _<20, 3>>(opCode);
+
+    // see: A5-154
+    switch (op1) {
+        case 0b000u:
+            if (op2 == 0b0000u) {
+                // TODO: A7-412
+                return;
+            }
+            break;
+        case 0b001u:
+            if (op2 == 0b1111u) {
+                // TODO: A7-383
+                return;
+            }
+            break;
+        case 0b010u:
+            if (op2 == 0b0000u) {
+                // TODO: A7-481
+                return;
+            }
+            break;
+        case 0b011u:
+            if (op2 == 0b1111u) {
+                // TODO: A7-472
+                return;
+            }
+            break;
+        case 0b100u:
+            if (op2 == 0b0000u) {
+                // TODO: A7-396
+                return;
+            }
+            break;
+        case 0b110u:
+            if (op2 == 0b0000u) {
+                // TODO: A7-480
+                return;
+            }
+            break;
+        default:
+            break;
+    }
+
+    UNPREDICTABLE;
 }
 
 }  // namespace wo
