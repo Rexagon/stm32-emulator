@@ -372,13 +372,16 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
     switch (op) {
         case 0b01u:
             if (L == 0) {
+                // see: A7-422
                 return opcodes::cmdStoreMultiple<opcodes::Encoding::T2>(opCode, cpu);
             }
             else {
                 if (W != 1u && Rn != 0b1101u) {
+                    // see: A7-248
                     return opcodes::cmdLoadMultiple<opcodes::Encoding::T2>(opCode, cpu);
                 }
                 else {
+                    // see: A7-348
                     return opcodes::cmdPop<opcodes::Encoding::T2>(opCode, cpu);
                 }
             }
@@ -389,6 +392,7 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
                     return;
                 }
                 else {
+                    // see: A7-350
                     return opcodes::cmdPush<opcodes::Encoding::T2>(opCode, cpu);
                 }
             }
@@ -416,9 +420,81 @@ inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
     // TODO: A5-156
 }
 
-inline void dataProcessingModifiedImmediate(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-136
+    const auto [Rd, Rn, op] = split<uint32_t, Part<8, 4>, Part<16, 4>, Part<20, 6>>(opCode);
+
+    // see: A5-136
+    switch (op) {
+        case 0b0000'0u ... 0b0000'1u:
+            if (Rd != 0b1111u) {
+                // TODO: A7-199
+                return;
+            }
+            else {
+                // TODO: A7-465
+                return;
+            }
+        case 0b0001'0u ... 0b0001'1u:
+            // TODO: A7-211
+            return;
+        case 0b0010'0u ... 0b0010'1u:
+            if (Rn != 0b1111u) {
+                // TODO: A7-334
+                return;
+            }
+            else {
+                // see: A7-312
+                return opcodes::cmdMovImmediate<opcodes::Encoding::T2>(opCode, cpu);
+            }
+        case 0b0011'0u ... 0b0011'1u:
+            if (Rn != 0b1111u) {
+                // TODO: A7-332
+                return;
+            }
+            else {
+                // TODO: A7-326
+                return;
+            }
+        case 0b0100'0u ... 0b0100'1u:
+            if (Rd != 0b1111u) {
+                // TODO: A7-238
+                return;
+            }
+            else {
+                // TODO: A7-463
+                return;
+            }
+        case 0b1000'0u ... 0b1000'1u:
+            if (Rd != 0b1111) {
+                // see: A7-189
+                return opcodes::cmdAddSubImmediate<opcodes::Encoding::T3, /*isSub*/ false>(opCode, cpu);
+            }
+            else {
+                // TODO: A7-225
+                return;
+            }
+        case 0b1010'0u ... 0b1010'1u:
+            // TODO: A7-185
+            return;
+        case 0b1011'0u ... 0b1011'1u:
+            // TODO: A7-379
+            return;
+        case 0b1101'0u ... 0b1101'1u:
+            if (Rd != 0b1111u) {
+                // see: A7-448
+                return opcodes::cmdAddSubImmediate<opcodes::Encoding::T3, /*isSub*/ true>(opCode, cpu);
+            }
+            else {
+                // see: A7-229
+                return opcodes::cmdCmpImmediate<opcodes::Encoding::T2>(opCode, cpu);
+            }
+        case 0b1110'0u ... 0b1110'1u:
+            // see: A7-372
+            return opcodes::cmdRsbImmediate<opcodes::Encoding::T2>(opCode, cpu);
+        default:
+            UNPREDICTABLE;
+    }
 }
 
 inline void dataProcessingPlainBinaryImmediate(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -431,9 +507,51 @@ inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
     // TODO: A5-140
 }
 
-inline void storeSingleDataItem(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-147
+    const auto [op2, op1] = split<uint32_t, Part<6, 6>, Part<21, 3>>(opCode);
+
+    // see: A5-147
+    switch (op1) {
+        case 0b000u:
+            if (isBitSet<5>(op2)) {
+                // see: A-430
+                return opcodes::cmdStoreImmediate<opcodes::Encoding::T3, uint8_t>(opCode, cpu);
+            }
+            else {
+                // see: A-432
+                return opcodes::cmdStoreRegister<opcodes::Encoding::T2, uint8_t>(opCode, cpu);
+            }
+        case 0b001u:
+            if (isBitSet<5>(op2)) {
+                // see: A-442
+                return opcodes::cmdStoreImmediate<opcodes::Encoding::T3, uint16_t>(opCode, cpu);
+            }
+            else {
+                // see: A-444
+                return opcodes::cmdStoreRegister<opcodes::Encoding::T2, uint16_t>(opCode, cpu);
+            }
+        case 0b010u:
+            if (isBitSet<5>(op2)) {
+                // see: A-426
+                return opcodes::cmdStoreImmediate<opcodes::Encoding::T4, uint32_t>(opCode, cpu);
+            }
+            else {
+                // see: A7-248
+                return opcodes::cmdStoreRegister<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
+            }
+        case 0b100u:
+            // see: A-430
+            return opcodes::cmdStoreImmediate<opcodes::Encoding::T2, uint8_t>(opCode, cpu);
+        case 0b101u:
+            // see: A-442
+            return opcodes::cmdStoreImmediate<opcodes::Encoding::T2, uint16_t>(opCode, cpu);
+        case 0b110u:
+            // see: A-426
+            return opcodes::cmdStoreImmediate<opcodes::Encoding::T3, uint32_t>(opCode, cpu);
+        default:
+            UNPREDICTABLE;
+    }
 }
 
 inline void loadByteAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -454,9 +572,11 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
     if (Rn != 0b1111u) {
         switch (op1) {
             case 0b01u:
+                // see: A7-252
                 return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint32_t>(opCode, cpu);
             case 0b00u:
                 if (op2 & 0b100100u || getPart<2, 4>(op2) == 0b1100u) {
+                    // see: A7-252
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t>(opCode, cpu);
                 }
                 else if (getPart<2, 4>(op2) == 0b1110u) {
@@ -464,6 +584,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
                     return;
                 }
                 else if (op2 == 0u) {
+                    // see: A7-256
                     return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
                 }
                 break;
@@ -473,6 +594,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
     }
     else {
         if (isBitSet<1>(op1)) {
+            // see: A7-254
             return opcodes::cmdLoadLiteral<opcodes::Encoding::T2>(opCode, cpu);
         }
     }

@@ -378,7 +378,7 @@ void cmdRsbImmediate(T opCode, Cpu& cpu)
         d = Rd;
         n = Rn;
         setFlags = S;
-        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
+        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
     }
 
     const auto [result, carry, overflow] = utils::addWithCarry(~cpu.R(n), imm32, true);
@@ -766,7 +766,7 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(Rn == 15);
 
         n = Rn;
-        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint32_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
+        imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
     }
 
     const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), ~imm32, true);
@@ -1455,11 +1455,11 @@ void cmdStoreImmediate(T opCode, Cpu& cpu)
     }
     else if constexpr ((std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
                        (!std::is_same_v<Type, uint32_t> && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
-        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12>, _<12, 4>, _<16, 4>>(opCode);
+        const auto [imm12, Rt, Rn] = utils::split<T, _<0, 12, uint32_t>, _<12, 4>, _<16, 4>>(opCode);
 
         t = Rt;
         n = Rn;
-        imm32 = static_cast<uint32_t>(imm12);
+        imm32 = imm12;
         index = true;
         add = true;
         writeBack = false;
