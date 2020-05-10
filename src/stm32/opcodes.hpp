@@ -41,7 +41,7 @@ inline void cmdShiftImmediate(T opCode, Cpu& cpu)
         shiftN = utils::decodeImmediateShift(shiftTypeBits, imm5).second;
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
-        const auto [Rm, imm2, Rd, imm3, S, shiftTypeBits] = utils::split<T, _<0, 4>, _<6, 2>, _<8, 4>, _<12, 3>, _<20, 1>>(opCode);
+        const auto [Rm, shiftTypeBits, imm2, Rd, imm3, S] = utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<20, 1>>(opCode);
 
         UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
 
@@ -201,8 +201,8 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
         setFlags = false;
         shifted = cpu.R(Rm);
     }
-    else if constexpr ((isSub && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
-                       (!isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
+    else if constexpr ((!isSub && is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) ||
+                       (isSub && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>)) {
         const auto [Rm, type, imm2, Rd, imm3, Rn, S] =
             utils::split<T, _<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
 
@@ -331,6 +331,7 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
 
         d = Rd;
         n = Rn;
+        setFlags = S;
         shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
     }
 
@@ -713,7 +714,7 @@ void cmdMovRegister(T opCode, Cpu& cpu)
         m = Rm;
         setFlags = true;
     }
-    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint16_t, T>) {
+    else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto [Rm, Rd, S] = utils::split<T, _<0, 4>, _<8, 4>, _<20, 1>>(opCode);
 
         d = Rd;

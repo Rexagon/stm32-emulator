@@ -38,6 +38,9 @@ struct Part {
     T value;
 };
 
+template <uint8_t offset, uint8_t bitCount, typename T = uint8_t>
+using _ = Part<offset, bitCount, T>;
+
 namespace details
 {
 template <typename, typename>

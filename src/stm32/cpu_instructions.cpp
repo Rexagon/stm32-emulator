@@ -366,7 +366,7 @@ namespace wo
 {
 inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rn, L, W, op] = split<uint32_t, Part<16, 4>, Part<20, 1>, Part<21, 1>, Part<23, 2>>(opCode);
+    const auto [Rn, L, W, op] = split<uint32_t, _<16, 4>, _<20, 1>, _<21, 1>, _<23, 2>>(opCode);
 
     // see: A5-142
     switch (op) {
@@ -410,9 +410,115 @@ inline void loadStoreDualOrExclusive(uint32_t /*opCode*/, Cpu& /*cpu*/)
     // TODO: A5-143
 }
 
-inline void dataProcessingShiftedRegister(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-148
+    const auto [Rd, Rn, S, op] = split<uint32_t, _<8, 4>, _<16, 4>, _<20, 1>, _<21, 4>>(opCode);
+
+    // see: A5-148
+    switch (op) {
+        case 0b0000u:
+            if (Rd != 0b1111u) {
+                // see: A7-201
+                return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::AND>(opCode, cpu);
+            }
+            else if (S) {
+                // see: A7-466
+                return opcodes::cmdTstRegister<opcodes::Encoding::T2>(opCode, cpu);
+            }
+            break;
+        case 0b0001u:
+            // see: A7-213
+            return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::BIC>(opCode, cpu);
+        case 0b0010u:
+            if (Rn != 0b1111u) {
+                // seeL A7-336
+                return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::ORR>(opCode, cpu);
+            }
+            else {
+                const auto [type, imm2, imm3] = split<uint32_t, _<4, 2>, _<6, 2>, _<12, 3>>(opCode);
+
+                switch (type) {
+                    case 0b00u:
+                        if (imm2 == 0u && imm3 == 0u) {
+                            // see: A7-314
+                            return opcodes::cmdMovRegister<opcodes::Encoding::T3>(opCode, cpu);
+                        }
+                        else {
+                            // see: A7-298
+                            return opcodes::cmdShiftImmediate<opcodes::Encoding::T2, ShiftType::LSL>(opCode, cpu);
+                        }
+                    case 0b01u:
+                        // see: A7-302
+                        return opcodes::cmdShiftImmediate<opcodes::Encoding::T2, ShiftType::LSR>(opCode, cpu);
+                    case 0b10u:
+                        // see: A7-203
+                        return opcodes::cmdShiftImmediate<opcodes::Encoding::T2, ShiftType::ASR>(opCode, cpu);
+                    case 0b11u:
+                        if (imm2 == 0u && imm3 == 0u) {
+                            // TODO: A7-370
+                            return;
+                        }
+                        else {
+                            // TODO: A7-336
+                            return;
+                        }
+                    default:
+                        UNPREDICTABLE;
+                }
+            }
+        case 0b0011u:
+            if (Rn != 0b1111u) {
+                // TODO: A7-333
+                return;
+            }
+            else {
+                // see: A7-238
+                return opcodes::cmdMvnRegister<opcodes::Encoding::T2>(opCode, cpu);
+            }
+        case 0b0100u:
+            if (Rd != 0b1111u) {
+                // see: A7-239
+                return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::EOR>(opCode, cpu);
+            }
+            else if (S) {
+                // TODO: A7-464
+                return;
+            }
+            break;
+        case 0b1000u:
+            if (Rd != 0b1111u) {
+                // see: A7-191
+                return opcodes::cmdAddSubRegister<opcodes::Encoding::T3, /*isSub*/ false>(opCode, cpu);
+            }
+            else if (S) {
+                // see: A7-227
+                return opcodes::cmdCmpRegister<opcodes::Encoding::T2, /*isNegative*/ true>(opCode, cpu);
+            }
+            break;
+        case 0b1010u:
+            // see: A7-187
+            return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T2, /*isSbc*/ false>(opCode, cpu);
+        case 0b1011u:
+            // see: A7-380
+            return opcodes::cmdAdcSbcRegister<opcodes::Encoding::T2, /*isSbc*/ true>(opCode, cpu);
+        case 0b1101u:
+            if (Rd != 0b1111u) {
+                // see: A7-450
+                return opcodes::cmdAddSubRegister<opcodes::Encoding::T2, /*isSub*/ true>(opCode, cpu);
+            }
+            else if (S) {
+                // see: A7-231
+                return opcodes::cmdCmpRegister<opcodes::Encoding::T3, /*isNegative*/ false>(opCode, cpu);
+            }
+            break;
+        case 0b1110u:
+            // TODO: A7-374
+            return;
+        default:
+            break;
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -422,7 +528,7 @@ inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rd, Rn, op] = split<uint32_t, Part<8, 4>, Part<16, 4>, Part<20, 6>>(opCode);
+    const auto [Rd, Rn, op] = split<uint32_t, _<8, 4>, _<16, 4>, _<20, 6>>(opCode);
 
     // see: A5-136
     switch (op) {
@@ -509,7 +615,7 @@ inline void branchesAndMiscControl(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
 {
-    const auto [op2, op1] = split<uint32_t, Part<6, 6>, Part<21, 3>>(opCode);
+    const auto [op2, op1] = split<uint32_t, _<6, 6>, _<21, 3>>(opCode);
 
     // see: A5-147
     switch (op1) {
@@ -566,7 +672,7 @@ inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
 
 inline void loadWord(uint32_t opCode, Cpu& cpu)
 {
-    const auto [op2, Rn, op1] = split<uint32_t, Part<6, 6>, Part<16, 4>, Part<23, 2>>(opCode);
+    const auto [op2, Rn, op1] = split<uint32_t, _<6, 6>, _<16, 4>, _<23, 2>>(opCode);
 
     // see: A5-144
     if (Rn != 0b1111u) {
@@ -676,7 +782,7 @@ void Cpu::step()
     }
     else {
         const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ~RIGHT_BIT<uint32_t>)+2u);
-        const auto opCode = combine<uint32_t>(Part<0, 16, uint16_t>{opCodeHw2}, Part<16, 16, uint16_t>{opCodeHw1});
+        const auto opCode = combine<uint32_t>(_<0, 16, uint16_t>{opCodeHw2}, _<16, 16, uint16_t>{opCodeHw1});
 
         const auto op2 = getPart<4, 7>(opCodeHw1);
 
