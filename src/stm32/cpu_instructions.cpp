@@ -46,7 +46,7 @@ inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdMovImmediate<opcodes::Encoding::T1>(opCode, cpu);
         case 0b101'00u ... 0b101'11u:
             // see: A7-229
-            return opcodes::cmdCmpImmediate<opcodes::Encoding::T1>(opCode, cpu);
+            return opcodes::cmdCmpImmediate<opcodes::Encoding::T1, /*isNegative*/ false>(opCode, cpu);
         case 0b110'00u ... 0b110'11u:
             // see: A7-189
             return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ false>(opCode, cpu);
@@ -605,12 +605,12 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
             }
         case 0b0011'0u ... 0b0011'1u:
             if (Rn != 0b1111u) {
-                // TODO: A7-332
-                return;
+                // see: A7-332
+                return opcodes::cmdOrnImmediate(opCode, cpu);
             }
             else {
-                // TODO: A7-326
-                return;
+                // see: A7-326
+                return opcodes::cmdMvnImmediate(opCode, cpu);
             }
         case 0b0100'0u ... 0b0100'1u:
             if (Rd != 0b1111u) {
@@ -618,8 +618,8 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdBitwiseImmediate<opcodes::Bitwise::EOR>(opCode, cpu);
             }
             else {
-                // TODO: A7-463
-                return;
+                // see: A7-463
+                return opcodes::cmdTeqImmediate(opCode, cpu);
             }
         case 0b1000'0u ... 0b1000'1u:
             if (Rd != 0b1111) {
@@ -627,15 +627,15 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdAddSubImmediate<opcodes::Encoding::T3, /*isSub*/ false>(opCode, cpu);
             }
             else {
-                // TODO: A7-225
-                return;
+                // see: A7-225
+                return opcodes::cmdCmpImmediate<opcodes::Encoding::T1, /*isNegative*/ true>(opCode, cpu);
             }
         case 0b1010'0u ... 0b1010'1u:
-            // TODO: A7-185
-            return;
+            // see: A7-185
+            return opcodes::cmdAdcSbcImmediate</*isSbc*/ false>(opCode, cpu);
         case 0b1011'0u ... 0b1011'1u:
-            // TODO: A7-379
-            return;
+            // see: A7-379
+            return opcodes::cmdAdcSbcImmediate</*isSbc*/ true>(opCode, cpu);
         case 0b1101'0u ... 0b1101'1u:
             if (Rd != 0b1111u) {
                 // see: A7-448
@@ -643,7 +643,7 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
             }
             else {
                 // see: A7-229
-                return opcodes::cmdCmpImmediate<opcodes::Encoding::T2>(opCode, cpu);
+                return opcodes::cmdCmpImmediate<opcodes::Encoding::T2, /*isNegative*/ false>(opCode, cpu);
             }
         case 0b1110'0u ... 0b1110'1u:
             // see: A7-372

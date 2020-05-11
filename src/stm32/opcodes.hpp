@@ -106,6 +106,28 @@ inline void cmdOrnRegister(uint32_t opCode, Cpu& cpu)
     }
 }
 
+inline void cmdOrnImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rd, imm3, Rn, S, i] = utils::split<_<0, 8>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn == 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [imm32, carry] =
+        utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
+
+    const auto result = cpu.R(Rn) | ~imm32;
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+    }
+}
+
 inline void cmdTeqRegister(uint32_t opCode, Cpu& cpu)
 {
     CHECK_CONDITION;
@@ -119,6 +141,25 @@ inline void cmdTeqRegister(uint32_t opCode, Cpu& cpu)
     const auto [shifted, carry] = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
 
     const auto result = cpu.R(Rn) ^ shifted;
+
+    APSR.N = utils::isNegative(result);
+    APSR.Z = result == 0u;
+    APSR.C = carry;
+}
+
+inline void cmdTeqImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, imm3, Rn, i] = utils::split<_<0, 8>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rn >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [imm32, carry] =
+        utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
+
+    const auto result = cpu.R(Rn) ^ imm32;
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0u;
@@ -446,6 +487,33 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
     }
 }
 
+template <bool isSbc>
+void cmdAdcSbcImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rd, imm3, Rn, S, i] = utils::split<_<0, 8>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    auto imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
+
+    if constexpr (isSbc) {
+        imm32 = ~imm32;
+    }
+
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(Rn), imm32, APSR.C);
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0;
+        APSR.C = carry;
+        APSR.V = overflow;
+    }
+}
+
 template <Encoding encoding, typename T>
 void cmdRsbImmediate(T opCode, Cpu& cpu)
 {
@@ -679,6 +747,28 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
     }
 }
 
+inline void cmdMvnImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rd, imm3, S, i] = utils::split<_<0, 8>, _<8, 4>, _<12, 3>, _<20, 1>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [imm32, carry] =
+        utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
+
+    const auto result = ~imm32;
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+    }
+}
+
 template <Encoding encoding, typename Type, bool isSignExtended, typename T>
 void cmdExtend(T opCode, Cpu& cpu)
 {
@@ -866,10 +956,10 @@ void cmdMovRegister(T opCode, Cpu& cpu)
     }
 }
 
-template <Encoding encoding, typename T>
+template <Encoding encoding, bool isNegative, typename T>
 void cmdCmpImmediate(T opCode, Cpu& cpu)
 {
-    static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
+    static_assert(encoding == Encoding::T1 || (encoding == Encoding::T2 && !isNegative));
 
     CHECK_CONDITION;
 
@@ -877,13 +967,14 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
 
     uint8_t n;
     uint32_t imm32;
-    if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
+    if constexpr (!isNegative && is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, Rn] = utils::split<_<0, 8, uint32_t>, _<8, 3>>(opCode);
 
         n = Rn;
         imm32 = imm8;
     }
-    if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) {
+    if constexpr ((!isNegative && is_valid_opcode_encoding<Encoding::T2, encoding, uint32_t, T>) ||
+                  (isNegative && is_valid_opcode_encoding<Encoding::T1, encoding, uint32_t, T>)) {
         const auto [imm8, imm3, Rn, i] = utils::split<_<0, 8>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
         UNPREDICTABLE_IF(Rn == 15);
 
@@ -891,7 +982,11 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
         imm32 = utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C).first;
     }
 
-    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), ~imm32, true);
+    if constexpr (!isNegative) {
+        imm32 = ~imm32;
+    }
+
+    const auto [result, carry, overflow] = utils::addWithCarry(cpu.R(n), imm32, !isNegative);
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0;
