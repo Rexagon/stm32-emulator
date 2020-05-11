@@ -73,6 +73,12 @@ inline constexpr auto getPart(const V& value) -> R
     return static_cast<R>(static_cast<V>(value >> offset) & ONES<bitCount, V>);
 }
 
+template <typename R = uint8_t, typename V>
+constexpr auto getPart(const V& value, uint8_t offset, uint8_t bitCount) -> R
+{
+    return static_cast<R>(static_cast<V>(value >> offset) & ((V{0b1u} << bitCount) - V{0b1u}));
+}
+
 template <uint8_t number, typename V>
 inline constexpr auto isBitSet(const V& value) -> bool
 {
@@ -160,6 +166,12 @@ constexpr auto signExtend(const T& value) -> uint32_t
     static_assert(bits > 0);
     const auto maskedSign = static_cast<T>(value & ZEROS<bits - 1, T>);
     return static_cast<T>(~static_cast<T>(maskedSign - 1u) & (~maskedSign | maskedSign)) | value;
+}
+
+template <typename T>
+constexpr auto clearBitField(const T& value, uint8_t lsb, uint8_t msb) -> T
+{
+    return value & static_cast<T>((static_cast<T>(T{0b1u} << lsb) - T{1u}) | ~(static_cast<T>(T{0b1u} << (msb + 1u)) - T{1u}));
 }
 
 template <typename T>

@@ -681,8 +681,8 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdAdr<opcodes::Encoding::T2>(opCode, cpu);
             }
         case 0b01100u:
-            // TODO: A7-317
-            return;
+            // see: A7-317
+            return opcodes::cmdMovt(opCode, cpu);
         case 0b10000u:
         case 0b10010u:
             // TODO: A7-415
@@ -692,12 +692,12 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             return;
         case 0b10110u:
             if (Rn != 0b1111u) {
-                // TODO: A7-210
-                return;
+                // see: A7-210
+                return opcodes::cmdBfi(opCode, cpu);
             }
             else {
-                // TODO: A7-209
-                return;
+                // see: A7-209
+                return opcodes::cmdBfc(opCode, cpu);
             }
         case 0b11000u:
         case 0b11010u:

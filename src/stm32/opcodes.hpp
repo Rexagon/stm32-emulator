@@ -956,6 +956,21 @@ void cmdMovRegister(T opCode, Cpu& cpu)
     }
 }
 
+inline void cmdMovt(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rd, imm3, imm4, i] = utils::split<_<0, 8>, _<8, 4>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13);
+
+    const auto imm16 = utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}, _<12, 4>{imm4});
+
+    const auto low = utils::getPart<0, 16, uint16_t>(cpu.R(Rd));
+    const auto result = utils::combine<uint32_t>(_<0, 16, uint16_t>{low}, _<16, 16, uint16_t>{imm16});
+
+    cpu.setR(Rd, result);
+}
+
 template <Encoding encoding, bool isNegative, typename T>
 void cmdCmpImmediate(T opCode, Cpu& cpu)
 {
@@ -1097,6 +1112,36 @@ inline void cmdTstImmediate(uint32_t opCode, Cpu& cpu)
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0u;
     APSR.C = carry;
+}
+
+inline void cmdBfi(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [msb, imm2, Rd, imm3, Rn] = utils::split<_<0, 5>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn == 13);
+
+    const auto lsb = utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3});
+    UNPREDICTABLE_IF(lsb < msb);
+
+    const auto lowBits = utils::getPart<uint32_t>(cpu.R(Rn), 0u, static_cast<uint8_t>(static_cast<uint8_t>(msb - lsb) + 1u));
+
+    const auto result = utils::clearBitField(cpu.R(Rd), lsb, msb) | (lowBits << lsb);
+    cpu.setR(Rd, result);
+}
+
+inline void cmdBfc(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [msb, imm2, Rd, imm3] = utils::split<_<0, 5>, _<6, 2>, _<8, 4>, _<12, 3>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13);
+
+    const auto lsb = utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3});
+    UNPREDICTABLE_IF(lsb < msb);
+
+    const auto result = utils::clearBitField(cpu.R(Rd), lsb, msb);
+    cpu.setR(Rd, result);
 }
 
 template <bool withLink>

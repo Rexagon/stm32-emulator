@@ -38,6 +38,32 @@ TEST(math, signExtend)
     ASSERT_EQ((signExtend<8, uint8_t>(0b11001100u)), 0b11001100u);
 }
 
+TEST(math, clearBitField)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ(clearBitField(uint8_t{0b11111111u}, 2, 5), 0b11000011u);
+    ASSERT_EQ(clearBitField(uint16_t{0xffffu}, 8, 15), 0x00ffu);
+    ASSERT_EQ(clearBitField(uint16_t{0xffffu}, 4, 11), 0xf00fu);
+    ASSERT_EQ(clearBitField(uint32_t{0xffffffffu}, 24, 31), 0x00ffffffu);
+    ASSERT_EQ(clearBitField(uint32_t{0xffffffffu}, 4, 11), 0xfffff00fu);
+}
+
+TEST(math, bitFieldInsert)
+{
+    using namespace stm32::utils;
+
+    const auto bfi = []<typename T>(const T& value, uint8_t lsb, uint8_t msb) -> T {
+        const auto lowBits = getPart<T>(value, 0, static_cast<uint8_t>(static_cast<uint8_t>(msb - lsb) + 1u));
+        return clearBitField(value, lsb, msb) | static_cast<T>(lowBits << lsb);
+    };
+
+    ASSERT_EQ(bfi(uint8_t{0b00001111u}, 4u, 7u), 0b11111111u);
+    ASSERT_EQ(bfi(uint8_t{0b00000101u}, 4u, 7u), 0b01010101u);
+    ASSERT_EQ(bfi(uint16_t{0x000f}, 4u, 8u), 0x00ffu);
+    ASSERT_EQ(bfi(uint32_t{0x000000ff}, 16u, 31u), 0x00ff00ffu);
+}
+
 TEST(math, LSL)
 {
     using namespace stm32::utils;
