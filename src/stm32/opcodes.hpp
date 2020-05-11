@@ -6,6 +6,10 @@
 
 namespace stm32::opcodes
 {
+#define CHECK_CONDITION         \
+    if (!cpu.conditionPassed()) \
+    return
+
 template <uint8_t offset, uint8_t bitCount, typename T = uint8_t>
 using _ = utils::Part<offset, bitCount, T>;
 
@@ -25,9 +29,7 @@ inline void cmdShiftImmediate(T opCode, Cpu& cpu)
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, utils::ShiftType::LSL, utils::ShiftType::LSR, utils::ShiftType::ASR>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -61,15 +63,53 @@ inline void cmdShiftImmediate(T opCode, Cpu& cpu)
     }
 }
 
+inline void cmdRorImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, imm2, Rd, imm3, S] = utils::split<_<0, 4>, _<6, 2>, _<8, 4>, _<12, 3>, _<20, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto shiftN = utils::decodeImmediateShift(0b11u, utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3})).second;
+
+    const auto [result, carry] = utils::shiftWithCarry(cpu.R(Rm), utils::ShiftType::ROR, shiftN, APSR.C);
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+    }
+}
+
+inline void cmdRrxImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, Rd, S] = utils::split<_<0, 4>, _<8, 4>, _<20, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [result, carry] = utils::shiftWithCarry(cpu.R(Rm), utils::ShiftType::RRX, 1u, APSR.C);
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+    }
+}
+
 template <Encoding encoding, utils::ShiftType shiftType, typename T>
 inline void cmdShiftRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
     static_assert(is_in<shiftType, utils::ShiftType::LSL, utils::ShiftType::LSR, utils::ShiftType::ASR, utils::ShiftType::ROR>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -110,9 +150,7 @@ void cmdAddSubImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -173,9 +211,7 @@ void cmdAddSubRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (encoding == Encoding::T3 && !isSub));
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -241,9 +277,7 @@ void cmdAddSubSpPlusImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> || (encoding == Encoding::T4 && !isSub));
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -305,9 +339,7 @@ void cmdAdcSbcRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -355,9 +387,7 @@ void cmdRsbImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -398,9 +428,7 @@ void cmdMul(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -438,9 +466,7 @@ void cmdBitwiseRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -507,9 +533,7 @@ void cmdMvnRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -554,9 +578,7 @@ void cmdExtend(T opCode, Cpu& cpu)
     static_assert(std::is_same_v<Type, uint8_t> || std::is_same_v<Type, uint16_t>);
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t d;
     uint32_t rotated;
@@ -592,9 +614,7 @@ void cmdReverse(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t d, m;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
@@ -640,9 +660,7 @@ void cmdMovImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -689,9 +707,7 @@ void cmdMovRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -748,9 +764,7 @@ void cmdCmpImmediate(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -783,9 +797,7 @@ void cmdCmpRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2> || (!isNegative && encoding == Encoding::T3));
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -835,9 +847,7 @@ void cmdTstRegister(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     auto& APSR = cpu.registers().APSR();
 
@@ -871,9 +881,7 @@ void cmdTstRegister(T opCode, Cpu& cpu)
 template <bool withLink>
 void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
 {
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     const auto m = utils::getPart<3, 4>(opCode);
     if constexpr (withLink) {
@@ -896,9 +904,7 @@ void cmdBranch(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint32_t imm32;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
@@ -975,9 +981,7 @@ enum class Hint {
 template <Hint /*hint*/, typename T>
 void cmdHint(T /*opCode*/, Cpu& cpu)
 {
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     // TODO: implement hint's logic
 }
@@ -987,18 +991,14 @@ void cmdPermanentlyUndefined(T /*opCode*/, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     // TODO: raise UNDEFINED
 }
 
 inline void cmdCallSupervisor(uint16_t /*opCode*/, Cpu& cpu)
 {
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     // TODO: call supervisor
 }
@@ -1008,9 +1008,7 @@ void cmdAdr(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t d, add;
     uint32_t imm32;
@@ -1052,9 +1050,7 @@ void cmdLoadLiteral(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t t, add;
     uint32_t imm32;
@@ -1100,9 +1096,7 @@ inline void cmdPush(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint16_t registers;
     // bool unalignedAllowed; // TODO: check unaligned write
@@ -1149,9 +1143,7 @@ inline void cmdPop(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint16_t registers;
     // bool unalignedAccess;
@@ -1204,9 +1196,7 @@ void cmdStoreMultiple(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t n, writeBack;
     uint16_t registers;
@@ -1264,9 +1254,7 @@ void cmdLoadMultiple(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t n, writeBack;
     uint16_t registers;
@@ -1318,9 +1306,7 @@ void cmdStoreRegister(T opCode, Cpu& cpu)
     static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>);
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t t, n;
     uint32_t offset;
@@ -1366,9 +1352,7 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
     static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>);
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t t, n;
     uint32_t offset;
@@ -1431,9 +1415,7 @@ void cmdStoreImmediate(T opCode, Cpu& cpu)
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> ||
                   (std::is_same_v<Type, uint32_t> && is_in<encoding, Encoding::T4>));
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t t, n, index, add, writeBack;
     uint32_t imm32;
@@ -1519,9 +1501,7 @@ void cmdLoadImmediate(T opCode, Cpu& cpu)
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2, Encoding::T3> ||
                   (std::is_same_v<Type, uint32_t> && is_in<encoding, Encoding::T4>));
 
-    if (!cpu.conditionPassed()) {
-        return;
-    }
+    CHECK_CONDITION;
 
     uint8_t t, n, index, add, writeBack;
     uint32_t imm32;

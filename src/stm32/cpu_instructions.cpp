@@ -505,12 +505,12 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
                         return opcodes::cmdShiftImmediate<opcodes::Encoding::T2, ShiftType::ASR>(opCode, cpu);
                     case 0b11u:
                         if (imm2 == 0u && imm3 == 0u) {
-                            // TODO: A7-370
-                            return;
+                            // see: A7-370
+                            return opcodes::cmdRrxImmediate(opCode, cpu);
                         }
                         else {
-                            // TODO: A7-336
-                            return;
+                            // see: A7-366
+                            return opcodes::cmdRorImmediate(opCode, cpu);
                         }
                     default:
                         UNPREDICTABLE;
