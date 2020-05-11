@@ -584,20 +584,20 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
     switch (op) {
         case 0b0000'0u ... 0b0000'1u:
             if (Rd != 0b1111u) {
-                // TODO: A7-199
-                return;
+                // see: A7-199
+                return opcodes::cmdBitwiseImmediate<opcodes::Bitwise::AND>(opCode, cpu);
             }
             else {
-                // TODO: A7-465
-                return;
+                // see: A7-465
+                return opcodes::cmdTstImmediate(opCode, cpu);
             }
         case 0b0001'0u ... 0b0001'1u:
-            // TODO: A7-211
-            return;
+            // see: A7-211
+            return opcodes::cmdBitwiseImmediate<opcodes::Bitwise::BIC>(opCode, cpu);
         case 0b0010'0u ... 0b0010'1u:
             if (Rn != 0b1111u) {
-                // TODO: A7-334
-                return;
+                // see: A7-334
+                return opcodes::cmdBitwiseImmediate<opcodes::Bitwise::ORR>(opCode, cpu);
             }
             else {
                 // see: A7-312
@@ -614,8 +614,8 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
             }
         case 0b0100'0u ... 0b0100'1u:
             if (Rd != 0b1111u) {
-                // TODO: A7-238
-                return;
+                // see: A7-238
+                return opcodes::cmdBitwiseImmediate<opcodes::Bitwise::EOR>(opCode, cpu);
             }
             else {
                 // TODO: A7-463

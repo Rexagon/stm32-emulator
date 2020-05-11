@@ -592,6 +592,49 @@ void cmdBitwiseRegister(T opCode, Cpu& cpu)
     }
 }
 
+template <Bitwise bitwise>
+void cmdBitwiseImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rd, imm3, Rn, S, i] = utils::split<_<0, 8>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>, _<26, 1>>(opCode);
+    if constexpr (is_in<bitwise, Bitwise::AND, Bitwise::EOR>) {
+        UNPREDICTABLE_IF(Rd == 13 || (Rd == 15 && S == 0) || Rn >= 13);
+    }
+    else if constexpr (bitwise == Bitwise::ORR) {
+        UNPREDICTABLE_IF(Rd >= 13 || Rn == 13);
+    }
+    else if constexpr (bitwise == Bitwise::BIC) {
+        UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13);
+    }
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [imm32, carry] =
+        utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
+
+    uint32_t result;
+    if constexpr (is_in<bitwise, Bitwise::AND>) {
+        result = cpu.R(Rn) & imm32;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::EOR>) {
+        result = cpu.R(Rn) ^ imm32;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::ORR>) {
+        result = cpu.R(Rn) | imm32;
+    }
+    else if constexpr (is_in<bitwise, Bitwise::BIC>) {
+        result = cpu.R(Rn) & ~imm32;
+    }
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0;
+        APSR.C = carry;
+    }
+}
+
 template <Encoding encoding, typename T>
 void cmdMvnRegister(T opCode, Cpu& cpu)
 {
@@ -939,6 +982,25 @@ void cmdTstRegister(T opCode, Cpu& cpu)
 
     APSR.N = utils::isNegative(result);
     APSR.Z = result == 0;
+    APSR.C = carry;
+}
+
+inline void cmdTstImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, imm3, Rn, i] = utils::split<_<0, 8>, _<12, 3>, _<16, 4>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(Rn >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [imm32, carry] =
+        utils::thumbExpandImmediateWithCarry(utils::combine<uint16_t>(_<0, 8>{imm8}, _<8, 3>{imm3}, _<11, 1>{i}), APSR.C);
+
+    const auto result = cpu.R(Rn) & imm32;
+
+    APSR.N = utils::isNegative(result);
+    APSR.Z = result == 0u;
     APSR.C = carry;
 }
 
