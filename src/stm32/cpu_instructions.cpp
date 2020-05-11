@@ -916,9 +916,61 @@ inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& /*cpu*/)
     UNPREDICTABLE;
 }
 
-inline void loadHalfwordAndMemoryHints(uint32_t /*opCode*/, Cpu& /*cpu*/)
+inline void loadHalfwordAndMemoryHints(uint32_t opCode, Cpu& cpu)
 {
-    // TODO: A5-145
+    const auto [op2, Rt, Rn, op1] = split<_<6, 6>, _<12, 4>, _<16, 4>, _<23, 2>>(opCode);
+
+    // see: A5-145
+    if (isBitSet<1>(op1)) {
+        if (Rt != 0b1111u) {
+            if (Rn == 0b1111u) {
+                // TODO: A7-276
+                return;
+            }
+            if ((op1 == 0b00u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b01u) {
+                // TODO: A7-274
+                return;
+            }
+            if (op1 == 0b00u && op2 == 0b000000u) {
+                // TODO: A7-278
+                return;
+            }
+            if (op1 == 0b00u && getPart<2, 4>(op2) == 0b1110u) {
+                // TODO: A7-280
+                return;
+            }
+        }
+        else if ((op1 == 0b00u && (op2 == 0b000000u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b01u) {
+            return opcodes::cmdHint<opcodes::Hint::Nop>(opCode, cpu);  // software shouldn't use this encoding
+        }
+    }
+    else {
+        if (Rt != 0b1111u) {
+            if (Rn == 0b1111u) {
+                // TODO: A7-292
+                return;
+            }
+            if ((op1 == 0b10u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b11u) {
+                // TODO: A7-290
+                return;
+            }
+            if (op1 == 0b10u && op2 == 0b000000u) {
+                // TODO: A7-294
+                return;
+            }
+            if (op1 == 0b10u && getPart<2, 4>(op2) == 0b1110u) {
+                // TODO: A7-296
+                return;
+            }
+        }
+        else {
+            if ((op1 == 0b10u && (op2 == 0b000000u || getPart<2, 4>(op2) == 0b1100u)) || Rn == 0b1111u || op1 == 0b11u) {
+                return opcodes::cmdHint<opcodes::Hint::Nop>(opCode, cpu);  // software shouldn't use this encoding
+            }
+        }
+    }
+
+    UNPREDICTABLE;
 }
 
 inline void loadWord(uint32_t opCode, Cpu& cpu)
