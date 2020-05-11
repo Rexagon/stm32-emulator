@@ -84,6 +84,70 @@ inline void cmdRorImmediate(uint32_t opCode, Cpu& cpu)
     }
 }
 
+inline void cmdOrnRegister(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, type, imm2, Rd, imm3, Rn, S] = utils::split<_<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn == 13 || Rm >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [shiftType, shiftN] = utils::decodeImmediateShift(type, utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3}));
+    const auto [shifted, carry] = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
+
+    const auto result = cpu.R(Rn) | ~shifted;
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+    }
+}
+
+inline void cmdTeqRegister(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, type, imm2, imm3, Rn] = utils::split<_<0, 4>, _<4, 2>, _<6, 2>, _<12, 3>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rn >= 13 || Rm >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [shiftType, shiftN] = utils::decodeImmediateShift(type, utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3}));
+    const auto [shifted, carry] = utils::shiftWithCarry(cpu.R(Rm), shiftType, shiftN, APSR.C);
+
+    const auto result = cpu.R(Rn) ^ shifted;
+
+    APSR.N = utils::isNegative(result);
+    APSR.Z = result == 0u;
+    APSR.C = carry;
+}
+
+inline void cmdRsbRegister(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, type, imm2, Rd, imm3, Rn, S] = utils::split<_<0, 4>, _<4, 2>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<20, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13);
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto [shiftType, shiftN] = utils::decodeImmediateShift(type, utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3}));
+    const auto shifted = utils::shift(cpu.R(Rm), shiftType, shiftN, APSR.C);
+
+    const auto [result, carry, overflow] = utils::addWithCarry(~cpu.R(Rn), shifted, true);
+    cpu.setR(Rd, result);
+
+    if (S) {
+        APSR.N = utils::isNegative(result);
+        APSR.Z = result == 0u;
+        APSR.C = carry;
+        APSR.V = overflow;
+    }
+}
+
 inline void cmdRrxImmediate(uint32_t opCode, Cpu& cpu)
 {
     CHECK_CONDITION;

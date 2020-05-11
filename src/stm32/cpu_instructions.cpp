@@ -518,8 +518,8 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
             }
         case 0b0011u:
             if (Rn != 0b1111u) {
-                // TODO: A7-333
-                return;
+                // see: A7-333
+                return opcodes::cmdOrnRegister(opCode, cpu);
             }
             else {
                 // see: A7-238
@@ -531,8 +531,8 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdBitwiseRegister<opcodes::Encoding::T2, opcodes::Bitwise::EOR>(opCode, cpu);
             }
             else if (S) {
-                // TODO: A7-464
-                return;
+                // see: A7-464
+                return opcodes::cmdTeqRegister(opCode, cpu);
             }
             break;
         case 0b1000u:
@@ -562,8 +562,8 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
             }
             break;
         case 0b1110u:
-            // TODO: A7-374
-            return;
+            // see: A7-374
+            return opcodes::cmdRsbRegister(opCode, cpu);
         default:
             break;
     }
