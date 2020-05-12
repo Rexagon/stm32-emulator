@@ -192,6 +192,62 @@ constexpr auto signExtend(const T& value, uint8_t bits)
 }
 
 template <typename T>
+constexpr auto signedSaturateQ(const T& value, uint8_t n) -> std::pair<T, bool>
+{
+    assert(n > 0);
+    const auto target = static_cast<T>(T{0b1} << n) - T{1u};
+    if (value > target) {
+        return {target, true};
+    }
+    else if (value < -target) {
+        return {-target, true};
+    }
+    return {value, false};
+}
+
+template <typename T>
+constexpr auto unsignedSaturateQ(const T& value, uint8_t n) -> std::pair<T, bool>
+{
+    assert(n > 0);
+    const auto target = static_cast<T>(T{0b1} << n) - T{1u};
+    if (value > target) {
+        return {target, true};
+    }
+    else if (value < 0) {
+        return {0u, true};
+    }
+    return {value, false};
+}
+
+template <typename T>
+constexpr auto signedSaturate(const T& value, uint8_t n) -> T
+{
+    assert(n > 0);
+    const auto target = static_cast<T>(T{0b1} << n) - T{1u};
+    if (value > target) {
+        return target;
+    }
+    else if (value < -target) {
+        return -target;
+    }
+    return value;
+}
+
+template <typename T>
+constexpr auto unsignedSaturate(const T& value, uint8_t n) -> T
+{
+    assert(n > 0);
+    const auto target = static_cast<T>(T{0b1} << n) - T{1u};
+    if (value > target) {
+        return target;
+    }
+    else if (value < 0) {
+        return 0u;
+    }
+    return value;
+}
+
+template <typename T>
 constexpr auto clearBitField(const T& value, uint8_t lsb, uint8_t msb) -> T
 {
     return value & static_cast<T>((static_cast<T>(T{0b1u} << lsb) - T{1u}) | ~(static_cast<T>(T{0b1u} << (msb + 1u)) - T{1u}));

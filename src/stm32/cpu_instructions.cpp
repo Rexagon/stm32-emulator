@@ -685,8 +685,8 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             return opcodes::cmdMovt(opCode, cpu);
         case 0b10000u:
         case 0b10010u:
-            // TODO: A7-415
-            return;
+            // see: A7-415
+            return opcodes::cmdSat</*isSigned*/ true>(opCode, cpu);
         case 0b10100u:
             // see: A7-382
             return opcodes::cmdBfx</*isSigned*/ true>(opCode, cpu);
@@ -701,8 +701,8 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             }
         case 0b11000u:
         case 0b11010u:
-            // TODO: A7-490
-            return;
+            // see: A7-490
+            return opcodes::cmdSat</*isSigned*/ false>(opCode, cpu);
         case 0b11100u:
             // see: A7-470
             return opcodes::cmdBfx</*isSigned*/ false>(opCode, cpu);

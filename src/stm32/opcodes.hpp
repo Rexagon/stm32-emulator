@@ -1167,6 +1167,32 @@ void cmdBfx(uint32_t opCode, Cpu& cpu)
     cpu.setR(Rd, result);
 }
 
+template <bool isSigned>
+void cmdSat(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [satImm, imm2, Rd, imm3, Rn, sh] = utils::split<_<0, 5>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>, _<21, 1>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13);
+
+    const auto [shiftType, shiftN] =
+        utils::decodeImmediateShift(static_cast<uint8_t>(sh << 2u), utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3}));
+
+    auto& APSR = cpu.registers().APSR();
+
+    const auto operand = static_cast<int32_t>(utils::shift(cpu.R(Rn), shiftType, shiftN, APSR.C));
+
+    int32_t result;
+    bool Q;
+    if constexpr (isSigned) {
+        std::tie(result, Q) = utils::signedSaturateQ(operand, static_cast<uint8_t>(satImm + 1u));
+    }
+    else {
+        std::tie(result, Q) = utils::unsignedSaturateQ(operand, satImm);
+    }
+    APSR.Q |= Q;
+}
+
 template <bool withLink>
 void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
 {
