@@ -17,6 +17,14 @@ enum class Encoding { T1, T2, T3, T4 };
 
 enum class Bitwise { AND, EOR, ORR, BIC };
 
+enum class Hint {
+    Nop,
+    Yield,
+    WaitForEvent,
+    WaitForInterrupt,
+    SendEvent,
+};
+
 template <auto v, auto... vs>
 constexpr bool is_in = ((v == vs) || ...);
 
@@ -1285,14 +1293,6 @@ inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
     cpu.registers().setITSTATE(ITSTATE);
 }
 
-enum class Hint {
-    Nop,
-    Yield,
-    WaitForEvent,
-    WaitForInterrupt,
-    SendEvent,
-};
-
 template <Hint /*hint*/, typename T>
 void cmdHint(T /*opCode*/, Cpu& cpu)
 {
@@ -1664,7 +1664,7 @@ void cmdStoreRegister(T opCode, Cpu& cpu)
 template <Encoding encoding, typename Type, bool isSignExtended = false, typename T>
 void cmdLoadRegister(T opCode, Cpu& cpu)
 {
-    static_assert(std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>);
+    static_assert(std::is_same_v<Type, uint8_t> || std::is_same_v<Type, uint16_t> || std::is_same_v<Type, uint32_t>);
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
     CHECK_CONDITION;
@@ -1687,7 +1687,7 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
         n = Rn;
         offset = static_cast<uint32_t>(cpu.R(Rm) << imm2);
 
-        if constexpr (std::is_same_v<T, uint32_t>) {
+        if constexpr (std::is_same_v<Type, uint32_t>) {
             UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
         }
         else {
@@ -1697,17 +1697,17 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
 
     const auto address = cpu.R(n) + offset;
     uint32_t data;
-    if constexpr (std::is_same_v<T, uint32_t>) {
+    if constexpr (std::is_same_v<Type, uint32_t>) {
         data = cpu.mpu().unalignedMemoryRead<uint32_t>(address);
     }
-    else if constexpr (std::is_same_v<T, uint16_t>) {
+    else if constexpr (std::is_same_v<Type, uint16_t>) {
         data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint16_t>(address));
 
         if constexpr (isSignExtended) {
             data = utils::signExtend<16>(data);
         }
     }
-    else if constexpr (std::is_same_v<T, uint8_t>) {
+    else if constexpr (std::is_same_v<Type, uint8_t>) {
         data = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint8_t>(address));
 
         if constexpr (isSignExtended) {
