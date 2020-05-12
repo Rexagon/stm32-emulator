@@ -1144,6 +1144,29 @@ inline void cmdBfc(uint32_t opCode, Cpu& cpu)
     cpu.setR(Rd, result);
 }
 
+template <bool isSigned>
+void cmdBfx(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [widthm1, imm2, Rd, imm3, Rn] = utils::split<_<0, 5>, _<6, 2>, _<8, 4>, _<12, 3>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13);
+
+    const auto lsb = utils::combine<uint8_t>(_<0, 2>{imm2}, _<2, 3>{imm3});
+    const auto msb = static_cast<uint8_t>(lsb + widthm1);
+    UNPREDICTABLE_IF(msb > 31u);
+
+    uint32_t result;
+    if constexpr (isSigned) {
+        const auto low = utils::getPart<uint32_t>(cpu.R(Rn), lsb, static_cast<uint8_t>(widthm1 + 1u));
+        result = utils::signExtend(low, static_cast<uint8_t>(widthm1 + 1u));
+    }
+    else {
+        result = utils::getPart<uint32_t>(cpu.R(Rn), lsb, static_cast<uint8_t>(widthm1 + 1u));
+    }
+    cpu.setR(Rd, result);
+}
+
 template <bool withLink>
 void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
 {

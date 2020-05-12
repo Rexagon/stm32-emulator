@@ -15,22 +15,37 @@ template <typename T, typename R = T>
 constexpr R MAX_SHIFT = static_cast<R>(sizeof(T) * 8u - 1u);
 
 template <typename T, typename R = T>
-constexpr R LEFT_BIT = static_cast<R>(T(0b1u) << MAX_SHIFT<T>);
+constexpr R LEFT_BIT = static_cast<R>(T{0b1u} << MAX_SHIFT<T>);
 
-template <uint8_t offset, typename T, typename R = T>
-constexpr R BIT = static_cast<R>(T(0b1u) << offset);
+template <uint8_t number, typename T>
+constexpr T BIT = static_cast<T>(T{0b1u} << number);
 
-template <typename T, typename R = T>
-constexpr R RIGHT_BIT = T(0b1u);
+template <typename T>
+inline constexpr auto makeBit(uint8_t number) -> T
+{
+    return static_cast<T>(T{0b1u} << number);
+}
 
-template <typename T, typename R = T>
-constexpr R ALL_BITS = static_cast<R>(~T(0b0u));
+template <typename T>
+constexpr T ALL_BITS = ~T{0b0u};
 
 template <uint8_t N, typename T>
-constexpr T ONES = (T(0b1u) << N) - T(0b1u);
+constexpr T ONES = (T{0b1u} << N) - T{0b1u};
+
+template <typename T>
+inline constexpr auto makeOnes(uint8_t count) -> T
+{
+    return (T{0b1u} << count) - T{0b1u};
+}
 
 template <uint8_t N, typename T>
 constexpr T ZEROS = static_cast<T>(~ONES<N, T>);
+
+template <typename T>
+inline constexpr auto makeZeros(uint8_t count) -> T
+{
+    return ~makeOnes<T>(count);
+}
 
 template <uint8_t /* offset */, uint8_t bitCount, typename T = uint8_t>
 struct Part {
@@ -145,8 +160,8 @@ inline constexpr auto reverseEndianness(const uint16_t& value) -> uint16_t
 #ifdef __GNUC__
     return __builtin_bswap16(value);
 #else
-    const auto [lo, hi] = split<uint16_t, Part<0, 8>, Part<8, 8>>(value);
-    return combite<uint16_t>(Part<0, 8>{hi}, Part<8, 8>{lo});
+    const auto [lo, hi] = split<_<0, 8>, _<8, 8>>(value);
+    return combite<uint16_t>(_<0, 8>{hi}, _<8, 8>{lo});
 #endif
 }
 
@@ -155,8 +170,8 @@ inline constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
 #ifdef __GNUC__
     return __builtin_bswap32(value);
 #else
-    const auto [hw1lo, hw1hi, hw2lo, hw2hi] = split<uint16_t, Part<0, 8>, Part<8, 8>, Part<16, 8>, Part<24, 8>>(value);
-    return combite<uint16_t>(Part<0, 8>{hw2hi}, Part<8, 8>{hw2lo}, Part<16, 8>{hw1hi}, Part<24, 8>{hw1lo});
+    const auto [hw1lo, hw1hi, hw2lo, hw2hi] = split<_<0, 8>, _<8, 8>, _<16, 8>, _<24, 8>>(value);
+    return combite<uint16_t>(_<0, 8>{hw2hi}, _<8, 8>{hw2lo}, _<16, 8>{hw1hi}, _<24, 8>{hw1lo});
 #endif
 }
 
@@ -165,6 +180,14 @@ constexpr auto signExtend(const T& value) -> uint32_t
 {
     static_assert(bits > 0);
     const auto maskedSign = static_cast<T>(value & ZEROS<bits - 1, T>);
+    return static_cast<T>(~static_cast<T>(maskedSign - 1u) & (~maskedSign | maskedSign)) | value;
+}
+
+template <typename T>
+constexpr auto signExtend(const T& value, uint8_t bits)
+{
+    assert(bits > 0);
+    const auto maskedSign = static_cast<T>(value & makeZeros<T>(static_cast<uint8_t>(bits - 1u)));
     return static_cast<T>(~static_cast<T>(maskedSign - 1u) & (~maskedSign | maskedSign)) | value;
 }
 
@@ -192,7 +215,7 @@ template <typename T>
 inline auto lsrWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
-    const auto carry = x & RIGHT_BIT<T>;
+    const auto carry = isBitSet<0>(x);
     return {x >> shift, carry};
 }
 
@@ -206,7 +229,7 @@ template <typename T>
 inline auto asrWithCarry(T x, uint8_t shift) -> std::pair<T, bool>
 {
     assert(shift > 0);
-    const auto carry = x & RIGHT_BIT<T>;
+    const auto carry = isBitSet<0>(x);
     if (x & LEFT_BIT<T>) {
         return {x >> shift | ~(ALL_BITS<T> >> shift), carry};
     }
@@ -250,7 +273,7 @@ inline auto ror(T x, uint8_t shift) -> T
 template <typename T>
 inline auto rrxWithCarry(T x, bool carryIn) -> std::pair<T, bool>
 {
-    const auto carryOut = x & RIGHT_BIT<T>;
+    const auto carryOut = isBitSet<0>(x);
     return {static_cast<T>(carryIn << MAX_SHIFT<T>) | (x >> 1u), carryOut};
 }
 
@@ -395,12 +418,6 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
         const auto unrotatedValue = static_cast<uint32_t>(getPart<0, 7>(immediate)) | BIT<7, uint32_t>;
         return rorWithCarry(unrotatedValue, getPart<7, 5>(immediate));
     }
-}
-
-template <typename T>
-auto replicate(T sign) -> T
-{
-    // TODO
 }
 
 template <typename T>

@@ -62,7 +62,7 @@ void Cpu::bxWritePC(uint32_t address, bool skipIncrementingPC)
         // TODO: ExceptionReturn(address<27:0>); // see B1-597
     }
     else {
-        m_registers.EPSR().T = address & RIGHT_BIT<uint32_t>;
+        m_registers.EPSR().T = utils::isBitSet<0>(address);
         m_registers.PC() = address & ZEROS<1, uint32_t>;
         m_skipIncrementingPC = skipIncrementingPC;
     }
@@ -70,7 +70,7 @@ void Cpu::bxWritePC(uint32_t address, bool skipIncrementingPC)
 
 void Cpu::blxWritePC(uint32_t address, bool skipIncrementingPC)
 {
-    m_registers.EPSR().T = address & utils::RIGHT_BIT<uint32_t>;
+    m_registers.EPSR().T = utils::isBitSet<0>(address);
     // TODO: if EPSR.T == 0, a UsageFault(‘Invalid State’) is taken on the next instruction
     m_registers.PC() = address & ZEROS<1, uint32_t>;
     m_skipIncrementingPC = skipIncrementingPC;
@@ -268,7 +268,7 @@ void Cpu::exceptionTaken(ExceptionType exceptionType)
 
     m_registers.IPSR().exceptionNumber = getPart<0, 9, uint16_t>(static_cast<uint16_t>(exceptionType)) & ONES<9, uint16_t>;
 
-    m_registers.EPSR().T = exceptionHandlerPtr & RIGHT_BIT<uint32_t>;
+    m_registers.EPSR().T = utils::isBitSet<0>(exceptionHandlerPtr);
     m_registers.EPSR().ITlo = 0u;
     m_registers.EPSR().IThi = 0u;
 

@@ -688,8 +688,8 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             // TODO: A7-415
             return;
         case 0b10100u:
-            // TODO: A7-382
-            return;
+            // see: A7-382
+            return opcodes::cmdBfx</*isSigned*/ true>(opCode, cpu);
         case 0b10110u:
             if (Rn != 0b1111u) {
                 // see: A7-210
@@ -704,8 +704,8 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             // TODO: A7-490
             return;
         case 0b11100u:
-            // TODO: A7-470
-            return;
+            // see: A7-470
+            return opcodes::cmdBfx</*isSigned*/ false>(opCode, cpu);
         default:
             break;
     }
@@ -1176,7 +1176,7 @@ void Cpu::step()
     auto& PC = m_registers.PC();
     m_currentInstructionAddress = PC;
 
-    const auto opCodeHw1 = m_memory.read<uint16_t>(PC & ~RIGHT_BIT<uint32_t>);
+    const auto opCodeHw1 = m_memory.read<uint16_t>(PC & ZEROS<1, uint32_t>);
 
     const auto op1 = getPart<11, 2>(opCodeHw1);
 
@@ -1227,7 +1227,7 @@ void Cpu::step()
         PC += 2u;
     }
     else {
-        const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ~RIGHT_BIT<uint32_t>)+2u);
+        const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ZEROS<1, uint32_t>)+2u);
         const auto opCode = combine<uint32_t>(_<0, 16, uint16_t>{opCodeHw2}, _<16, 16, uint16_t>{opCodeHw1});
 
         const auto op2 = getPart<4, 7>(opCodeHw1);
