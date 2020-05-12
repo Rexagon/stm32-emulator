@@ -1293,6 +1293,80 @@ inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
     cpu.registers().setITSTATE(ITSTATE);
 }
 
+inline void cmdMsr(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [SYSm, mask, Rn] = utils::split<_<0, 8>, _<10, 2>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rn >= 13 || (SYSm >= 0 && SYSm <= 3) || (SYSm >= 5 && SYSm <= 9) || (SYSm >= 16 && SYSm <= 20));
+
+    switch (utils::getPart<3, 5>(SYSm)) {
+        case 0b0000u:
+            if (utils::isBitClear<2>(SYSm)) {
+                UNPREDICTABLE_IF(utils::isBitSet<0>(mask));
+                if (utils::isBitSet<1>(mask)) {
+                    auto& APSR = cpu.registers().APSR();
+                    APSR.registerData = utils::copyPartInto<_<27, 5>, _<27, 5>>(cpu.R(Rn), APSR.registerData);
+                }
+            }
+            break;
+        case 0b00001u:
+            if (cpu.isInPrivilegedMode()) {
+                switch (utils::getPart<0, 3>(SYSm)) {
+                    case 0b000u:
+                        cpu.registers().SP_main() = cpu.R(Rn);
+                        break;
+                    case 0b001u:
+                        cpu.registers().SP_process() = cpu.R(Rn);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            break;
+        case 0b00010u:
+            switch (utils::getPart<0, 3>(SYSm)) {
+                case 0b000u:
+                    if (cpu.isInPrivilegedMode()) {
+                        cpu.registers().PRIMASK().PM = utils::isBitSet<0>(cpu.R(Rn));
+                    }
+                    break;
+                case 0b001u:
+                    if (cpu.isInPrivilegedMode()) {
+                        cpu.registers().BASEPRI().level = utils::getPart<0, 8>(cpu.R(Rn));
+                    }
+                    break;
+                case 0b010u:
+                    if (cpu.isInPrivilegedMode()) {
+                        auto& BASEPRI = cpu.registers().BASEPRI();
+                        const auto value = utils::getPart<0, 8>(cpu.R(Rn));
+
+                        if (cpu.isInPrivilegedMode() && value != 0u && (value < BASEPRI.level || BASEPRI.level == 0)) {
+                            BASEPRI.level = value;
+                        }
+                    }
+                    break;
+                case 0b011u:
+                    if (cpu.isInPrivilegedMode() && cpu.executionPriority() > -1) {
+                        cpu.registers().FAULTMASK().FM = utils::isBitSet<0>(cpu.R(Rn));
+                    }
+                    break;
+                case 0b100u:
+                    if (cpu.isInPrivilegedMode()) {
+                        auto& CONTROL = cpu.registers().CONTROL();
+                        const auto value = cpu.R(Rn);
+                        CONTROL.nPRIV = utils::isBitSet<0>(value);
+                        if (cpu.currentMode() == ExecutionMode::Thread) {
+                            cpu.registers().CONTROL().SPSEL = utils::isBitSet<1>(value);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+    }
+}
+
 template <Hint /*hint*/, typename T>
 void cmdHint(T /*opCode*/, Cpu& cpu)
 {

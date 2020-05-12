@@ -727,8 +727,8 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
             else {
                 switch (op) {
                     case 0b011100'0u ... 0b011100'1u:
-                        // TODO: A7-323
-                        return;
+                        // see: A7-323
+                        return opcodes::cmdMsr(opCode, cpu);
                     case 0b0111010u:
                         if (getPart<8, 3>(opCode) == 0b000u) {
                             switch (getPart<0, 8>(opCode)) {

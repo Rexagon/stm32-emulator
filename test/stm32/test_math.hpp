@@ -9,6 +9,15 @@ TEST(math, ONES)
     using namespace stm32::utils;
 
     ASSERT_EQ((ONES<4, uint8_t>), 0b1111u);
+    ASSERT_EQ(makeOnes<uint8_t>(4), 0b1111u);
+}
+
+TEST(math, ZEROS)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ((ZEROS<3, uint8_t>), 0b11111000u);
+    ASSERT_EQ(makeZeros<uint8_t>(3), 0b11111000u);
 }
 
 TEST(math, parts)
@@ -22,6 +31,15 @@ TEST(math, parts)
     ASSERT_EQ((combine<uint16_t>(Part<2, 8>{first}, Part<10, 5>{second})), 0x4888u);
 
     ASSERT_EQ((getPart<4, 5>(0x0ff0u)), 0x1fu);
+}
+
+TEST(math, copyPartInto)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ((copyPartInto<_<0, 8>, _<4, 8>>(uint16_t{0x00ffu}, uint16_t{0x0cc0u})), 0x0ff0u);
+    ASSERT_EQ((copyPartInto<_<0, 8>, _<20, 8>>(uint32_t{0x00ff00ffu}, uint32_t{0x00cc0000u})), 0x0ffc0000u);
+    ASSERT_EQ((copyPartInto<_<24, 8>, _<24, 8>>(uint32_t{0xffff00ffu}, uint32_t{0x00cc0000u})), 0xffcc0000u);
 }
 
 TEST(math, signExtend)

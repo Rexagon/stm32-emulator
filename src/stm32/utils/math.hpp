@@ -30,12 +30,12 @@ template <typename T>
 constexpr T ALL_BITS = ~T{0b0u};
 
 template <uint8_t N, typename T>
-constexpr T ONES = (T{0b1u} << N) - T{0b1u};
+constexpr T ONES = N > 31 ? std::numeric_limits<T>::max() : (T{0b1u} << N) - T{0b1u};
 
 template <typename T>
 inline constexpr auto makeOnes(uint8_t count) -> T
 {
-    return (T{0b1u} << count) - T{0b1u};
+    return static_cast<T>((T{0b1u} << count) - T{0b1u});
 }
 
 template <uint8_t N, typename T>
@@ -44,13 +44,16 @@ constexpr T ZEROS = static_cast<T>(~ONES<N, T>);
 template <typename T>
 inline constexpr auto makeZeros(uint8_t count) -> T
 {
-    return ~makeOnes<T>(count);
+    return static_cast<T>(~makeOnes<T>(count));
 }
 
-template <uint8_t /* offset */, uint8_t bitCount, typename T = uint8_t>
+template <uint8_t _offset, uint8_t _bitCount, typename T = uint8_t>
 struct Part {
-    static_assert((sizeof(T) * 8u) >= bitCount);
+    static_assert((sizeof(T) * 8u) >= _bitCount);
     T value;
+
+    constexpr static auto offset = _offset;
+    constexpr static auto bitCount = _bitCount;
 };
 
 template <uint8_t offset, uint8_t bitCount, typename T = uint8_t>
@@ -247,10 +250,24 @@ constexpr auto unsignedSaturate(const T& value, uint8_t n) -> T
     return value;
 }
 
+template <uint8_t lsb, uint8_t msb, typename T>
+constexpr auto clearBitField(const T& value) -> T
+{
+    return value & (ONES<lsb, T> | ZEROS<msb + 1u, T>);
+}
+
 template <typename T>
 constexpr auto clearBitField(const T& value, uint8_t lsb, uint8_t msb) -> T
 {
-    return value & static_cast<T>((static_cast<T>(T{0b1u} << lsb) - T{1u}) | ~(static_cast<T>(T{0b1u} << (msb + 1u)) - T{1u}));
+    return value & (makeOnes<T>(lsb) | makeZeros<T>(static_cast<uint8_t>(msb + 1u)));
+}
+
+template <typename P1, typename P2, typename T>
+constexpr auto copyPartInto(const T& source, const T& target) -> T
+{
+    static_assert(P1::bitCount == P2::bitCount);
+    return clearBitField<P2::offset, P2::offset + P2::bitCount - 1u>(target) |
+           static_cast<T>(getPart<P1::offset, P1::bitCount>(source) << P2::offset);
 }
 
 template <typename T>
