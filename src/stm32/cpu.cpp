@@ -343,4 +343,12 @@ void Cpu::instructionSynchronizationBarrier(uint8_t /*option*/)
     // before the ISB instruction are visible to the instructions fetched after the ISB.
 }
 
+void Cpu::preloadData(uint32_t /*address*/)
+{
+}
+
+void Cpu::preloadInstruction(uint32_t /*address*/)
+{
+}
+
 }  // namespace stm32

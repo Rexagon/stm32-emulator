@@ -1323,7 +1323,7 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
     UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
 
     if constexpr (withLink) {
-        const auto nextInstruction = cpu.currentInstructionAddress() + 2u;
+        const auto nextInstruction = cpu.currentInstructionAddress() + 4u;
         cpu.registers().LR() = nextInstruction | 0b1u;
         cpu.blxWritePC(cpu.R(m));
     }
@@ -1631,7 +1631,7 @@ void cmdAdr(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(d >= 13);
     }
 
-    const auto PC = (cpu.currentInstructionAddress() + 4u) & utils::ZEROS<4, uint32_t>;
+    const auto PC = utils::alignAddress<uint32_t>(cpu.currentInstructionAddress() + 4u);
 
     uint32_t result;
     if (add) {
@@ -1670,7 +1670,7 @@ void cmdLoadLiteral(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(t == 15 && cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    const auto base = (cpu.currentInstructionAddress() + 4u) & utils::ZEROS<2, uint32_t>;
+    const auto base = utils::alignAddress<uint32_t>(cpu.currentInstructionAddress() + 4u);
 
     uint32_t address;
     if (add) {
@@ -2260,6 +2260,78 @@ void cmdLoadImmediate(T opCode, Cpu& cpu)
     else {
         cpu.setR(t, data);
     }
+}
+
+inline void cmdPreloadDataLiteral(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm12, U] = utils::split<_<0, 12, uint32_t>, _<23, 1>>(opCode);
+
+    const auto PC = utils::alignAddress<uint32_t>(cpu.currentInstructionAddress() + 4u);
+
+    cpu.preloadData(U ? (PC + imm12) : (PC - imm12));
+}
+
+inline void cmdPreloadDataImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto add = utils::isBitSet<23>(opCode);
+    const auto Rn = utils::getPart<16, 4>(opCode);
+
+    uint32_t imm32;
+    if (add) {
+        imm32 = utils::getPart<0, 12, uint32_t>(opCode);
+    }
+    else {
+        imm32 = utils::getPart<0, 8, uint32_t>(opCode);
+    }
+
+    const auto address = cpu.R(Rn);
+
+    cpu.preloadData(add ? (address + imm32) : (address - imm32));
+}
+
+inline void cmdPreloadDataRegister(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, imm2, Rn] = utils::split<_<0, 4>, _<4, 2>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rm >= 13);
+
+    const auto offset = utils::shift(cpu.R(Rm), utils::ShiftType::LSL, imm2, cpu.registers().APSR().C);
+
+    cpu.preloadData(cpu.R(Rn) + offset);
+}
+
+inline void cmdPreloadInstructionImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [U, Rn] = utils::split<_<16, 4>, _<23, 1>>(opCode);
+
+    uint32_t imm32;
+    if (Rn == 0b1111u || U) {
+        imm32 = utils::getPart<0, 12, uint32_t>(opCode);
+    }
+    else {
+        imm32 = utils::getPart<0, 8, uint32_t>(opCode);
+    }
+
+    const auto base = Rn == 0b1111u ? utils::alignAddress<uint32_t>(cpu.currentInstructionAddress() + 4u) : cpu.R(Rn);
+    cpu.preloadInstruction(U ? (base + imm32) : (base - imm32));
+}
+
+inline void cmdPreloadInstructionRegister(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, imm2, Rn] = utils::split<_<0, 4>, _<4, 2>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rm >= 13);
+
+    const auto offset = utils::shift(cpu.R(Rm), utils::ShiftType::LSL, imm2, cpu.registers().APSR().C);
+    cpu.preloadInstruction(cpu.R(Rn) + offset);
 }
 
 inline void cmdCps(uint16_t opCode, Cpu& cpu)

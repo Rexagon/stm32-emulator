@@ -68,6 +68,8 @@ public:
     void dataMemoryBarrier(uint8_t option);
     void dataSynchronizationBarrier(uint8_t option);
     void instructionSynchronizationBarrier(uint8_t option);
+    void preloadData(uint32_t address);
+    void preloadInstruction(uint32_t address);
 
     inline void setEventRegister() { m_wasEventRegistered = true; }
     inline void clearEventRegister() { m_wasEventRegistered = false; }

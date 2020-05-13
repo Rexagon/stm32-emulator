@@ -844,7 +844,7 @@ inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
     }
 }
 
-inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& /*cpu*/)
+inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& cpu)
 {
     const auto [op2, Rt, Rn, op1] = split<_<6, 6>, _<12, 4>, _<16, 4>, _<23, 2>>(opCode);
 
@@ -890,26 +890,26 @@ inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& /*cpu*/)
     else {
         if (isBitClear<1>(op1)) {
             if (Rn == 0b1111u) {
-                // TODO: A7-341
-                return;
+                // see: A7-341
+                return opcodes::cmdPreloadDataLiteral(opCode, cpu);
             }
             if (op1 == 0b01u || (op1 == 0b00u && getPart<2, 4>(op2) == 0b1100u)) {
-                // TODO: A7-340
-                return;
+                // see: A7-340
+                return opcodes::cmdPreloadDataImmediate(opCode, cpu);
             }
             if (op1 == 0b00u && op2 == 0b000000u) {
-                // TODO: A7-342
-                return;
+                // see: A7-342
+                return opcodes::cmdPreloadDataRegister(opCode, cpu);
             }
         }
         else {
             if (Rn == 0b1111u || op1 == 0b11u || (op1 == 0b10u && getPart<2, 4>(op2) == 0b1100u)) {
-                // TODO: A7-344
-                return;
+                // see: A7-344
+                return opcodes::cmdPreloadInstructionImmediate(opCode, cpu);
             }
             if (op1 == 0b10u && op2 == 0b000000u) {
-                // TODO: A7-346
-                return;
+                // see: A7-346
+                return opcodes::cmdPreloadInstructionRegister(opCode, cpu);
             }
         }
     }
