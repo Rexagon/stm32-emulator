@@ -822,7 +822,7 @@ void cmdExtend(T opCode, Cpu& cpu)
 }
 
 template <Encoding encoding, typename Type, bool isSignExtended = false, typename T>
-void cmdReverse(T opCode, Cpu& cpu)
+void cmdReverseBytes(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
@@ -865,6 +865,18 @@ void cmdReverse(T opCode, Cpu& cpu)
     }
 
     cpu.setR(d, result);
+}
+
+inline void cmdReverseBits(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, Rd, Rm_] = utils::split<_<0, 4>, _<8, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rm != Rm_);
+    UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
+
+    const auto result = utils::reverseBits(cpu.R(Rm));
+    cpu.setR(Rd, result);
 }
 
 template <Encoding encoding, typename T>

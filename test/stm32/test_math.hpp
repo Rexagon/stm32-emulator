@@ -42,6 +42,14 @@ TEST(math, copyPartInto)
     ASSERT_EQ((copyPartInto<_<24, 8>, _<24, 8>>(uint32_t{0xffff00ffu}, uint32_t{0x00cc0000u})), 0xffcc0000u);
 }
 
+TEST(math, reverse)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ(reverseEndianness(uint32_t{0xaabbccddu}), 0xddccbbaa);
+    ASSERT_EQ(reverseBits(uint32_t{0xAABBCCDDu}), 0xbb33dd55);
+}
+
 TEST(math, signExtend)
 {
     using namespace stm32::utils;

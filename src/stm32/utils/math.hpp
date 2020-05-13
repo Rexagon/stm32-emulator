@@ -11,6 +11,26 @@
 
 namespace stm32::utils
 {
+// Lookup table that store the reverse of each table
+constexpr uint8_t REVERSE_BITS_LUT[16] = {
+    0x0,
+    0x8,
+    0x4,
+    0xc,
+    0x2,
+    0xa,
+    0x6,
+    0xe,
+    0x1,
+    0x9,
+    0x5,
+    0xd,
+    0x3,
+    0xb,
+    0x7,
+    0xf,
+};
+
 template <typename T, typename R = T>
 constexpr R MAX_SHIFT = static_cast<R>(sizeof(T) * 8u - 1u);
 
@@ -73,13 +93,13 @@ struct Extractor<V, Part<offset, bitCount, T>> {
 }  // namespace details
 
 template <typename... Parts, typename V>
-inline auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
+inline constexpr auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
 {
     return std::tuple(details::Extractor<V, Parts>::extract(value)...);
 }
 
 template <typename V, typename... Parts>
-inline auto combine(Parts... part) -> V
+inline constexpr auto combine(Parts... part) -> V
 {
     return (details::Extractor<V, Parts>::create(part.value) | ...);
 }
@@ -176,6 +196,26 @@ inline constexpr auto reverseEndianness(const uint32_t& value) -> uint32_t
     const auto [hw1lo, hw1hi, hw2lo, hw2hi] = split<_<0, 8>, _<8, 8>, _<16, 8>, _<24, 8>>(value);
     return combite<uint16_t>(_<0, 8>{hw2hi}, _<8, 8>{hw2lo}, _<16, 8>{hw1hi}, _<24, 8>{hw1lo});
 #endif
+}
+
+template <typename T>
+inline constexpr auto reverseBits(const T& value) -> T
+{
+    if constexpr (std::is_same_v<T, uint8_t>) {
+        const auto [low, high] = split<_<0, 4>, _<4, 4>>(value);
+        return combine<uint8_t>(_<0, 4>{REVERSE_BITS_LUT[high]}, _<4, 4>{REVERSE_BITS_LUT[low]});
+    }
+    else if constexpr (std::is_same_v<T, uint16_t>) {
+        const auto [low, high] = split<_<0, 8>, _<8, 8>>(value);
+        return combine<uint16_t>(_<0, 8>{reverseBits<uint8_t>(high)}, _<8, 8>{reverseBits<uint8_t>(low)});
+    }
+    else if constexpr (std::is_same_v<T, uint32_t>) {
+        const auto [hw1low, hw1high, hw2low, hw2high] = split<_<0, 8>, _<8, 8>, _<16, 8>, _<24, 8>>(value);
+        return combine<uint32_t>(_<0, 8>{reverseBits<uint8_t>(hw2high)},
+                                 _<8, 8>{reverseBits<uint8_t>(hw2low)},
+                                 _<16, 8>{reverseBits<uint8_t>(hw1high)},
+                                 _<24, 8>{reverseBits<uint8_t>(hw1low)});
+    }
 }
 
 template <uint8_t bits, typename T>

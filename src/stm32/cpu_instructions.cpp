@@ -279,13 +279,13 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
         case 0b101000'0u ... 0b101000'1u:
             // see: A7-363
-            return opcodes::cmdReverse<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
+            return opcodes::cmdReverseBytes<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
         case 0b101001'0u ... 0b101001'1u:
             // see: A7-364
-            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
+            return opcodes::cmdReverseBytes<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
         case 0b101011'0u ... 0b101011'1u:
             // see: A7-365
-            return opcodes::cmdReverse<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+            return opcodes::cmdReverseBytes<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
         case 0b1011'000u ... 0b1011'111u:
             // see A7-219
             return opcodes::cmdCompareAndBranchOnZero(opCode, cpu);
@@ -1066,16 +1066,16 @@ inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
             switch (op2) {
                 case 0b1000u:
                     // see: A7-363
-                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
+                    return opcodes::cmdReverseBytes<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
                 case 0b1001u:
                     // see: A7-364
-                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint16_t>(opCode, cpu);
+                    return opcodes::cmdReverseBytes<opcodes::Encoding::T2, uint16_t>(opCode, cpu);
                 case 0b1010u:
-                    // TODO: A7-362
-                    return;
+                    // see: A7-362
+                    return opcodes::cmdReverseBits(opCode, cpu);
                 case 0b1011u:
                     // see: A7-365
-                    return opcodes::cmdReverse<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+                    return opcodes::cmdReverseBytes<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
                 default:
                     break;
             }
