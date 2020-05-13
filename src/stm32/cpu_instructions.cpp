@@ -1121,7 +1121,7 @@ inline void multiplicationAndAbsoluteDifference(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE;
 }
 
-inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& /*cpu*/)
+inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
 {
     const auto [op2, op1] = split<_<4, 4>, _<20, 3>>(opCode);
 
@@ -1135,8 +1135,8 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& /*cpu*/)
             break;
         case 0b001u:
             if (op2 == 0b1111u) {
-                // TODO: A7-383
-                return;
+                // see: A7-383
+                return opcodes::cmdDiv</*isSigned*/ true>(opCode, cpu);
             }
             break;
         case 0b010u:
@@ -1147,8 +1147,8 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& /*cpu*/)
             break;
         case 0b011u:
             if (op2 == 0b1111u) {
-                // TODO: A7-472
-                return;
+                // see: A7-472
+                return opcodes::cmdDiv</*isSigned*/ false>(opCode, cpu);
             }
             break;
         case 0b100u:

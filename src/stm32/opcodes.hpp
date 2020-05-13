@@ -609,7 +609,7 @@ void cmdMul(T opCode, Cpu& cpu)
 }
 
 template <bool substract>
-inline void cmdMlaMls(uint32_t opCode, Cpu& cpu)
+void cmdMlaMls(uint32_t opCode, Cpu& cpu)
 {
     CHECK_CONDITION;
 
@@ -626,6 +626,33 @@ inline void cmdMlaMls(uint32_t opCode, Cpu& cpu)
     }
 
     cpu.setR(Rd, result);
+}
+
+template <bool isSigned>
+void cmdDiv(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, Rd, Rn] = utils::split<_<0, 4>, _<8, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13);
+
+    uint32_t result;
+
+    using Type = std::conditional_t<isSigned, int32_t, uint32_t>;
+
+    if (const auto m = cpu.R(Rm); m != Type{0}) {
+        result = cpu.R(Rn) / m;
+    }
+    else {
+        if (cpu.systemRegisters().CCR().DIV_0_TRP) {
+            cpu.exceptionTaken(ExceptionType::UsageFault);
+            return;
+        }
+        else {
+            result = Type{0};
+        }
+    }
+    cpu.setR(Rd, static_cast<uint32_t>(result));
 }
 
 template <Encoding encoding, Bitwise bitwise, typename T>
