@@ -2111,6 +2111,48 @@ inline void cmdLoadRegisterUnprivileged(uint32_t opCode, Cpu& cpu)
     cpu.setR(Rt, data);
 }
 
+inline void cmdLoadRegisterDual(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rt2, Rt, Rn, W, U, P] = utils::split<_<0, 8>, _<8, 4>, _<12, 4>, _<16, 4>, _<21, 1>, _<23, 1>, _<24, 1>>(opCode);
+    UNPREDICTABLE_IF(W && (Rn == Rt || Rn == Rt2));
+    UNPREDICTABLE_IF(Rt >= 13 || Rt2 >= 13 || Rt == Rt2);
+
+    const auto imm32 = static_cast<uint32_t>(static_cast<uint32_t>(imm8) << 2u);
+
+    const auto offsetAddress = U ? (cpu.R(Rn) + imm32) : (cpu.R(Rn) - imm32);
+    const auto address = P ? offsetAddress : cpu.R(Rn);
+
+    cpu.setR(Rt, cpu.mpu().alignedMemoryRead<uint32_t>(address));
+    cpu.setR(Rt2, cpu.mpu().alignedMemoryRead<uint32_t>(address + 4u));
+
+    if (W) {
+        cpu.setR(Rn, offsetAddress);
+    }
+}
+
+inline void cmdStoreRegisterDual(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rt2, Rt, Rn, W, U, P] = utils::split<_<0, 8>, _<8, 4>, _<12, 4>, _<16, 4>, _<21, 1>, _<23, 1>, _<24, 1>>(opCode);
+    UNPREDICTABLE_IF(W && (Rn == Rt || Rn == Rt2));
+    UNPREDICTABLE_IF(Rn == 15 || Rt >= 13 || Rt2 >= 13);
+
+    const auto imm32 = static_cast<uint32_t>(static_cast<uint32_t>(imm8) << 2u);
+
+    const auto offsetAddress = U ? (cpu.R(Rn) + imm32) : (cpu.R(Rn) - imm32);
+    const auto address = P ? offsetAddress : cpu.R(Rn);
+
+    cpu.mpu().alignedMemoryWrite(address, cpu.R(Rt));
+    cpu.mpu().alignedMemoryWrite(address + 4u, cpu.R(Rt2));
+
+    if (W) {
+        cpu.setR(Rn, offsetAddress);
+    }
+}
+
 template <Encoding encoding, typename Type, typename T>
 void cmdStoreImmediate(T opCode, Cpu& cpu)
 {
