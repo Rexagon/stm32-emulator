@@ -629,6 +629,39 @@ void cmdMlaMls(uint32_t opCode, Cpu& cpu)
 }
 
 template <bool isSigned>
+void cmdMulLong(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, RdHi, RdLo, Rn] = utils::split<_<0, 4>, _<8, 4>, _<12, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(RdLo >= 13 || RdHi >= 13 || Rn >= 13 || Rm >= 13);
+    UNPREDICTABLE_IF(RdHi == RdLo);
+
+    using Type = std::conditional_t<isSigned, int64_t, uint64_t>;
+
+    const uint64_t result = static_cast<uint64_t>(static_cast<Type>(cpu.R(Rn)) * static_cast<Type>(cpu.R(Rm)));
+    cpu.setR(RdHi, utils::getPart<32, 32, uint32_t>(result));
+    cpu.setR(RdLo, utils::getPart<0, 32, uint32_t>(result));
+}
+
+template <bool isSigned>
+void cmdMulAccumulateLong(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, RdHi, RdLo, Rn] = utils::split<_<0, 4>, _<8, 4>, _<12, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(RdLo >= 13 || RdHi >= 13 || Rn >= 13 || Rm >= 13);
+    UNPREDICTABLE_IF(RdHi == RdLo);
+
+    using Type = std::conditional_t<isSigned, int64_t, uint64_t>;
+
+    const auto acc = static_cast<Type>(utils::combine<uint64_t>(_<0, 32, uint32_t>{cpu.R(RdLo)}, _<32, 32, uint32_t>{cpu.R(RdHi)}));
+    const uint64_t result = static_cast<uint64_t>(static_cast<Type>(cpu.R(Rn)) * static_cast<Type>(cpu.R(Rm)) + acc);
+    cpu.setR(RdHi, utils::getPart<32, 32, uint32_t>(result));
+    cpu.setR(RdLo, utils::getPart<0, 32, uint32_t>(result));
+}
+
+template <bool isSigned>
 void cmdDiv(uint32_t opCode, Cpu& cpu)
 {
     CHECK_CONDITION;

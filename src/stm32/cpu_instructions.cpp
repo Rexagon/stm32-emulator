@@ -1129,8 +1129,8 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
     switch (op1) {
         case 0b000u:
             if (op2 == 0b0000u) {
-                // TODO: A7-412
-                return;
+                // see: A7-412
+                return opcodes::cmdMulLong</*isSigned*/ true>(opCode, cpu);
             }
             break;
         case 0b001u:
@@ -1141,8 +1141,8 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
             break;
         case 0b010u:
             if (op2 == 0b0000u) {
-                // TODO: A7-481
-                return;
+                // see: A7-481
+                return opcodes::cmdMulLong</*isSigned*/ false>(opCode, cpu);
             }
             break;
         case 0b011u:
@@ -1153,14 +1153,14 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
             break;
         case 0b100u:
             if (op2 == 0b0000u) {
-                // TODO: A7-396
-                return;
+                // see: A7-396
+                return opcodes::cmdMulAccumulateLong</*isSigned*/ true>(opCode, cpu);
             }
             break;
         case 0b110u:
             if (op2 == 0b0000u) {
-                // TODO: A7-480
-                return;
+                // see: A7-480
+                return opcodes::cmdMulAccumulateLong</*isSigned*/ false>(opCode, cpu);
             }
             break;
         default:
