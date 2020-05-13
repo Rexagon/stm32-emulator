@@ -990,8 +990,8 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t>(opCode, cpu);
                 }
                 else if (getPart<2, 4>(op2) == 0b1110u) {
-                    // TODO: A7-256
-                    return;
+                    // see: A7-297
+                    return opcodes::cmdLoadRegisterUnprivileged(opCode, cpu);
                 }
                 else if (op2 == 0u) {
                     // see: A7-256
@@ -1003,7 +1003,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
         }
     }
     else {
-        if (isBitSet<1>(op1)) {
+        if (isBitClear<1>(op1)) {
             // see: A7-254
             return opcodes::cmdLoadLiteral<opcodes::Encoding::T2>(opCode, cpu);
         }

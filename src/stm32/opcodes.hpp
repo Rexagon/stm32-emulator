@@ -1905,6 +1905,21 @@ void cmdLoadRegister(T opCode, Cpu& cpu)
     }
 }
 
+inline void cmdLoadRegisterUnprivileged(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm8, Rt, Rn] = utils::split<_<0, 8>, _<12, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rt >= 13);
+
+    const auto imm32 = static_cast<uint32_t>(imm8);
+
+    const auto address = cpu.R(Rn) + imm32;
+    const auto data = cpu.mpu().unalignedMemoryRead<uint32_t>(address, AccessType::Unprivileged);
+
+    cpu.setR(Rt, data);
+}
+
 template <Encoding encoding, typename Type, typename T>
 void cmdStoreImmediate(T opCode, Cpu& cpu)
 {
