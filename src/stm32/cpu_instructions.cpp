@@ -1082,8 +1082,8 @@ inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
             break;
         case 0b1011u:
             if (op2 == 0b1000u) {
-                // TODO: A7-224
-                return;
+                // see: A7-224
+                return opcodes::cmdClz(opCode, cpu);
             }
             break;
         default:
@@ -1103,16 +1103,16 @@ inline void multiplicationAndAbsoluteDifference(uint32_t opCode, Cpu& cpu)
             switch (op2) {
                 case 0b00u:
                     if (Ra != 0b1111u) {
-                        // TODO: A7-310
-                        return;
+                        // see: A7-310
+                        return opcodes::cmdMlaMls</*substract*/ false>(opCode, cpu);
                     }
                     else {
                         // see: A7-324
                         return opcodes::cmdMul<opcodes::Encoding::T2>(opCode, cpu);
                     }
                 case 0b01u:
-                    // TODO: A7-311
-                    return;
+                    // see: A7-311
+                    return opcodes::cmdMlaMls</*substract*/ true>(opCode, cpu);
                 default:
                     break;
             }

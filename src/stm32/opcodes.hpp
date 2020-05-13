@@ -608,6 +608,26 @@ void cmdMul(T opCode, Cpu& cpu)
     }
 }
 
+template <bool substract>
+inline void cmdMlaMls(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [Rm, Rd, Ra, Rn] = utils::split<_<0, 4>, _<8, 4>, _<12, 4>, _<16, 4>>(opCode);
+
+    uint32_t result;
+    if constexpr (substract) {
+        UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13 || Ra >= 13);
+        result = cpu.R(Ra) - cpu.R(Rn) * cpu.R(Rm);
+    }
+    else {
+        UNPREDICTABLE_IF(Rd >= 13 || Rn >= 13 || Rm >= 13 || Ra == 13);
+        result = cpu.R(Rn) * cpu.R(Rm) + cpu.R(Ra);
+    }
+
+    cpu.setR(Rd, result);
+}
+
 template <Encoding encoding, Bitwise bitwise, typename T>
 void cmdBitwiseRegister(T opCode, Cpu& cpu)
 {
@@ -876,6 +896,17 @@ inline void cmdReverseBits(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
 
     const auto result = utils::reverseBits(cpu.R(Rm));
+    cpu.setR(Rd, result);
+}
+
+inline void cmdClz(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+    const auto [Rm, Rd, Rm_] = utils::split<_<0, 4>, _<8, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rm != Rm_);
+    UNPREDICTABLE_IF(Rd >= 13 || Rm >= 13);
+
+    const auto result = utils::countLeadingZeros(cpu.R(Rm));
     cpu.setR(Rd, result);
 }
 

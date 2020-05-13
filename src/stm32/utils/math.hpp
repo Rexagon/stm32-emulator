@@ -161,7 +161,17 @@ template <typename T>
 inline constexpr auto lowestSetBit(const T& value) -> uint32_t
 {
 #ifdef __GNUC__
-    return static_cast<uint32_t>(__builtin_ffs(value)) - 1u;
+    return value == 0u ? sizeof(T) * 8u : static_cast<uint32_t>(__builtin_ffs(value));
+#else
+    static_assert(false);
+#endif
+}
+
+template <typename T>
+inline constexpr auto countLeadingZeros(const T& value) -> uint32_t
+{
+#ifdef __GNUC__
+    return value == 0u ? sizeof(T) * 8u : static_cast<uint32_t>(__builtin_clz(value));
 #else
     static_assert(false);
 #endif
