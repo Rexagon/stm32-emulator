@@ -366,7 +366,7 @@ namespace wo
 {
 inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rn, L, W, op] = split<_<16, 4>, _<20, 1>, _<21, 1>, _<23, 2>>(opCode);
+    const auto [Rn, L, W, op] = split<_<16, 4>, _<20>, _<21>, _<23, 2>>(opCode);
 
     // see: A5-142
     switch (op) {
@@ -462,7 +462,7 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
 
 inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
 {
-    const auto [Rd, Rn, S, op] = split<_<8, 4>, _<16, 4>, _<20, 1>, _<21, 4>>(opCode);
+    const auto [Rd, Rn, S, op] = split<_<8, 4>, _<16, 4>, _<20>, _<21, 4>>(opCode);
 
     // see: A5-148
     switch (op) {

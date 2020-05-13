@@ -24,11 +24,11 @@ TEST(math, parts)
 {
     using namespace stm32::utils;
 
-    const auto [first, second] = split<Part<0, 8>, Part<4, 5>>(uint16_t{0x1f22u});
+    const auto [first, second] = split<_<0, 8>, _<4, 5>>(uint16_t{0x1f22u});
     ASSERT_EQ(first, 0x22u);
     ASSERT_EQ(second, 0x12u);
 
-    ASSERT_EQ((combine<uint16_t>(Part<2, 8>{first}, Part<10, 5>{second})), 0x4888u);
+    ASSERT_EQ((combine<uint16_t>(_<2, 8>{first}, _<10, 5>{second})), 0x4888u);
 
     ASSERT_EQ((getPart<4, 5>(0x0ff0u)), 0x1fu);
 }

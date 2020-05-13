@@ -8,12 +8,14 @@
 
 namespace stm32
 {
+using namespace utils;
+
 namespace details
 {
 template <typename T>
 inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessType) -> T
 {
-    if (!utils::isAddressAligned<T>(address)) {
+    if (!isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
         cpu.exceptionTaken(ExceptionType::UsageFault);
     }
@@ -22,7 +24,7 @@ inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType a
     auto value = cpu.memory().read<T>(descriptor.physicalAddress);
 
     if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
+        value = reverseEndianness(value);
     }
 
     return value;
@@ -31,7 +33,7 @@ inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType a
 template <typename T>
 inline void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, AccessType accessType)
 {
-    if (!utils::isAddressAligned<T>(address)) {
+    if (!isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
         cpu.exceptionTaken(ExceptionType::UsageFault);
     }
@@ -39,16 +41,16 @@ inline void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, Ac
     const auto descriptor = mpu.validateAddress(address, accessType, true);
 
     if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
+        value = reverseEndianness(value);
     }
 
-    cpu.memory().write(descriptor.physicalAddress, value);
+    cpu.memory().write<T>(descriptor.physicalAddress, value);
 }
 
 template <typename T>
 inline auto unalignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType accessType) -> T
 {
-    if (utils::isAddressAligned<T>(address)) {
+    if (isAddressAligned<T>(address)) {
         return alignedMemoryRead<T>(cpu, mpu, address, accessType);
     }
     else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
@@ -62,7 +64,7 @@ inline auto unalignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType
         value = value | static_cast<T>(static_cast<T>(alignedMemoryRead<uint8_t>(cpu, mpu, address, accessType)) << (8u * i));
     }
     if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
+        value = reverseEndianness(value);
     }
 
     return value;
@@ -71,7 +73,7 @@ inline auto unalignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType
 template <typename T>
 inline void unalignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, AccessType accessType)
 {
-    if (utils::isAddressAligned<T>(address)) {
+    if (isAddressAligned<T>(address)) {
         alignedMemoryWrite<T>(cpu, mpu, address, value, accessType);
     }
     else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
@@ -80,7 +82,7 @@ inline void unalignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, 
     }
 
     if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
-        value = utils::reverseEndianness(value);
+        value = reverseEndianness(value);
     }
 
     for (uint8_t i = 0; i < sizeof(T); ++i) {
@@ -122,19 +124,19 @@ auto Mpu::alignedMemoryRead<uint32_t>(uint32_t address, AccessType accessType) -
 template <>
 void Mpu::alignedMemoryWrite(uint32_t address, uint8_t value, AccessType accessType)
 {
-    return details::alignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::alignedMemoryWrite<uint8_t>(m_cpu, *this, address, value, accessType);
 }
 
 template <>
 void Mpu::alignedMemoryWrite(uint32_t address, uint16_t value, AccessType accessType)
 {
-    return details::alignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::alignedMemoryWrite<uint16_t>(m_cpu, *this, address, value, accessType);
 }
 
 template <>
 void Mpu::alignedMemoryWrite(uint32_t address, uint32_t value, AccessType accessType)
 {
-    return details::alignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::alignedMemoryWrite<uint32_t>(m_cpu, *this, address, value, accessType);
 }
 
 template <>
@@ -158,19 +160,19 @@ auto Mpu::unalignedMemoryRead<uint32_t>(uint32_t address, AccessType accessType)
 template <>
 void Mpu::unalignedMemoryWrite(uint32_t address, uint8_t value, AccessType accessType)
 {
-    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::unalignedMemoryWrite<uint8_t>(m_cpu, *this, address, value, accessType);
 }
 
 template <>
 void Mpu::unalignedMemoryWrite(uint32_t address, uint16_t value, AccessType accessType)
 {
-    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::unalignedMemoryWrite<uint16_t>(m_cpu, *this, address, value, accessType);
 }
 
 template <>
 void Mpu::unalignedMemoryWrite(uint32_t address, uint32_t value, AccessType accessType)
 {
-    return details::unalignedMemoryWrite(m_cpu, *this, address, value, accessType);
+    return details::unalignedMemoryWrite<uint32_t>(m_cpu, *this, address, value, accessType);
 }
 
 auto Mpu::validateAddress(uint32_t address, AccessType accessType, bool write) -> AddressDescriptor
@@ -185,7 +187,7 @@ auto Mpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
 
     auto hit = false;
 
-    auto isPpbAccess = utils::getPart<20, 12, uint16_t>(address) == 0b111000000000u;
+    auto isPpbAccess = getPart<20, 12, uint16_t>(address) == 0b111000000000u;
     if (accessType == AccessType::VecTable || isPpbAccess) {
         hit = true;  // // use default map for PPB and vector table lookups
     }
@@ -228,7 +230,7 @@ auto Mpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
         }
     }
 
-    if (utils::getPart<29, 3>(address) == 0b111u) {
+    if (getPart<29, 3>(address) == 0b111u) {
         permissions.executeNever = true;
     }
 
@@ -310,7 +312,7 @@ void Mpu::checkPermissions(MemoryPermissions permissions, uint32_t address, Acce
 auto Mpu::defaultMemoryAttributes(uint32_t address) -> MemoryAttributes
 {
     MemoryAttributes attributes{};
-    switch (utils::getPart<29, 3>(address)) {
+    switch (getPart<29, 3>(address)) {
         case 0b000u:
             attributes.type = MemoryType::Normal;
             attributes.inner = CacheAttribute::WT;
@@ -347,7 +349,7 @@ auto Mpu::defaultMemoryAttributes(uint32_t address) -> MemoryAttributes
             attributes.shareable = false;
             break;
         case 0b111u:
-            if (utils::getPart<20, 8>(address) == 0u) {
+            if (getPart<20, 8>(address) == 0u) {
                 attributes.type = MemoryType::StronglyOrdered;
                 attributes.inner = CacheAttribute::NonCacheable;
                 attributes.shareable = true;
@@ -369,7 +371,7 @@ auto Mpu::defaultMemoryPermissions(uint32_t address) -> MemoryPermissions
     MemoryPermissions permissions;
     permissions.accessPermissions = 0b011u;
 
-    switch (utils::getPart<29, 3>(address)) {
+    switch (getPart<29, 3>(address)) {
         case 0b000u:
             permissions.executeNever = false;
             break;
@@ -401,11 +403,9 @@ auto Mpu::defaultMemoryPermissions(uint32_t address) -> MemoryPermissions
 
 auto Mpu::defaultTexDecode(const rg::MpuRegionAttribute& attributes) -> MemoryAttributes
 {
-    using namespace utils;
-
     MemoryAttributes result;
 
-    const auto texcb = combine<uint8_t>(Part<0, 1>{attributes.B}, Part<1, 1>{attributes.C}, Part<2, 3>{attributes.TEX});
+    const auto texcb = combine<uint8_t>(_<0>{attributes.B}, _<1>{attributes.C}, _<2, 3>{attributes.TEX});
     switch (texcb) {
         case 0b00000u:
             result.type = MemoryType::StronglyOrdered;

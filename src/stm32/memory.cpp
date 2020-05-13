@@ -7,6 +7,8 @@
 
 namespace stm32
 {
+using namespace utils;
+
 namespace
 {
 inline auto decodeBitBand(uint32_t address, uint32_t bitBandAliasStart, uint32_t bitBandRegionStart) -> std::pair<uint32_t, uint8_t>
@@ -100,17 +102,17 @@ void Memory::write<uint8_t>(uint32_t address, uint8_t data)
 template <>
 void Memory::write<uint16_t>(uint32_t address, uint16_t value)
 {
-    write(address, utils::getPart<0, 8>(value));
-    write(address + 1u, utils::getPart<8, 8>(value));
+    write(address, getPart<0, 8>(value));
+    write(address + 1u, getPart<8, 8>(value));
 }
 
 template <>
 void Memory::write<uint32_t>(uint32_t address, uint32_t value)
 {
-    write(address, utils::getPart<0, 8>(value));
-    write(address + 1u, utils::getPart<8, 8>(value));
-    write(address + 2u, utils::getPart<16, 8>(value));
-    write(address + 3u, utils::getPart<24, 8>(value));
+    write(address, getPart<0, 8>(value));
+    write(address + 1u, getPart<8, 8>(value));
+    write(address + 2u, getPart<16, 8>(value));
+    write(address + 3u, getPart<24, 8>(value));
 }
 
 template <>
@@ -159,16 +161,16 @@ auto Memory::read<uint8_t>(uint32_t address) const -> uint8_t
 template <>
 auto Memory::read<uint16_t>(uint32_t address) const -> uint16_t
 {
-    return utils::combine<uint16_t>(utils::Part<0, 8>{read<uint8_t>(address)}, utils::Part<8, 8>{read<uint8_t>(address + 1u)});
+    return combine<uint16_t>(Part<0, 8>{read<uint8_t>(address)}, Part<8, 8>{read<uint8_t>(address + 1u)});
 }
 
 template <>
 auto Memory::read<uint32_t>(uint32_t address) const -> uint32_t
 {
-    return utils::combine<uint32_t>(utils::Part<0, 8>{read<uint8_t>(address)},
-                                    utils::Part<8, 8>{read<uint8_t>(address + 1u)},
-                                    utils::Part<16, 8>{read<uint8_t>(address + 2u)},
-                                    utils::Part<24, 8>{read<uint8_t>(address + 3u)});
+    return combine<uint32_t>(_<0, 8>{read<uint8_t>(address)},
+                                    _<8, 8>{read<uint8_t>(address + 1u)},
+                                    _<16, 8>{read<uint8_t>(address + 2u)},
+                                    _<24, 8>{read<uint8_t>(address + 3u)});
 }
 
 auto Memory::findRegion(uint32_t address) const -> MemoryRegion*

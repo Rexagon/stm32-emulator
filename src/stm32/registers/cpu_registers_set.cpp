@@ -9,6 +9,8 @@
 
 namespace stm32::rg
 {
+using namespace utils;
+
 CpuRegistersSet::CpuRegistersSet()
     : m_exceptionMaskRegister{}
     , m_basePriorityMaskRegister{}
@@ -46,7 +48,7 @@ auto CpuRegistersSet::getRegister(uint8_t reg) const -> uint32_t
             return m_generalPurposeRegisters[reg];
 
         case RegisterType::SP:
-            return SP() & utils::ZEROS<2, uint32_t>;
+            return SP() & ZEROS<2, uint32_t>;
 
         case RegisterType::LR:
             return m_linkRegister;
@@ -79,7 +81,7 @@ void CpuRegistersSet::setRegister(uint8_t reg, uint32_t value)
             break;
 
         case RegisterType::SP:
-            SP() = value & utils::ZEROS<2, uint32_t>;
+            SP() = value & ZEROS<2, uint32_t>;
             break;
 
         case RegisterType::LR:
@@ -113,16 +115,12 @@ auto CpuRegistersSet::SP() const -> const uint32_t&
 
 auto CpuRegistersSet::ITSTATE() const -> uint8_t
 {
-    using namespace utils;
-
-    return combine<uint8_t>(Part<0, 2>{m_executionProgramStatusRegister.IThi}, Part<2, 6>{m_executionProgramStatusRegister.ITlo});
+    return combine<uint8_t>(_<0, 2>{m_executionProgramStatusRegister.IThi}, _<2, 6>{m_executionProgramStatusRegister.ITlo});
 }
 
 void CpuRegistersSet::setITSTATE(uint8_t value)
 {
-    using namespace utils;
-
-    m_executionProgramStatusRegister.ITlo = utils::getPart<2, 6>(value) & ONES<6, uint8_t>;
+    m_executionProgramStatusRegister.ITlo = getPart<2, 6>(value) & ONES<6, uint8_t>;
     m_executionProgramStatusRegister.IThi = getPart<0, 2>(value) & ONES<2, uint8_t>;
 }
 

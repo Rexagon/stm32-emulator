@@ -62,7 +62,7 @@ void Cpu::bxWritePC(uint32_t address, bool skipIncrementingPC)
         // TODO: ExceptionReturn(address<27:0>); // see B1-597
     }
     else {
-        m_registers.EPSR().T = utils::isBitSet<0>(address);
+        m_registers.EPSR().T = isBitSet<0>(address);
         m_registers.PC() = address & ZEROS<1, uint32_t>;
         m_skipIncrementingPC = skipIncrementingPC;
     }
@@ -70,7 +70,7 @@ void Cpu::bxWritePC(uint32_t address, bool skipIncrementingPC)
 
 void Cpu::blxWritePC(uint32_t address, bool skipIncrementingPC)
 {
-    m_registers.EPSR().T = utils::isBitSet<0>(address);
+    m_registers.EPSR().T = isBitSet<0>(address);
     // TODO: if EPSR.T == 0, a UsageFault(‘Invalid State’) is taken on the next instruction
     m_registers.PC() = address & ZEROS<1, uint32_t>;
     m_skipIncrementingPC = skipIncrementingPC;
@@ -133,18 +133,16 @@ auto Cpu::conditionPassed() const -> bool
 
 auto Cpu::isInItBlock() const -> bool
 {
-    return m_registers.ITSTATE() & utils::ONES<4, uint8_t>;
+    return m_registers.ITSTATE() & ONES<4, uint8_t>;
 }
 
 auto Cpu::isLastInItBlock() const -> bool
 {
-    return (m_registers.ITSTATE() & utils::ONES<4, uint8_t>) == 0b1000u;
+    return (m_registers.ITSTATE() & ONES<4, uint8_t>) == 0b1000u;
 }
 
 void Cpu::advanceCondition()
 {
-    using namespace utils;
-
     auto ITSTATE = m_registers.ITSTATE();
 
     if (ITSTATE & 0b111u) {
@@ -170,7 +168,7 @@ auto Cpu::executionPriority() const -> int32_t
     auto boostedPRI = 256;  // Priority influence of BASEPRI, PRIMASK and FAULTMASK
 
     auto subGroupShift = m_systemRegisters.AIRCR().PRIGROUP;
-    auto groupValue = utils::lsl(std::uint32_t{0b10}, subGroupShift);
+    auto groupValue = lsl(std::uint32_t{0b10}, subGroupShift);
 
     for (size_t i = 2; i < 512; ++i) {
         // TODO:
@@ -215,26 +213,26 @@ void Cpu::pushStack(ExceptionType exceptionType)
     const auto frameSize = 0x20u;
     const auto forceAlign = m_systemRegisters.CCR().STKALIGN;
 
-    const auto spMask = ~utils::combine<uint32_t>(utils::Part<0, 2>{0u}, utils::Part<3, 1>{forceAlign});
+    const auto spMask = ~combine<uint32_t>(_<0, 2>{0u}, _<3>{forceAlign});
 
     bool framePtrAlign;
     uint32_t framePtr;
     if (m_registers.CONTROL().SPSEL && m_currentMode == ExecutionMode::Thread) {
         auto& SP_process = m_registers.SP_process();
 
-        framePtrAlign = utils::getPart<2, 1>(SP_process) && forceAlign;
+        framePtrAlign = isBitSet<2>(SP_process) && forceAlign;
         SP_process = (SP_process - frameSize) & spMask;
         framePtr = SP_process;
     }
     else {
         auto& SP_main = m_registers.SP_main();
 
-        framePtrAlign = utils::getPart<2, 1>(SP_main) && forceAlign;
+        framePtrAlign = isBitSet<2>(SP_main) && forceAlign;
         SP_main = (SP_main - frameSize) & spMask;
         framePtr = SP_main;
     }
 
-    const auto [xPSRlo, xPSRhi] = split<Part<0, 9, uint32_t>, Part<10, 22, uint32_t>>(m_registers.xPSR());
+    const auto [xPSRlo, xPSRhi] = split<_<0, 9, uint32_t>, _<10, 22, uint32_t>>(m_registers.xPSR());
 
     m_mpu.alignedMemoryWrite(framePtr + 0x0u, R(0));
     m_mpu.alignedMemoryWrite(framePtr + 0x4u, R(1));
@@ -244,23 +242,20 @@ void Cpu::pushStack(ExceptionType exceptionType)
     m_mpu.alignedMemoryWrite(framePtr + 0x14u, m_registers.LR());
     m_mpu.alignedMemoryWrite(framePtr + 0x18u, returnAddress(exceptionType));
     m_mpu.alignedMemoryWrite(framePtr + 0x1Cu,
-                             combine<uint32_t>(Part<0, 9, uint32_t>{xPSRlo}, Part<9, 1>{framePtrAlign}, Part<10, 22, uint32_t>{xPSRhi}));
+                             combine<uint32_t>(_<0, 9, uint32_t>{xPSRlo}, _<9>{framePtrAlign}, _<10, 22, uint32_t>{xPSRhi}));
 
     if (m_currentMode == ExecutionMode::Handler) {
-        m_registers.LR() = combine<uint32_t>(Part<0, 4>{0b0001u}, Part<4, 28, uint32_t>{ONES<28, uint32_t>});
+        m_registers.LR() = combine<uint32_t>(_<0, 4>{0b0001u}, _<4, 28, uint32_t>{ONES<28, uint32_t>});
     }
     else {
-        m_registers.LR() =
-            combine<uint32_t>(Part<0, 2>{0b01u}, Part<2, 1>{m_registers.CONTROL().SPSEL}, Part<3, 29, uint32_t>{ONES<29, uint32_t>});
+        m_registers.LR() = combine<uint32_t>(_<0, 2>{0b01u}, _<2>{m_registers.CONTROL().SPSEL}, _<3, 29, uint32_t>{ONES<29, uint32_t>});
     }
 }
 
 void Cpu::exceptionTaken(ExceptionType exceptionType)
 {
-    using namespace utils;
-
     // R[0] - R[3], R[12] are UNKNOWN
-    const auto vectorTablePtr = combine<uint32_t>(Part<0, 7>{0u}, Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
+    const auto vectorTablePtr = combine<uint32_t>(_<0, 7>{0u}, _<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
     const auto exceptionHandlerPtr = m_mpu.alignedMemoryRead<uint32_t>(vectorTablePtr + exceptionType * 4u);
     branchWritePC(exceptionHandlerPtr);
 
@@ -268,7 +263,7 @@ void Cpu::exceptionTaken(ExceptionType exceptionType)
 
     m_registers.IPSR().exceptionNumber = getPart<0, 9, uint16_t>(static_cast<uint16_t>(exceptionType)) & ONES<9, uint16_t>;
 
-    m_registers.EPSR().T = utils::isBitSet<0>(exceptionHandlerPtr);
+    m_registers.EPSR().T = isBitSet<0>(exceptionHandlerPtr);
     m_registers.EPSR().ITlo = 0u;
     m_registers.EPSR().IThi = 0u;
 

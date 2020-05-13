@@ -76,10 +76,10 @@ struct Part {
     constexpr static auto bitCount = _bitCount;
 };
 
-template <uint8_t offset, uint8_t bitCount, typename T = uint8_t>
+template <uint8_t offset, uint8_t bitCount = 1u, typename T = uint8_t>
 using _ = Part<offset, bitCount, T>;
 
-namespace details
+namespace extractor
 {
 template <typename, typename>
 struct Extractor;
@@ -90,18 +90,18 @@ struct Extractor<V, Part<offset, bitCount, T>> {
     static constexpr auto create(const T& part) -> V { return static_cast<V>((static_cast<V>(part) & ONES<bitCount, V>) << offset); }
     static constexpr auto extract(const V& value) -> T { return static_cast<T>(value >> offset) & ONES<bitCount, T>; }
 };
-}  // namespace details
+}  // namespace extractor
 
 template <typename... Parts, typename V>
-inline constexpr auto split(const V& value) -> std::tuple<typename details::Extractor<V, Parts>::Result...>
+inline constexpr auto split(const V& value) -> std::tuple<typename extractor::Extractor<V, Parts>::Result...>
 {
-    return std::tuple(details::Extractor<V, Parts>::extract(value)...);
+    return std::tuple(extractor::Extractor<V, Parts>::extract(value)...);
 }
 
 template <typename V, typename... Parts>
 inline constexpr auto combine(Parts... part) -> V
 {
-    return (details::Extractor<V, Parts>::create(part.value) | ...);
+    return (extractor::Extractor<V, Parts>::create(part.value) | ...);
 }
 
 template <uint8_t offset, uint8_t bitCount, typename R = uint8_t, typename V>
@@ -513,28 +513,27 @@ inline auto thumbExpandImmediateWithCarry(uint16_t immediate, bool carryIn) -> s
 {
     assert((immediate >> 12u) == 0u);
 
-    if (utils::getPart<10, 2>(immediate) == 0) {
-        switch (utils::getPart<8, 2>(immediate)) {
+    if (getPart<10, 2>(immediate) == 0) {
+        switch (getPart<8, 2>(immediate)) {
             case 0b00u:
                 return {static_cast<uint32_t>(immediate), carryIn};
             case 0b01u: {
-                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
-                return {combine<uint32_t>(Part<0, 8>{value}, Part<16, 8>{value}), carryIn};
+                return {combine<uint32_t>(_<0, 8>{value}, _<16, 8>{value}), carryIn};
             }
             case 0b10u: {
-                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
-                return {combine<uint32_t>(Part<8, 8>{value}, Part<24, 8>{value}), carryIn};
+                return {combine<uint32_t>(_<8, 8>{value}, _<24, 8>{value}), carryIn};
             }
             case 0b11u: {
-                const auto value = utils::getPart<0, 8>(static_cast<uint8_t>(immediate));
+                const auto value = getPart<0, 8>(static_cast<uint8_t>(immediate));
                 assert(value);
-                return {combine<uint32_t>(Part<0, 8>{value}, Part<8, 8>{value}, Part<16, 8>{value}, Part<24, 8>{value}), carryIn};
+                return {combine<uint32_t>(_<0, 8>{value}, _<8, 8>{value}, _<16, 8>{value}, _<24, 8>{value}), carryIn};
             }
             default:
                 UNPREDICTABLE;
-                return {};
         }
     }
     else {
