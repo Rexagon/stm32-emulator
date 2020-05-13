@@ -25,6 +25,13 @@ enum class Hint {
     SendEvent,
 };
 
+enum class Control {
+    ClearExclusive,
+    DataSynchronizationBarrier,
+    DataMemoryBarrier,
+    InstructionSynchronizationBarrier,
+};
+
 template <auto v, auto... vs>
 constexpr bool is_in = ((v == vs) || ...);
 
@@ -1258,12 +1265,30 @@ void cmdBranch(T opCode, Cpu& cpu)
         const auto I2 = static_cast<uint8_t>(~(J2 ^ S));
 
         imm32 = utils::signExtend<25>(
-            utils::combine<T>(_<1, 11, uint16_t>{imm11}, _<12, 10, uint16_t>{imm10}, _<22, 1>{I2}, _<23, 1>{I1}, _<24, 1>{S}));
+            utils::combine<uint32_t>(_<1, 11, uint16_t>{imm11}, _<12, 10, uint16_t>{imm10}, _<22, 1>{I2}, _<23, 1>{I1}, _<24, 1>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
     cpu.branchWritePC(cpu.currentInstructionAddress() + 4u + imm32);
+}
+
+inline void cmdBranchWithLinkImmediate(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [imm11, J2, J1, imm10, S] = utils::split<_<0, 11, uint16_t>, _<11, 1>, _<13, 1>, _<16, 10, uint16_t>, _<26, 1>>(opCode);
+    UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
+
+    const auto I1 = static_cast<uint8_t>(~(J1 ^ S));
+    const auto I2 = static_cast<uint8_t>(~(J2 ^ S));
+
+    const auto imm32 = utils::signExtend<25>(
+        utils::combine<uint32_t>(_<1, 11, uint16_t>{imm11}, _<12, 10, uint16_t>{imm10}, _<22, 1>{I2}, _<23, 1>{I1}, _<24, 1>{S}));
+
+    const auto nextInstructionAddress = cpu.currentInstructionAddress() + 4u;
+    cpu.registers().LR() = nextInstructionAddress | utils::ONES<1u, uint32_t>;
+    cpu.branchWritePC(nextInstructionAddress + imm32);
 }
 
 inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)
@@ -1430,6 +1455,31 @@ void cmdHint(T /*opCode*/, Cpu& cpu)
     CHECK_CONDITION;
 
     // TODO: implement hint's logic
+}
+
+template <Control control>
+void cmdMiscControl(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto option = utils::getPart<0, 4>(opCode);
+    if constexpr (control == Control::InstructionSynchronizationBarrier) {
+        UNPREDICTABLE_IF(cpu.isInItBlock());
+    }
+
+    if constexpr (control == Control::ClearExclusive) {
+        UNUSED(option);
+        UNIMPLEMENTED;
+    }
+    else if constexpr (control == Control::DataSynchronizationBarrier) {
+        cpu.dataSynchronizationBarrier(option);
+    }
+    else if constexpr (control == Control::DataMemoryBarrier) {
+        cpu.dataMemoryBarrier(option);
+    }
+    else if constexpr (control == Control::InstructionSynchronizationBarrier) {
+        cpu.instructionSynchronizationBarrier(option);
+    }
 }
 
 template <Encoding encoding, typename T>

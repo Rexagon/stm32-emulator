@@ -65,6 +65,8 @@ public:
     auto currentInstructionAddress() const { return m_currentInstructionAddress; }
     auto nextInstructionAddress() const -> uint32_t;
 
+    void dataMemoryBarrier(uint8_t option);
+    void dataSynchronizationBarrier(uint8_t option);
     void instructionSynchronizationBarrier(uint8_t option);
 
     inline void setEventRegister() { m_wasEventRegistered = true; }

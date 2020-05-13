@@ -573,7 +573,8 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
 
 inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
 {
-    // TODO: A5-156
+    // see: A5-156
+    UNIMPLEMENTED;
 }
 
 inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
@@ -757,17 +758,17 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
                     case 0b0111011u:
                         switch (getPart<4, 4>(opCode)) {
                             case 0b0010u:
-                                // TODO: A7-223
-                                return;
+                                // see: A7-223
+                                return opcodes::cmdMiscControl<opcodes::Control::ClearExclusive>(opCode, cpu);
                             case 0b0100u:
-                                // TODO: A7-237
-                                return;
+                                // see: A7-237
+                                return opcodes::cmdMiscControl<opcodes::Control::DataSynchronizationBarrier>(opCode, cpu);
                             case 0b0101u:
-                                // TODO: A7-235
-                                return;
+                                // see: A7-235
+                                return opcodes::cmdMiscControl<opcodes::Control::DataMemoryBarrier>(opCode, cpu);
                             case 0b0110u:
-                                // TODO: A7-241
-                                return;
+                                // see: A7-241
+                                return opcodes::cmdMiscControl<opcodes::Control::InstructionSynchronizationBarrier>(opCode, cpu);
                             default:
                                 break;
                         }
@@ -787,8 +788,8 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
             // see: A7-207
             return opcodes::cmdBranch<opcodes::Encoding::T4>(opCode, cpu);
         case 0b101u:
-            // TODO: A7-216
-            return;
+            // see: A7-216
+            return opcodes::cmdBranchWithLinkImmediate(opCode, cpu);
         default:
             break;
     }

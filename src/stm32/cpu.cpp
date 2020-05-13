@@ -326,6 +326,14 @@ auto Cpu::nextInstructionAddress() const -> uint32_t
     return m_nextInstructionAddress;
 }
 
+void Cpu::dataMemoryBarrier(uint8_t /*option*/)
+{
+}
+
+void Cpu::dataSynchronizationBarrier(uint8_t /*option*/)
+{
+}
+
 void Cpu::instructionSynchronizationBarrier(uint8_t /*option*/)
 {
     // TODO: implement

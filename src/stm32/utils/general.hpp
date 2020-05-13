@@ -5,6 +5,13 @@
 #define UNPREDICTABLE assert(false)
 #define UNPREDICTABLE_IF(expression) assert(!(expression))
 
+#define UNDEFINED assert(false)
+#define UNDEFINED_IF(expression) assert(!(expression))
+
+#define UNIMPLEMENTED assert(false)
+
+#define UNUSED(x) (void)(x)
+
 #define DEFINE_REG(StructName, definition) union StructName { \
     struct __attribute__((packed)) definition; \
     uint32_t registerData; \
