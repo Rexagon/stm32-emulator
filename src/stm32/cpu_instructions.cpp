@@ -330,13 +330,13 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
 inline void handleStoreMultipleRegisters(uint16_t opCode, Cpu& cpu)
 {
     // see: A7.7.156
-    return opcodes::cmdStoreMultiple<opcodes::Encoding::T1>(opCode, cpu);
+    return opcodes::cmdStoreMultipleIncrementAfter<opcodes::Encoding::T1>(opCode, cpu);
 }
 
 inline void handleLoadMultipleRegisters(uint16_t opCode, Cpu& cpu)
 {
     // see: A7.7.40
-    return opcodes::cmdLoadMultiple<opcodes::Encoding::T1>(opCode, cpu);
+    return opcodes::cmdLoadMultipleIncrementAfter<opcodes::Encoding::T1>(opCode, cpu);
 }
 
 inline void handleConditionalBranch(uint16_t opCode, Cpu& cpu)
@@ -373,12 +373,12 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
         case 0b01u:
             if (L == 0) {
                 // see: A7-422
-                return opcodes::cmdStoreMultiple<opcodes::Encoding::T2>(opCode, cpu);
+                return opcodes::cmdStoreMultipleIncrementAfter<opcodes::Encoding::T2>(opCode, cpu);
             }
             else {
                 if (W != 1u && Rn != 0b1101u) {
                     // see: A7-248
-                    return opcodes::cmdLoadMultiple<opcodes::Encoding::T2>(opCode, cpu);
+                    return opcodes::cmdLoadMultipleIncrementAfter<opcodes::Encoding::T2>(opCode, cpu);
                 }
                 else {
                     // see: A7-348
@@ -388,8 +388,8 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
         case 0b10u:
             if (L == 0) {
                 if (W != 1u || Rn != 0b1101u) {
-                    // TODO: A7-424
-                    return;
+                    // see: A7-424
+                    return opcodes::cmdStoreMultipleDecrementBefore(opCode, cpu);
                 }
                 else {
                     // see: A7-350
@@ -397,8 +397,8 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
                 }
             }
             else {
-                // TODO: A7-250
-                return;
+                // see: A7-250
+                return opcodes::cmdLoadMultipleDecrementBefore(opCode, cpu);
             }
         default:
             UNPREDICTABLE;

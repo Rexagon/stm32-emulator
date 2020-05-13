@@ -1791,7 +1791,7 @@ inline void cmdPop(T opCode, Cpu& cpu)
 }
 
 template <Encoding encoding, typename T>
-void cmdStoreMultiple(T opCode, Cpu& cpu)
+void cmdStoreMultipleIncrementAfter(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
@@ -1848,8 +1848,38 @@ void cmdStoreMultiple(T opCode, Cpu& cpu)
     }
 }
 
+inline void cmdStoreMultipleDecrementBefore(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [registerList, M, Rn, W] = utils::split<_<0, 13, uint16_t>, _<14, 1>, _<16, 4>, _<21, 1>>(opCode);
+
+    auto registers = utils::combine<uint16_t>(_<0, 13, uint16_t>{registerList}, _<14, 1>{M});
+
+    const auto registerCount = utils::bitCount(registers);
+
+    UNPREDICTABLE_IF(Rn == 15 || registerCount < 15);
+    UNPREDICTABLE_IF(W && utils::isBitSet(registers, Rn));
+
+    auto address = cpu.R(Rn) - 4u * registerCount;
+
+    for (uint8_t i = 0; i < 15u; registers = static_cast<uint16_t>(registers >> 1u), ++i) {
+        if ((registers & 0b1u) == 0u) {
+            continue;
+        }
+
+        cpu.mpu().alignedMemoryWrite(address, cpu.R(i));
+        address += 4u;
+    }
+
+    if (W) {
+        const auto result = cpu.R(Rn) - 4 * registerCount;
+        cpu.setR(Rn, result);
+    }
+}
+
 template <Encoding encoding, typename T>
-void cmdLoadMultiple(T opCode, Cpu& cpu)
+void cmdLoadMultipleIncrementAfter(T opCode, Cpu& cpu)
 {
     static_assert(is_in<encoding, Encoding::T1, Encoding::T2>);
 
@@ -1896,6 +1926,41 @@ void cmdLoadMultiple(T opCode, Cpu& cpu)
     if (writeBack && utils::isBitClear(registers, n)) {
         const auto result = cpu.R(n) + 4 * utils::bitCount(registers);
         cpu.setR(n, result);
+    }
+}
+
+inline void cmdLoadMultipleDecrementBefore(uint32_t opCode, Cpu& cpu)
+{
+    CHECK_CONDITION;
+
+    const auto [registerList, M, P, Rn, W] = utils::split<_<0, 13, uint16_t>, _<14, 1>, _<15, 1>, _<16, 4>, _<21, 1>>(opCode);
+
+    auto registers = utils::combine<uint16_t>(_<0, 13, uint16_t>{registerList}, _<14, 1>{M}, _<15, 1>{P});
+
+    const auto registerCount = utils::bitCount(registers);
+
+    UNPREDICTABLE_IF(Rn == 15 || utils::bitCount(registers) < 2 || (P != 0u && M != 0u));
+    UNPREDICTABLE_IF(utils::isBitSet<15>(registers) && cpu.isInItBlock() && !cpu.isLastInItBlock());
+    UNPREDICTABLE_IF(W && utils::isBitSet(registers, Rn));
+
+    auto address = cpu.R(Rn) - 4u * registerCount;
+
+    for (uint8_t i = 0; i < 15u; registers = static_cast<uint16_t>(registers >> 1u), ++i) {
+        if ((registers & 0b1u) == 0u) {
+            continue;
+        }
+
+        cpu.setR(i, cpu.mpu().alignedMemoryRead<uint32_t>(address));
+        address += 4u;
+    }
+
+    if (utils::isBitSet<15>(registers)) {
+        cpu.loadWritePC(cpu.mpu().alignedMemoryRead<uint32_t>(address));
+    }
+
+    if (W && utils::isBitClear(registers, Rn)) {
+        const auto result = cpu.R(Rn) - 4 * registerCount;
+        cpu.setR(Rn, result);
     }
 }
 
