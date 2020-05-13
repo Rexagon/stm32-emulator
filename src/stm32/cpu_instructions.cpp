@@ -773,8 +773,8 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
                         }
                         break;
                     case 0b011111'0u ... 0b011111'1u:
-                        // TODO: A7-322
-                        return;
+                        // see: A7-322
+                        return opcodes::cmdMrs(opCode, cpu);
                     case 0b1111111u:
                         // see: A7-471
                         return opcodes::cmdPermanentlyUndefined<opcodes::Encoding::T2>(opCode, cpu);
