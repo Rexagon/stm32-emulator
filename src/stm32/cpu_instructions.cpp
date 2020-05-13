@@ -143,7 +143,7 @@ inline void handleSpecialDataInstruction(uint16_t opCode, Cpu& cpu)
 inline void handleLoadFromLiteralPool(uint16_t opCode, Cpu& cpu)
 {
     // see: A7.7.43
-    opcodes::cmdLoadLiteral<opcodes::Encoding::T1>(opCode, cpu);
+    opcodes::cmdLoadLiteral<opcodes::Encoding::T1, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
 }
 
 inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
@@ -186,7 +186,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
                     // see: A7-252
-                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint32_t>(opCode, cpu);
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
@@ -197,7 +197,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
                     // see: A7-258
-                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint8_t>(opCode, cpu);
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
@@ -208,7 +208,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     return opcodes::cmdStoreImmediate<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
                     // see: A7-274
-                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint16_t>(opCode, cpu);
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
@@ -219,7 +219,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     return opcodes::cmdStoreImmediate<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
                 case 0b1'00u ... 0b1'11u:
                     // see: A7-252
-                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint32_t>(opCode, cpu);
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
                     UNPREDICTABLE;
             }
@@ -411,12 +411,12 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
 
     // see: A5-143
     if (op1 == 0b00u && op2 == 0b00u) {
-        // TODO: A7-438
-        return;
+        // see: A7-438
+        UNIMPLEMENTED;
     }
     if (op1 == 0b00u && op2 == 0b01u) {
-        // TODO: A7-270
-        return;
+        // see: A7-270
+        UNIMPLEMENTED;
     }
     if ((op2 == 0b10u && isBitClear<1>(op1)) || (isBitClear<0>(op2) && isBitSet<1>(op1))) {
         // see: A7-436
@@ -429,11 +429,11 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
     if (op1 == 0b01u && op2 == 0b00u) {
         switch (op3) {
             case 0b0100u:
-                // TODO: A7-439
-                return;
+                // see: A7-439
+                UNIMPLEMENTED;
             case 0b0101u:
-                // TODO: A7-440
-                return;
+                // see: A7-440
+                UNIMPLEMENTED;
             default:
                 break;
         }
@@ -447,11 +447,11 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
                 // see: A7-462
                 return opcodes::cmdTableBranch<uint16_t>(opCode, cpu);
             case 0b0100u:
-                // TODO: A7-271
-                return;
+                // see: A7-271
+                UNIMPLEMENTED;
             case 0b0101u:
-                // TODO: A7-272
-                return;
+                // see: A7-272
+                UNIMPLEMENTED;
             default:
                 break;
         }
@@ -852,38 +852,50 @@ inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& cpu)
     if (Rt != 0b1111u) {
         if (isBitClear<1>(op1)) {
             if (Rn == 0b1111u) {
-                // TODO: A7-260
-                return;
+                // see: A7-260
+                return opcodes::cmdLoadLiteral<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
             }
             if (op1 == 0b01u || (op1 == 0b00u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u))) {
-                // TODO: A7-258
-                return;
+                if (isBitSet<0>(op1)) {
+                    // see: A7-258
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
+                else {
+                    // see: A7-258
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
             }
             if (op1 == 0b00u && getPart<2, 4>(op2) == 0b1110u) {
-                // TODO: A7-264
-                return;
+                // see: A7-264
+                return opcodes::cmdLoadRegisterUnprivileged<uint8_t, /*isSignExtended*/ false>(opCode, cpu);
             }
             if (op1 == 0b00u && op2 == 0b000000u) {
-                // TODO: A7-262
-                return;
+                // see: A7-262
+                return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
             }
         }
         else {
             if (Rn == 0b1111u) {
-                // TODO: A7-284
-                return;
+                // see: A7-284
+                return opcodes::cmdLoadLiteral<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
             }
             if (op1 == 0b11 || (op1 == 0b10u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u))) {
-                // TODO: A7-282
-                return;
+                if (isBitSet<0>(op1)) {
+                    // see: A7-282
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
+                else {
+                    // see: A7-282
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
             }
             if (op1 == 0b10u && getPart<2, 4>(op2) == 0b1110u) {
-                // TODO: A7-288
-                return;
+                // see: A7-288
+                return opcodes::cmdLoadRegisterUnprivileged<uint8_t, /*isSignExtended*/ true>(opCode, cpu);
             }
             if (op1 == 0b10u && op2 == 0b000000u) {
-                // TODO: A7-286
-                return;
+                // see: A7-286
+                return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint8_t, /*isSignExtended*/ true>(opCode, cpu);
             }
         }
     }
@@ -925,20 +937,26 @@ inline void loadHalfWordAndMemoryHints(uint32_t opCode, Cpu& cpu)
     if (isBitSet<1>(op1)) {
         if (Rt != 0b1111u) {
             if (Rn == 0b1111u) {
-                // TODO: A7-276
-                return;
+                // see A7-276
+                return opcodes::cmdLoadLiteral<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
             }
             if ((op1 == 0b00u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b01u) {
-                // TODO: A7-274
-                return;
+                if (isBitSet<0>(op1)) {
+                    // see: A7-274
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
+                else {
+                    // see: A7-274
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
+                }
             }
             if (op1 == 0b00u && op2 == 0b000000u) {
-                // TODO: A7-278
-                return;
+                // see: A7-278
+                return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
             }
             if (op1 == 0b00u && getPart<2, 4>(op2) == 0b1110u) {
-                // TODO: A7-280
-                return;
+                // see: A7-280
+                return opcodes::cmdLoadRegisterUnprivileged<uint16_t, /*isSignExtended*/ false>(opCode, cpu);
             }
         }
         else if ((op1 == 0b00u && (op2 == 0b000000u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b01u) {
@@ -948,20 +966,26 @@ inline void loadHalfWordAndMemoryHints(uint32_t opCode, Cpu& cpu)
     else {
         if (Rt != 0b1111u) {
             if (Rn == 0b1111u) {
-                // TODO: A7-292
-                return;
+                // see: A7-292
+                return opcodes::cmdLoadLiteral<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
             }
             if ((op1 == 0b10u && ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u)) || op1 == 0b11u) {
-                // TODO: A7-290
-                return;
+                if (isBitSet<0>(op1)) {
+                    // see: A7-290
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
+                else {
+                    // see: A7-290
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
+                }
             }
             if (op1 == 0b10u && op2 == 0b000000u) {
-                // TODO: A7-294
-                return;
+                // see: A7-294
+                return opcodes::cmdLoadRegister<opcodes::Encoding::T2, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
             }
             if (op1 == 0b10u && getPart<2, 4>(op2) == 0b1110u) {
-                // TODO: A7-296
-                return;
+                // see: A7-296
+                return opcodes::cmdLoadRegisterUnprivileged<uint16_t, /*isSignExtended*/ true>(opCode, cpu);
             }
         }
         else {
@@ -983,15 +1007,15 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
         switch (op1) {
             case 0b01u:
                 // see: A7-252
-                return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint32_t>(opCode, cpu);
+                return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
             case 0b00u:
                 if (op2 & 0b100100u || getPart<2, 4>(op2) == 0b1100u) {
                     // see: A7-252
-                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t>(opCode, cpu);
+                    return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 }
                 else if (getPart<2, 4>(op2) == 0b1110u) {
                     // see: A7-297
-                    return opcodes::cmdLoadRegisterUnprivileged(opCode, cpu);
+                    return opcodes::cmdLoadRegisterUnprivileged<uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 }
                 else if (op2 == 0u) {
                     // see: A7-256
@@ -1005,7 +1029,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
     else {
         if (isBitClear<1>(op1)) {
             // see: A7-254
-            return opcodes::cmdLoadLiteral<opcodes::Encoding::T2>(opCode, cpu);
+            opcodes::cmdLoadLiteral<opcodes::Encoding::T2, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
         }
     }
 
