@@ -405,7 +405,7 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
     }
 }
 
-inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& /*cpu*/)
+inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
 {
     const auto [op3, op2, op1] = split<_<4, 4>, _<20, 2>, _<23, 2>>(opCode);
 
@@ -441,11 +441,11 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& /*cpu*/)
     if (op1 == 0b01u && op2 == 0b01u) {
         switch (op3) {
             case 0b0000u:
-                // TODO: A7-462
-                return;
+                // see: A7-462
+                return opcodes::cmdTableBranch<uint8_t>(opCode, cpu);
             case 0b0001u:
-                // TODO: A7-262
-                return;
+                // see: A7-462
+                return opcodes::cmdTableBranch<uint16_t>(opCode, cpu);
             case 0b0100u:
                 // TODO: A7-271
                 return;
@@ -917,7 +917,7 @@ inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& cpu)
     UNPREDICTABLE;
 }
 
-inline void loadHalfwordAndMemoryHints(uint32_t opCode, Cpu& cpu)
+inline void loadHalfWordAndMemoryHints(uint32_t opCode, Cpu& cpu)
 {
     const auto [op2, Rt, Rn, op1] = split<_<6, 6>, _<12, 4>, _<16, 4>, _<23, 2>>(opCode);
 
@@ -1288,7 +1288,7 @@ void Cpu::step()
                                     wo::loadByteAndMemoryHints(opCode, *this);
                                     break;
                                 case 0b011u:
-                                    wo::loadHalfwordAndMemoryHints(opCode, *this);
+                                    wo::loadHalfWordAndMemoryHints(opCode, *this);
                                     break;
                                 case 0b101u:
                                     wo::loadWord(opCode, *this);

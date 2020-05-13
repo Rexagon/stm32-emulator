@@ -1410,6 +1410,29 @@ inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)
     }
 }
 
+template <typename Type>
+void cmdTableBranch(uint32_t opCode, Cpu& cpu)
+{
+    static_assert(std::is_same_v<Type, uint8_t> || std::is_same_v<Type, uint16_t>);
+
+    CHECK_CONDITION;
+
+    const auto [Rm, Rn] = utils::split<_<0, 4>, _<16, 4>>(opCode);
+    UNPREDICTABLE_IF(Rn == 13 || Rm >= 13);
+    UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
+
+    uint32_t halfwords;
+    if constexpr (std::is_same_v<Type, uint16_t>) {
+        halfwords = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint16_t>(cpu.R(Rn) + static_cast<uint32_t>(cpu.R(Rm) << 1u)));
+    }
+    else {
+        halfwords = static_cast<uint32_t>(cpu.mpu().unalignedMemoryRead<uint8_t>(cpu.R(Rn) + cpu.R(Rm)));
+    }
+
+    const auto PC = cpu.currentInstructionAddress() + 4u;
+    cpu.branchWritePC(PC + 2u * halfwords);
+}
+
 inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
 {
     const auto [mask, firstCond] = utils::split<_<0, 4>, _<4, 4>>(opCode);
