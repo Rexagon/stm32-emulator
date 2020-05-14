@@ -11,6 +11,7 @@ use stm32f1::stm32f103::{interrupt, Interrupt, NVIC};
 #[entry]
 fn main() -> ! {
     asm::nop();
+    asm::nop();
 
     loop {
         // your code goes here

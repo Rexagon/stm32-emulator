@@ -30,24 +30,22 @@ void Cpu::reset()
     m_sysTickRegisters.reset();
     m_nvicRegisters.reset();
     m_mpu.reset();
-    // TODO: clear exclusive local
+
     clearEventRegister();
 
-    // const auto vectorTable = math::combine<uint32_t>(math::Part<0, 7>{0u}, math::Part<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
+    const auto vectorTable = combine<uint32_t>(_<0, 7>{0u}, _<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
 
-    // m_registers.SP_main() = MemA_with_priv[vectortable, 4, AccType_VECTABLE] AND 0xFFFFFFFC<31:0>;
-    m_registers.SP_process() &= ZEROS<2, uint32_t>;  // ((bits(30) UNKNOWN):'00');
+    m_registers.SP_main() = m_mpu.alignedMemoryRead<uint32_t>(vectorTable, AccessType::VecTable) & ZEROS<2, uint32_t>;
+    m_registers.SP_process() &= ZEROS<2, uint32_t>;
     m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
-    // tmp = MemA_with_priv[vectortable+4, 4, AccType_VECTABLE];
-    // tbit = tmp<0>;
+    const auto resetVector = m_mpu.alignedMemoryRead<uint32_t>(vectorTable + 4u, AccessType::VecTable);
 
-    // NOTE: m_registers.APSR() is unknown
     m_registers.IPSR().exceptionNumber = 0u;
-    m_registers.EPSR().T = false;  // TODO: change to tbit
+    m_registers.EPSR().T = utils::isBitSet<0>(resetVector);
     m_registers.EPSR().ITlo = 0u;
     m_registers.EPSR().IThi = 0u;
-    branchWritePC(0u);  // TODO: change to tmp & ~1u
+    branchWritePC(resetVector);
 }
 
 void Cpu::branchWritePC(uint32_t address, bool skipIncrementingPC)
