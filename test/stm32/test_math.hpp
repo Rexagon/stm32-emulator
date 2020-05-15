@@ -184,3 +184,14 @@ TEST(math, thumbExpandImmediateWithCarry)
 
     ASSERT_EQ(thumbExpandImmediateWithCarry(pack(0b01u, 0b00, 0x7fu), false), (std::pair{0xff000000u, true}));
 }
+
+TEST(math, addressAlignment)
+{
+    using namespace stm32::utils;
+
+    ASSERT_EQ((isAddressAligned<uint32_t>(0x00000000u)), true);
+    ASSERT_EQ((isAddressAligned<uint32_t>(0x00000001u)), false);
+    ASSERT_EQ((isAddressAligned<uint32_t>(0x00000003u)), false);
+    ASSERT_EQ((isAddressAligned<uint32_t>(0x00000004u)), true);
+    ASSERT_EQ((isAddressAligned<uint32_t>(0x00000008u)), true);
+}

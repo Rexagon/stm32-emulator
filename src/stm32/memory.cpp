@@ -62,7 +62,14 @@ void Memory::write<uint8_t>(uint32_t address, uint8_t data)
 {
     if (address < m_config.flashMemoryEnd) {
         if (address < m_config.flashMemoryStart) {
-            // TODO: handle write to aliased memory depending on BOOT pins
+            switch (m_config.bootMode) {
+                case BootMode::FlashMemory:
+                    m_flash[address] = data;
+                    return;
+                case BootMode::SystemMemory:
+                    m_systemMemory[address] = data;
+                    return;
+            }
         }
         else {
             m_flash[address - m_config.flashMemoryStart] = data;
@@ -120,7 +127,12 @@ auto Memory::read<uint8_t>(uint32_t address) const -> uint8_t
 {
     if (address < m_config.flashMemoryEnd) {
         if (address < m_config.flashMemoryStart) {
-            // TODO: handle write to aliased memory depending on BOOT pins
+            switch (m_config.bootMode) {
+                case BootMode::FlashMemory:
+                    return m_flash[address];
+                case BootMode::SystemMemory:
+                    return m_systemMemory[address];
+            }
         }
         else {
             return m_flash[address - m_config.flashMemoryStart];
@@ -168,9 +180,9 @@ template <>
 auto Memory::read<uint32_t>(uint32_t address) const -> uint32_t
 {
     return combine<uint32_t>(_<0, 8>{read<uint8_t>(address)},
-                                    _<8, 8>{read<uint8_t>(address + 1u)},
-                                    _<16, 8>{read<uint8_t>(address + 2u)},
-                                    _<24, 8>{read<uint8_t>(address + 3u)});
+                             _<8, 8>{read<uint8_t>(address + 1u)},
+                             _<16, 8>{read<uint8_t>(address + 2u)},
+                             _<24, 8>{read<uint8_t>(address + 3u)});
 }
 
 auto Memory::findRegion(uint32_t address) const -> MemoryRegion*

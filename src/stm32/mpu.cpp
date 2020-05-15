@@ -17,8 +17,10 @@ inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType a
 {
     if (!isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
-        cpu.exceptionTaken(ExceptionType::UsageFault);
+        throw utils::CpuException(ExceptionType::UsageFault);
     }
+
+    printf("address: %x\n", address);
 
     const auto descriptor = mpu.validateAddress(address, accessType, false);
     auto value = cpu.memory().read<T>(descriptor.physicalAddress);
@@ -35,7 +37,7 @@ inline void alignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, Ac
 {
     if (!isAddressAligned<T>(address)) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
-        cpu.exceptionTaken(ExceptionType::UsageFault);
+        throw utils::CpuException(ExceptionType::UsageFault);
     }
 
     const auto descriptor = mpu.validateAddress(address, accessType, true);
@@ -55,8 +57,7 @@ inline auto unalignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType
     }
     else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
-        cpu.exceptionTaken(ExceptionType::UsageFault);
-        return {};
+        throw utils::CpuException(ExceptionType::UsageFault);
     }
 
     T value{};
@@ -78,7 +79,7 @@ inline void unalignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, 
     }
     else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
-        cpu.exceptionTaken(ExceptionType::UsageFault);
+        throw utils::CpuException(ExceptionType::UsageFault);
     }
 
     if (cpu.systemRegisters().AIRCR().ENDIANNESS) {
@@ -248,7 +249,7 @@ auto Mpu::validateAddress(uint32_t address, AccessType accessType, bool write) -
             m_cpu.systemRegisters().CFSR().memManage.MMARVALID = true;
         }
 
-        m_cpu.exceptionTaken(ExceptionType::MemManage);
+        throw utils::CpuException(ExceptionType::MemManage);
     }
 
     return result;
@@ -296,7 +297,7 @@ void Mpu::checkPermissions(MemoryPermissions permissions, uint32_t address, Acce
         if (fault || permissions.executeNever) {
             m_cpu.systemRegisters().CFSR().memManage.IACCVIOL = true;
             m_cpu.systemRegisters().CFSR().memManage.MMARVALID = false;
-            m_cpu.exceptionTaken(ExceptionType::MemManage);
+            throw utils::CpuException(ExceptionType::MemManage);
         }
     }
     else if (fault) {
@@ -305,7 +306,7 @@ void Mpu::checkPermissions(MemoryPermissions permissions, uint32_t address, Acce
             m_cpu.systemRegisters().MMFAR().ADDRESS = address;
             m_cpu.systemRegisters().CFSR().memManage.MMARVALID = true;
         }
-        m_cpu.exceptionTaken(ExceptionType::MemManage);
+        throw utils::CpuException(ExceptionType::MemManage);
     }
 }
 

@@ -40,6 +40,7 @@ void Cpu::reset()
     m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
     const auto resetVector = m_mpu.alignedMemoryRead<uint32_t>(vectorTable + 4u, AccessType::VecTable);
+    printf("reset vector: %x\n", resetVector);
 
     m_registers.IPSR().exceptionNumber = 0u;
     m_registers.EPSR().T = utils::isBitSet<0>(resetVector);
@@ -50,6 +51,7 @@ void Cpu::reset()
 
 void Cpu::branchWritePC(uint32_t address, bool skipIncrementingPC)
 {
+    printf("%0x\n", address);
     m_registers.PC() = address & ZEROS<1, uint32_t>;
     m_skipIncrementingPC = skipIncrementingPC;
 }
@@ -119,7 +121,7 @@ auto Cpu::conditionPassed() const -> bool
             result = true;
             break;
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 
     if ((condition & 0b1u) && (condition != 0x0fu)) {
@@ -160,8 +162,8 @@ auto Cpu::isInPrivilegedMode() const -> bool
 auto Cpu::executionPriority() const -> int32_t
 {
     auto highestPRI = 256;  // Priority of Thread mode with no active exceptions
-    // The value is PriorityMax + 1 = 256
-    // (configurable priority maximum bit field is 8 bits)
+                            // The value is PriorityMax + 1 = 256
+                            // (configurable priority maximum bit field is 8 bits)
 
     auto boostedPRI = 256;  // Priority influence of BASEPRI, PRIMASK and FAULTMASK
 
@@ -169,7 +171,10 @@ auto Cpu::executionPriority() const -> int32_t
     auto groupValue = lsl(std::uint32_t{0b10}, subGroupShift);
 
     for (size_t i = 2; i < 512; ++i) {
-        // TODO:
+        if (!m_exceptionActive.test(i)) {
+            continue;
+        }
+
         // if ExceptionActive[i] == '1' then
         //      if ExceptionPriority[i] < highestpri then
         //          highestpri = ExceptionPriority[i];
@@ -196,7 +201,7 @@ auto Cpu::executionPriority() const -> int32_t
     return std::min(boostedPRI, highestPRI);
 }
 
-void Cpu::exceptionEntry(ExceptionType exceptionType)
+void Cpu::exceptionEntry(uint16_t exceptionType)
 {
     // TODO: see DerivedLateArrival
 
@@ -204,7 +209,7 @@ void Cpu::exceptionEntry(ExceptionType exceptionType)
     exceptionTaken(exceptionType);
 }
 
-void Cpu::pushStack(ExceptionType exceptionType)
+void Cpu::pushStack(uint16_t exceptionType)
 {
     using namespace utils;
 
@@ -250,7 +255,7 @@ void Cpu::pushStack(ExceptionType exceptionType)
     }
 }
 
-void Cpu::exceptionTaken(ExceptionType exceptionType)
+void Cpu::exceptionTaken(uint16_t exceptionType)
 {
     // R[0] - R[3], R[12] are UNKNOWN
     const auto vectorTablePtr = combine<uint32_t>(_<0, 7>{0u}, _<7, 25, uint32_t>{m_systemRegisters.VTOR().TBLOFF});
@@ -273,7 +278,7 @@ void Cpu::exceptionTaken(ExceptionType exceptionType)
     instructionSynchronizationBarrier(0b1111u);
 }
 
-auto Cpu::returnAddress(ExceptionType exceptionType) -> uint32_t
+auto Cpu::returnAddress(uint16_t exceptionType) -> uint32_t
 {
     switch (exceptionType) {
         case ExceptionType::NMI:

@@ -5,6 +5,10 @@
 
 namespace stm32
 {
+enum class BootMode {
+    FlashMemory,
+    SystemMemory,
+};
 
 class MemoryRegion {
 public:
@@ -133,6 +137,8 @@ public:
 
         uint32_t sramStart;
         uint32_t sramEnd;
+
+        BootMode bootMode;
     };
 
     explicit Memory(const Config& config);
@@ -145,6 +151,12 @@ public:
     auto read(uint32_t address) const -> T;
 
     inline auto config() const -> const Config& { return m_config; }
+
+    inline auto FLASH() -> std::vector<uint8_t>& { return m_flash; }
+    inline auto systemMemory() -> std::vector<uint8_t>& { return m_systemMemory; }
+    inline auto optionBytes() -> std::vector<uint8_t>& { return m_optionBytes; }
+
+    inline auto SRAM() -> std::vector<uint8_t>& { return m_sram; }
 
 private:
     auto findRegion(uint32_t address) const -> MemoryRegion*;

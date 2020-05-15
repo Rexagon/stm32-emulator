@@ -19,6 +19,8 @@ auto createMemory() -> Memory
 
         .sramStart = 0x20000000u,
         .sramEnd = 0x20005000u,
+
+        .bootMode = BootMode::FlashMemory,
     }};
 }
 

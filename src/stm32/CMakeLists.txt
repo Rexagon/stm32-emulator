@@ -16,6 +16,7 @@ set(${SUBPROJ_NAME}_HEADERS
         "mpu.hpp"
         "opcodes.hpp"
         "stm32.hpp"
+        "utils/exceptions.hpp"
         "utils/general.hpp"
         "utils/math.hpp"
         "registers/cpu_registers.hpp"

@@ -676,8 +676,7 @@ void cmdDiv(uint32_t opCode, Cpu& cpu)
     }
     else {
         if (cpu.systemRegisters().CCR().DIV_0_TRP) {
-            cpu.exceptionTaken(ExceptionType::UsageFault);
-            return;
+            throw utils::CpuException(utils::ExceptionType::UsageFault);
         }
         else {
             result = Type{0};
@@ -1386,7 +1385,7 @@ inline void cmdBranchWithLinkImmediate(uint32_t opCode, Cpu& cpu)
 
     const auto nextInstructionAddress = cpu.currentInstructionAddress() + 4u;
     cpu.registers().LR() = nextInstructionAddress | utils::ONES<1u, uint32_t>;
-    cpu.branchWritePC(nextInstructionAddress + imm32);
+    cpu.branchWritePC(cpu.currentInstructionAddress() + imm32);
 }
 
 inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)

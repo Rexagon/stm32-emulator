@@ -573,10 +573,10 @@ auto isAddressAligned(uint32_t address) -> bool
         return true;
     }
     else if constexpr (std::is_same_v<T, uint16_t>) {
-        return (address & ZEROS<1, uint32_t>) == 0;
+        return (address & ONES<1, uint32_t>) == 0;
     }
     else if constexpr (std::is_same_v<T, uint32_t>) {
-        return (address & ZEROS<2, uint32_t>) == 0;
+        return (address & ONES<2, uint32_t>) == 0;
     }
 }
 #pragma GCC diagnostic pop

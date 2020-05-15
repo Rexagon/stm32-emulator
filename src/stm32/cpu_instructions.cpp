@@ -54,7 +54,7 @@ inline void handleMathInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-448
             return opcodes::cmdAddSubImmediate<opcodes::Encoding::T2, /* isSub */ true>(opCode, cpu);
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -111,7 +111,7 @@ inline void handleDataProcessingInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-238
             return opcodes::cmdMvnRegister<opcodes::Encoding::T1>(opCode, cpu);
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -136,7 +136,7 @@ inline void handleSpecialDataInstruction(uint16_t opCode, Cpu& cpu)
             // see: A7-217
             return opcodes::cmdBranchAndExecuteRegister</* withLink */ true>(opCode, cpu);
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -177,7 +177,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     // see: A7-294
                     return opcodes::cmdLoadRegister<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ true>(opCode, cpu);
                 default:
-                    UNPREDICTABLE;
+                    UNDEFINED;
             }
         case 0b0110u:
             switch (getPart<9, 3>(opCode)) {
@@ -188,7 +188,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     // see: A7-252
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
-                    UNPREDICTABLE;
+                    UNDEFINED;
             }
         case 0b0111u:
             switch (getPart<9, 3>(opCode)) {
@@ -199,7 +199,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     // see: A7-258
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint8_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
-                    UNPREDICTABLE;
+                    UNDEFINED;
             }
         case 0b1000u:
             switch (getPart<9, 3>(opCode)) {
@@ -210,7 +210,7 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     // see: A7-274
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T1, uint16_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
-                    UNPREDICTABLE;
+                    UNDEFINED;
             }
         case 0b1001u:
             switch (getPart<9, 3>(opCode)) {
@@ -221,10 +221,10 @@ inline void handleLoadStoreSingleDataItem(uint16_t opCode, Cpu& cpu)
                     // see: A7-252
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T2, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 default:
-                    UNPREDICTABLE;
+                    UNDEFINED;
             }
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -323,7 +323,7 @@ inline void handleMiscInstruction(uint16_t opCode, Cpu& cpu)
                     return opcodes::cmdIfThen(opCode, cpu);
             }
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -401,7 +401,7 @@ inline void loadMultipleAndStoreMultiple(uint32_t opCode, Cpu& cpu)
                 return opcodes::cmdLoadMultipleDecrementBefore(opCode, cpu);
             }
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -457,7 +457,7 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
         }
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
@@ -513,7 +513,7 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
                             return opcodes::cmdRorImmediate(opCode, cpu);
                         }
                     default:
-                        UNPREDICTABLE;
+                        UNDEFINED;
                 }
             }
         case 0b0011u:
@@ -568,7 +568,7 @@ inline void dataProcessingShiftedRegister(uint32_t opCode, Cpu& cpu)
             break;
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void coprocessorInstructions(uint32_t /*opCode*/, Cpu& /*cpu*/)
@@ -650,7 +650,7 @@ inline void dataProcessingModifiedImmediate(uint32_t opCode, Cpu& cpu)
             // see: A7-372
             return opcodes::cmdRsbImmediate<opcodes::Encoding::T2>(opCode, cpu);
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -711,7 +711,7 @@ inline void dataProcessingPlainBinaryImmediate(uint32_t opCode, Cpu& cpu)
             break;
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
@@ -753,7 +753,7 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
                             }
                         }
                         else {
-                            UNPREDICTABLE;
+                            UNDEFINED;
                         }
                     case 0b0111011u:
                         switch (getPart<4, 4>(opCode)) {
@@ -794,7 +794,7 @@ inline void branchesAndMiscControl(uint32_t opCode, Cpu& cpu)
             break;
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
@@ -840,7 +840,7 @@ inline void storeSingleDataItem(uint32_t opCode, Cpu& cpu)
             // see: A-426
             return opcodes::cmdStoreImmediate<opcodes::Encoding::T3, uint32_t>(opCode, cpu);
         default:
-            UNPREDICTABLE;
+            UNDEFINED;
     }
 }
 
@@ -926,7 +926,7 @@ inline void loadByteAndMemoryHints(uint32_t opCode, Cpu& cpu)
         }
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void loadHalfWordAndMemoryHints(uint32_t opCode, Cpu& cpu)
@@ -995,7 +995,7 @@ inline void loadHalfWordAndMemoryHints(uint32_t opCode, Cpu& cpu)
         }
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void loadWord(uint32_t opCode, Cpu& cpu)
@@ -1033,7 +1033,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
         }
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
@@ -1114,7 +1114,7 @@ inline void dataProcessingRegister(uint32_t opCode, Cpu& cpu)
             break;
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void multiplicationAndAbsoluteDifference(uint32_t opCode, Cpu& cpu)
@@ -1142,7 +1142,7 @@ inline void multiplicationAndAbsoluteDifference(uint32_t opCode, Cpu& cpu)
             }
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
@@ -1191,7 +1191,7 @@ inline void longMultiplicationAndDivision(uint32_t opCode, Cpu& cpu)
             break;
     }
 
-    UNPREDICTABLE;
+    UNDEFINED;
 }
 
 }  // namespace wo
@@ -1205,8 +1205,8 @@ void Cpu::step()
 
     const auto op1 = getPart<11, 2>(opCodeHw1);
 
-    if (op1 == 0u) {
-        switch (getPart<2, 6>(opCodeHw1)) {
+    if (op1 == 0u || (getPart<13, 3>(opCodeHw1) != 0b111u)) {
+        switch (getPart<10, 6>(opCodeHw1)) {
             case 0b00'0000u ... 0b00'1111u:
                 hw::handleMathInstruction(opCodeHw1, *this);
                 break;
@@ -1246,7 +1246,7 @@ void Cpu::step()
                 hw::handleUnconditionalBranch(opCodeHw1, *this);
                 break;
             default:
-                UNPREDICTABLE;
+                UNDEFINED;
         }
 
         PC += 2u;
@@ -1279,25 +1279,20 @@ void Cpu::step()
                         wo::coprocessorInstructions(opCode, *this);
                         break;
                     default:
-                        UNPREDICTABLE;
+                        UNDEFINED;
                 }
                 break;
             case 0b10u:
-                switch (op2) {
-                    case 0b00'00000u ... 0b00'11111u:
-                    case 0b10'00000u ... 0b10'11111u:
-                        UNPREDICTABLE_IF((!isBitClear<15>(opCodeHw2)));
+                if (isBitClear<15>(opCodeHw2)) {
+                    if (isBitClear<5>(op2)) {
                         wo::dataProcessingModifiedImmediate(opCode, *this);
-                        break;
-                    case 0b01'00000u ... 0b01'11111u:
-                    case 0b11'00000u ... 0b11'11111u:
-                        UNPREDICTABLE_IF((!isBitClear<15>(opCodeHw2)));
+                    }
+                    else {
                         wo::dataProcessingPlainBinaryImmediate(opCode, *this);
-                        break;
-                    default:
-                        UNPREDICTABLE_IF((!isBitSet<15>(opCodeHw2)));
-                        wo::branchesAndMiscControl(opCode, *this);
-                        break;
+                    }
+                }
+                else {
+                    wo::branchesAndMiscControl(opCode, *this);
                 }
                 break;
             case 0b11u:
@@ -1318,7 +1313,7 @@ void Cpu::step()
                                     wo::loadWord(opCode, *this);
                                     break;
                                 default:
-                                    UNPREDICTABLE;
+                                    UNDEFINED;
                             }
                         }
                         break;
@@ -1335,11 +1330,11 @@ void Cpu::step()
                         wo::coprocessorInstructions(opCode, *this);
                         break;
                     default:
-                        UNPREDICTABLE;
+                        UNDEFINED;
                 }
                 break;
             default:
-                UNPREDICTABLE;
+                UNDEFINED;
         }
 
         PC += 4u;
