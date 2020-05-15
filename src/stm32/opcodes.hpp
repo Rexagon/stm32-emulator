@@ -1367,7 +1367,7 @@ void cmdBranch(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    cpu.branchWritePC(cpu.currentInstructionAddress() + 4u + imm32);
+    cpu.branchWritePC(cpu.currentInstructionAddress() + imm32);
 }
 
 inline void cmdBranchWithLinkImmediate(uint32_t opCode, Cpu& cpu)
@@ -1431,7 +1431,7 @@ inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
 {
     const auto [mask, firstCond] = utils::split<_<0, 4>, _<4, 4>>(opCode);
 
-    UNPREDICTABLE_IF(firstCond == 0b1111u || (firstCond == 0b111u && utils::bitCount(mask) != 1u));
+    UNPREDICTABLE_IF(firstCond == 0b1111u || (firstCond == 0b1110u && utils::bitCount(mask) != 1u));
     UNPREDICTABLE_IF(cpu.isInItBlock());
 
     const auto ITSTATE = utils::combine<uint8_t>(_<0, 4>{mask}, _<4, 4>{firstCond});

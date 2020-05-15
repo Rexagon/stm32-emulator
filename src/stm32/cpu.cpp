@@ -145,7 +145,7 @@ void Cpu::advanceCondition()
 {
     auto ITSTATE = m_registers.ITSTATE();
 
-    if (ITSTATE & 0b111u) {
+    if (getPart<0, 3>(ITSTATE)) {
         ITSTATE = static_cast<uint8_t>((ITSTATE & ZEROS<5, uint8_t>) | ((ITSTATE << 1u) & ONES<5, uint8_t>));
         m_registers.setITSTATE(ITSTATE);
     }

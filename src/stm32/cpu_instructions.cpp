@@ -1242,7 +1242,7 @@ void Cpu::step()
             case 0b1101'00u ... 0b1101'11u:
                 hw::handleConditionalBranch(opCodeHw1, *this);
                 break;
-            case 0b11100'0u ... 0b11100'0u:
+            case 0b11100'0u ... 0b11100'1u:
                 hw::handleUnconditionalBranch(opCodeHw1, *this);
                 break;
             default:
@@ -1298,7 +1298,7 @@ void Cpu::step()
             case 0b11u:
                 switch (op2) {
                     case 0b00'00000u ... 0b00'11111u:
-                        if ((op2 & 0b0001110u) == 0u) {
+                        if ((op2 & 0b1110001u) == 0u) {
                             wo::storeSingleDataItem(opCode, *this);
                         }
                         else {

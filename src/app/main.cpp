@@ -61,9 +61,14 @@ int main(int argc, const char** argv)
         cpu.reset();
 
         while (true) {
-            std::cout << "PC: " << cpu.registers().PC() << std::endl;
-            std::cout << "IT: " << cpu.isInItBlock() << std::endl;
-            std::cout << "ITlast: " << cpu.isLastInItBlock() << std::endl;
+            printf("PC: %08x\t", cpu.registers().PC());
+            printf("IT: %s\t", cpu.isInItBlock() ? "1" : "_");
+            printf("L: %s\t", cpu.isLastInItBlock() ? "1" : "_");
+            printf("\n");
+
+            if (cpu.isInItBlock()) {
+                cpu.advanceCondition();
+            }
 
             cpu.step();
 
