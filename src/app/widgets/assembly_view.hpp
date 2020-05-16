@@ -1,18 +1,19 @@
 #pragma once
 
+#include <QTableView>
 #include <QTextEdit>
 
 #include "../utils/general.hpp"
 
 namespace app
 {
-class AssemblyView final : public QWidget {
+class AssemblyView final : public QTableView {
     Q_OBJECT
 public:
     explicit AssemblyView(QWidget* parent);
     ~AssemblyView() override = default;
 
-    void updateView(const QString& assembly);
+    void setModel(QAbstractItemModel *model) override;
 
 public:
     RESTRICT_COPY(AssemblyView);
@@ -20,7 +21,7 @@ public:
 private:
     void init();
 
-    QTextEdit* m_textView = nullptr;
+    void updateRows();
 };
 
 }  // namespace app

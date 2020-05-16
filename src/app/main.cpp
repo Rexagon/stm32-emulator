@@ -20,8 +20,9 @@ auto main(int argc, char** argv) -> int
     QWidget::connect(&mainWindow, &app::MainWindow::fileSelected, &application, &app::Application::loadFile);
     QWidget::connect(&mainWindow, &app::MainWindow::exitRequested, &mainWindow, &app::MainWindow::close);
 
-    QWidget::connect(&application, &app::Application::assemblyLoaded, mainWindow.assemblyView(), &app::AssemblyView::updateView);
-    QWidget::connect(&application, &app::Application::binaryLoaded, mainWindow.memoryView(), &app::MemoryView::setData);
+    QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setData);
+
+    mainWindow.assemblyView()->setModel(application.assemblyViewModel());
 
     mainWindow.show();
 

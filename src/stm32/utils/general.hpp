@@ -48,3 +48,29 @@
 #define RESERVE(bits) \
     uint32_t:         \
     bits
+
+namespace stm32::utils
+{
+template <typename T, typename S = int>
+class ArrayView {
+public:
+    ArrayView(T* ptr, S size) noexcept
+        : m_ptr{ptr}
+        , m_size{size}
+    {
+    }
+
+    auto operator[](S i) noexcept -> T& { return m_ptr[i]; }
+    auto operator[](S i) const noexcept -> const T& { return m_ptr[i]; }
+
+    inline auto size() const noexcept { return m_size; }
+
+    inline auto begin() noexcept { return m_ptr; }
+    inline auto end() noexcept { return m_ptr + m_size; }
+
+private:
+    T* m_ptr;
+    S m_size;
+};
+
+}  // namespace utils

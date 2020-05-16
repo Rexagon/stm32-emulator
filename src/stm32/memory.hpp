@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "utils/general.hpp"
+
 namespace stm32
 {
 enum class BootMode {
@@ -139,6 +141,7 @@ public:
         uint32_t sramEnd;
 
         BootMode bootMode;
+        utils::ArrayView<uint8_t, uint32_t> flash;
     };
 
     explicit Memory(const Config& config);
@@ -152,7 +155,7 @@ public:
 
     inline auto config() const -> const Config& { return m_config; }
 
-    inline auto FLASH() -> std::vector<uint8_t>& { return m_flash; }
+
     inline auto systemMemory() -> std::vector<uint8_t>& { return m_systemMemory; }
     inline auto optionBytes() -> std::vector<uint8_t>& { return m_optionBytes; }
 
@@ -163,7 +166,6 @@ private:
 
     Config m_config;
 
-    std::vector<uint8_t> m_flash;
     std::vector<uint8_t> m_systemMemory;
     std::vector<uint8_t> m_optionBytes;
 

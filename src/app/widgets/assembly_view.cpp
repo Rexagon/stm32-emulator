@@ -3,12 +3,16 @@
 
 #include "assembly_view.hpp"
 
+#include <QFontDatabase>
+#include <QHeaderView>
 #include <QVBoxLayout>
+
+#include "../models/assembly_view_model.hpp"
 
 namespace app
 {
 AssemblyView::AssemblyView(QWidget* parent)
-    : QWidget{parent}
+    : QTableView{parent}
 {
     init();
 }
@@ -16,17 +20,30 @@ AssemblyView::AssemblyView(QWidget* parent)
 void AssemblyView::init()
 {
     setMinimumWidth(200);
-    auto* layout = new QVBoxLayout{this};
+    horizontalHeader()->setStretchLastSection(true);
+    verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Fixed);
+    verticalHeader()->setVisible(false);
 
-    m_textView = new QTextEdit{this};
-    layout->addWidget(m_textView);
-
-    m_textView->setReadOnly(true);
+    QFont font{QFontDatabase::systemFont(QFontDatabase::SystemFont::FixedFont)};
 }
 
-void AssemblyView::updateView(const QString& assembly)
+void AssemblyView::setModel(QAbstractItemModel* model)
 {
-    m_textView->setText(assembly);
+    QTableView::setModel(model);
+
+    connect(model, &QAbstractItemModel::dataChanged, this, &AssemblyView::updateRows);
+}
+
+void AssemblyView::updateRows()
+{
+    auto* model = this->model();
+
+    for (int i = 0; i < model->rowCount(); ++i) {
+        const auto rowType = model->data(model->index(i, 0), Qt::UserRole);
+        if (rowType.value<AssemblyViewModel::RowType>() == AssemblyViewModel::RowType::Label) {
+            setSpan(i, 0, 1, 3);
+        }
+    }
 }
 
 }  // namespace app

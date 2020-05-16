@@ -11,6 +11,7 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
         "utils/general.hpp"
+        "models/assembly_view_model.hpp"
         "models/settings.hpp"
         "widgets/assembly_view.hpp"
         "widgets/custom_splitter.hpp"
@@ -23,6 +24,7 @@ set(${SUBPROJ_NAME}_HEADERS
 
 set(${SUBPROJ_NAME}_SOURCES
         "main.cpp"
+        "models/assembly_view_model.cpp"
         "models/settings.cpp"
         "widgets/assembly_view.cpp"
         "widgets/custom_splitter.cpp"

@@ -39,7 +39,6 @@ MemoryRegion::MemoryRegion(uint32_t regionStart, uint32_t regionEnd)
 
 Memory::Memory(const Config& config)
     : m_config{config}
-    , m_flash(config.flashMemoryEnd - config.flashMemoryStart, 0)
     , m_systemMemory(config.systemMemoryEnd - config.systemMemoryStart, 0)
     , m_optionBytes(config.optionBytesEnd - config.optionBytesStart, 0)
     , m_sram(config.sramEnd - config.sramStart, 0)
@@ -64,7 +63,7 @@ void Memory::write<uint8_t>(uint32_t address, uint8_t data)
         if (address < m_config.flashMemoryStart) {
             switch (m_config.bootMode) {
                 case BootMode::FlashMemory:
-                    m_flash[address] = data;
+                    m_config.flash[address] = data;
                     return;
                 case BootMode::SystemMemory:
                     m_systemMemory[address] = data;
@@ -72,7 +71,7 @@ void Memory::write<uint8_t>(uint32_t address, uint8_t data)
             }
         }
         else {
-            m_flash[address - m_config.flashMemoryStart] = data;
+            m_config.flash[address - m_config.flashMemoryStart] = data;
         }
     }
     else if (address >= m_config.systemMemoryStart && address < m_config.systemMemoryEnd) {
@@ -129,13 +128,13 @@ auto Memory::read<uint8_t>(uint32_t address) const -> uint8_t
         if (address < m_config.flashMemoryStart) {
             switch (m_config.bootMode) {
                 case BootMode::FlashMemory:
-                    return m_flash[address];
+                    return m_config.flash[address];
                 case BootMode::SystemMemory:
                     return m_systemMemory[address];
             }
         }
         else {
-            return m_flash[address - m_config.flashMemoryStart];
+            return m_config.flash[address - m_config.flashMemoryStart];
         }
     }
     else if (address >= m_config.systemMemoryStart && address < m_config.systemMemoryEnd) {

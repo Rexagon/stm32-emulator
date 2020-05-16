@@ -40,7 +40,7 @@ void MemoryView::init()
     setMinimumWidth(m_positionAscii + (m_bytesPerLine * m_characterWidth));
 }
 
-void MemoryView::setData(std::shared_ptr<QByteArray> newData)
+void MemoryView::setData(QByteArray newData)
 {
     verticalScrollBar()->setValue(0);
 
@@ -51,11 +51,23 @@ void MemoryView::setData(std::shared_ptr<QByteArray> newData)
     viewport()->update();
 }
 
+void MemoryView::clearData()
+{
+    m_data.reset();
+}
+
+void MemoryView::updateViewport()
+{
+    viewport()->update();
+}
+
 void MemoryView::paintEvent(QPaintEvent* event)
 {
-    if (m_data == nullptr) {
+    if (!m_data.has_value()) {
         return;
     }
+
+    const auto dataSize = m_data->size();
 
     QPainter painter{viewport()};
 
@@ -67,13 +79,13 @@ void MemoryView::paintEvent(QPaintEvent* event)
     auto firstLineNumber = verticalScrollBar()->value();
 
     int lastLineNumber = firstLineNumber + areaSize.height() / m_characterHeight;
-    if (lastLineNumber > m_data->size() / m_bytesPerLine) {
-        lastLineNumber = (m_data->size() + m_bytesPerLine - 1) / m_bytesPerLine;
+    if (lastLineNumber > dataSize / m_bytesPerLine) {
+        lastLineNumber = (dataSize + m_bytesPerLine - 1) / m_bytesPerLine;
     }
 
-    painter.fillRect(event->rect(), this->palette().color(QPalette::Base));
+    painter.fillRect(event->rect(), palette().color(QPalette::Base));
 
-    auto addressAreaColor = QColor{0xd4, 0xd4, 0xd4, 0xff};
+    auto addressAreaColor = QColor{0xdd, 0xdd, 0xdd, 0xff};
     painter.fillRect(QRect{0, event->rect().top(), m_positionHex - HEX_LEFT_OFFSET / 2, height()}, addressAreaColor);
 
     auto linePos = m_positionAscii - (ASCII_LEFT_OFFSET / 2);
@@ -86,7 +98,7 @@ void MemoryView::paintEvent(QPaintEvent* event)
 
     QBrush def = painter.brush();
     QBrush selected{QColor{0x6d, 0x9e, 0xff, 0xff}};
-    QByteArray dataView = m_data->mid(firstLineNumber * m_bytesPerLine, (lastLineNumber - firstLineNumber) * m_bytesPerLine);
+    auto dataView = m_data->mid(firstLineNumber * m_bytesPerLine, (lastLineNumber - firstLineNumber) * m_bytesPerLine);
 
     for (int lineIndex = firstLineNumber, yPos = yPosStart; lineIndex < lastLineNumber; lineIndex += 1, yPos += m_characterHeight) {
         QString address = QString("%1").arg(lineIndex * 16, 10, 16, QChar('0'));
@@ -100,9 +112,8 @@ void MemoryView::paintEvent(QPaintEvent* event)
                 painter.setBackgroundMode(Qt::OpaqueMode);
             }
 
-            QString val = QString::number((dataView.at((lineIndex - firstLineNumber) * m_bytesPerLine + i) & 0xF0) >> 4, 16);
+            QString val = QString::number((dataView[(lineIndex - firstLineNumber) * m_bytesPerLine + i] & 0xF0) >> 4, 16);
             painter.drawText(xPos, yPos, val);
-
 
             if ((pos + 1) >= m_selectionBegin && (pos + 1) < m_selectionEnd) {
                 painter.setBackground(selected);
@@ -113,7 +124,7 @@ void MemoryView::paintEvent(QPaintEvent* event)
                 painter.setBackgroundMode(Qt::OpaqueMode);
             }
 
-            val = QString::number((dataView.at((lineIndex - firstLineNumber) * m_bytesPerLine + i) & 0xF), 16);
+            val = QString::number((dataView[(lineIndex - firstLineNumber) * m_bytesPerLine + i] & 0xF), 16);
             painter.drawText(xPos + m_characterWidth, yPos, val);
 
             painter.setBackground(def);
@@ -123,9 +134,10 @@ void MemoryView::paintEvent(QPaintEvent* event)
         for (int xPosAscii = m_positionAscii, i = 0;
              ((lineIndex - firstLineNumber) * m_bytesPerLine + i) < dataView.size() && (i < m_bytesPerLine);
              i++, xPosAscii += m_characterWidth) {
-            char ch = dataView[(lineIndex - firstLineNumber) * m_bytesPerLine + i];
-            if ((ch < 0x20) || (ch > 0x7e))
+            auto ch = static_cast<char>(dataView[(lineIndex - firstLineNumber) * m_bytesPerLine + i]);
+            if ((ch < 0x20) || (ch > 0x7e)) {
                 ch = '.';
+            }
 
             painter.drawText(xPosAscii, yPos, QString(ch));
         }
@@ -137,7 +149,7 @@ void MemoryView::paintEvent(QPaintEvent* event)
         y -= firstLineNumber;
         int cursorX = (((x / 2) * 3) + (x % 2)) * m_characterWidth + m_positionHex;
         int cursorY = y * m_characterHeight + 4;
-        painter.fillRect(cursorX, cursorY, 2, m_characterHeight, this->palette().color(QPalette::WindowText));
+        painter.fillRect(cursorX, cursorY, 2, m_characterHeight, palette().color(QPalette::WindowText));
     }
 }
 
@@ -188,7 +200,7 @@ void MemoryView::keyPressEvent(QKeyEvent* event)
         setVisible = true;
     }
     if (event->matches(QKeySequence::MoveToEndOfDocument)) {
-        if (m_data != nullptr) {
+        if (m_data.has_value()) {
             setCursorPosition(m_data->size() * 2);
         }
         resetSelection(m_cursorPosition);
@@ -203,8 +215,8 @@ void MemoryView::keyPressEvent(QKeyEvent* event)
     // Select commands
     if (event->matches(QKeySequence::SelectAll)) {
         resetSelection(0);
-        if (m_data != nullptr) {
-            setSelection(2 * m_data->size() + 1);
+        if (m_data.has_value()) {
+            setSelection(m_data->size() * 2 + 1);
         }
         setVisible = true;
     }
@@ -259,7 +271,7 @@ void MemoryView::keyPressEvent(QKeyEvent* event)
     }
     if (event->matches(QKeySequence::SelectEndOfDocument)) {
         int pos = 0;
-        if (m_data != nullptr) {
+        if (m_data.has_value()) {
             pos = m_data->size() * 2;
         }
         setCursorPosition(pos);
@@ -274,14 +286,14 @@ void MemoryView::keyPressEvent(QKeyEvent* event)
     }
 
     if (event->matches(QKeySequence::Copy)) {
-        if (m_data != nullptr) {
+        if (m_data.has_value()) {
             QString res;
             int idx = 0;
             int copyOffset = 0;
 
             auto selectedData = m_data->mid(m_selectionBegin / 2, (m_selectionEnd - m_selectionBegin) / 2 + 1);
             if (m_selectionBegin % 2) {
-                res += QString::number((selectedData.at((idx + 1) / 2) & 0xF), 16);
+                res += QString::number((selectedData[(idx + 1) / 2] & 0xF), 16);
                 res += " ";
                 idx++;
                 copyOffset = 1;
@@ -289,9 +301,9 @@ void MemoryView::keyPressEvent(QKeyEvent* event)
 
             int selectedSize = m_selectionEnd - m_selectionBegin;
             for (; idx < selectedSize; idx += 2) {
-                QString val = QString::number((selectedData.at((copyOffset + idx) / 2) & 0xF0) >> 4, 16);
+                QString val = QString::number((selectedData[(copyOffset + idx) / 2] & 0xF0) >> 4, 16);
                 if (idx + 1 < selectedSize) {
-                    val += QString::number((selectedData.at((copyOffset + idx) / 2) & 0xF), 16);
+                    val += QString::number((selectedData[(copyOffset + idx) / 2] & 0xF), 16);
                     val += " ";
                 }
                 res += val;
@@ -337,7 +349,7 @@ void MemoryView::mousePressEvent(QMouseEvent* event)
 
 auto MemoryView::fullSize() const -> QSize
 {
-    if (m_data == nullptr) {
+    if (!m_data.has_value()) {
         return QSize{0, 0};
     }
 
@@ -349,12 +361,6 @@ auto MemoryView::fullSize() const -> QSize
     height *= m_characterHeight;
 
     return QSize{width, height};
-}
-
-void MemoryView::resetSelection()
-{
-    m_selectionBegin = m_selectionInit;
-    m_selectionEnd = m_selectionInit;
 }
 
 void MemoryView::resetSelection(int position)
@@ -402,7 +408,7 @@ void MemoryView::setCursorPosition(int position)
     position = std::max(0, position);
 
     auto maxPosition = 0;
-    if (m_data != nullptr) {
+    if (m_data.has_value()) {
         maxPosition = m_data->size() * 2;
         if (m_data->size() % m_bytesPerLine) {
             maxPosition++;
