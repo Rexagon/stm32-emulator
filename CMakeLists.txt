@@ -23,6 +23,14 @@ set(_PROJECT_VERSION
 
 project(${_PROJECT_NAME} LANGUAGES ${_PROJECT_LANGUAGE} VERSION ${_PROJECT_VERSION})
 
+# Add qt5 dependency
+find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
+get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
+find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
+find_program(LUPDATE_EXECUTABLE lupdate HINTS "${_qt_bin_dir}")
+find_program(LRELEASE_EXECUTABLE lrelease HINTS "${_qt_bin_dir}")
+
 foreach (SUBPROJ ${SUBPROJECT_LIST})
     add_subdirectory(${SUBPROJ})
 endforeach ()

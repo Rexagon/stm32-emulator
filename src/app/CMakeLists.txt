@@ -10,14 +10,35 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
-        "")
+        "utils/general.hpp"
+        "widgets/assembly_view.hpp"
+        "widgets/custom_splitter.hpp"
+        "widgets/main_menu.hpp"
+        "widgets/main_toolbar.hpp"
+        "widgets/memory_view.hpp"
+        "widgets/registers_view.hpp"
+        "windows/main_window.hpp"
+        "windows/main_window_ui.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
-        "main.cpp")
+        "main.cpp"
+        "widgets/assembly_view.cpp"
+        "widgets/custom_splitter.cpp"
+        "widgets/main_menu.cpp"
+        "widgets/registers_view.cpp"
+        "widgets/memory_view.cpp"
+        "widgets/main_toolbar.cpp"
+        "windows/main_window.cpp"
+        "windows/main_window_ui.cpp")
+
+qt5_add_resources(RESOURCES ${PROJECT_ROOT_DIR}/res/app.qrc)
 
 # ############################################################### #
 # Options ####################################################### #
 # ############################################################### #
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 include(OptionHelpers)
 generate_basic_options_executable(${SUBPROJ_NAME})
@@ -37,7 +58,8 @@ set(
 
 add_executable(
         ${SUBPROJ_NAME}
-        ${${SUBPROJ_NAME}_ALL_SRCS})
+        ${${SUBPROJ_NAME}_ALL_SRCS}
+        ${RESOURCES})
 
 # Enable C++17 on this project
 set_target_properties(
@@ -65,7 +87,7 @@ target_include_directories(
         PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-target_link_libraries(${SUBPROJ_NAME} stm32)
+target_link_libraries(${SUBPROJ_NAME} PRIVATE stm32 Qt5::Core Qt5::Widgets)
 
 # ############################################################### #
 # Installing #################################################### #

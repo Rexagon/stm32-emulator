@@ -12,8 +12,10 @@
     if (expression)                  \
         throw ::stm32::utils::UnpredictableException { "conditional " #expression }
 
-#define UNDEFINED assert(false)
-#define UNDEFINED_IF(expression) assert(!(expression))
+#define UNDEFINED throw ::stm32::utils::UndefinedException("undefined" __FILE__ " " TOSTRING(__LINE__))
+#define UNDEFINED_IF(expression) \
+    if (expression)              \
+    throw ::stm32::utils::UndefinedException("undefined" __FILE__ " " TOSTRING(__LINE__))
 
 #define UNIMPLEMENTED assert(false)
 

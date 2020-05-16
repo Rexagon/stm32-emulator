@@ -1,6 +1,22 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check
 // it. PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
+#include <QApplication>
+
+#include "windows/main_window.hpp"
+
+auto main(int argc, char** argv) -> int
+{
+    QApplication application{argc, argv};
+    QApplication::setApplicationName("stm32 emulator");
+
+    app::MainWindow mainWindow;
+    mainWindow.show();
+
+    return QGuiApplication::exec();
+}
+
+/*
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -26,7 +42,7 @@ auto loadFlash(const char* path) -> std::optional<std::vector<uint8_t>>
     return result;
 }
 
-int main(int argc, const char** argv)
+auto main(int argc, const char** argv) -> int
 {
     if (argc < 2) {
         return 1;
@@ -87,3 +103,4 @@ int main(int argc, const char** argv)
 
     return 0;
 }
+*/
