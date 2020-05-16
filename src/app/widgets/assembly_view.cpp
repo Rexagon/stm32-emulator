@@ -24,4 +24,9 @@ void AssemblyView::init()
     m_textView->setReadOnly(true);
 }
 
+void AssemblyView::updateView(const QString& assembly)
+{
+    m_textView->setText(assembly);
+}
+
 }  // namespace app

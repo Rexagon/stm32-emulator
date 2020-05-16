@@ -11,6 +11,7 @@ set(${SUBPROJ_NAME}_PATCH_VERSION 1)
 # Insert here your source files
 set(${SUBPROJ_NAME}_HEADERS
         "utils/general.hpp"
+        "models/settings.hpp"
         "widgets/assembly_view.hpp"
         "widgets/custom_splitter.hpp"
         "widgets/main_menu.hpp"
@@ -18,10 +19,11 @@ set(${SUBPROJ_NAME}_HEADERS
         "widgets/memory_view.hpp"
         "widgets/registers_view.hpp"
         "windows/main_window.hpp"
-        "windows/main_window_ui.hpp")
+        "application.hpp")
 
 set(${SUBPROJ_NAME}_SOURCES
         "main.cpp"
+        "models/settings.cpp"
         "widgets/assembly_view.cpp"
         "widgets/custom_splitter.cpp"
         "widgets/main_menu.cpp"
@@ -29,7 +31,7 @@ set(${SUBPROJ_NAME}_SOURCES
         "widgets/memory_view.cpp"
         "widgets/main_toolbar.cpp"
         "windows/main_window.cpp"
-        "windows/main_window_ui.cpp")
+        "application.cpp")
 
 qt5_add_resources(RESOURCES ${PROJECT_ROOT_DIR}/res/app.qrc)
 

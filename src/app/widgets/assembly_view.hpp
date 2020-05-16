@@ -12,6 +12,8 @@ public:
     explicit AssemblyView(QWidget* parent);
     ~AssemblyView() override = default;
 
+    void updateView(const QString& assembly);
+
 public:
     RESTRICT_COPY(AssemblyView);
 

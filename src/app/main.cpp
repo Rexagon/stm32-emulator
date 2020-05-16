@@ -3,17 +3,29 @@
 
 #include <QApplication>
 
+#include "application.hpp"
+#include "models/settings.hpp"
 #include "windows/main_window.hpp"
 
 auto main(int argc, char** argv) -> int
 {
-    QApplication application{argc, argv};
+    QApplication gui{argc, argv};
     QApplication::setApplicationName("stm32 emulator");
 
-    app::MainWindow mainWindow;
+    app::Settings settings;
+
+    app::Application application{settings};
+
+    app::MainWindow mainWindow{settings};
+    QWidget::connect(&mainWindow, &app::MainWindow::fileSelected, &application, &app::Application::loadFile);
+    QWidget::connect(&mainWindow, &app::MainWindow::exitRequested, &mainWindow, &app::MainWindow::close);
+
+    QWidget::connect(&application, &app::Application::assemblyLoaded, mainWindow.assemblyView(), &app::AssemblyView::updateView);
+    QWidget::connect(&application, &app::Application::binaryLoaded, mainWindow.memoryView(), &app::MemoryView::setData);
+
     mainWindow.show();
 
-    return QGuiApplication::exec();
+    return QApplication::exec();
 }
 
 /*
