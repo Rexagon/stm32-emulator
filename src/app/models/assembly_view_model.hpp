@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractTableModel>
+#include <unordered_map>
 
 namespace app
 {
@@ -15,9 +16,10 @@ public:
 
     struct Row {
         RowType type;
-        uint32_t address{};
+        uint32_t address;
         QString raw{};
         QString assembly;
+        bool withBreakpoint = false;
     };
 
     explicit AssemblyViewModel();
@@ -26,12 +28,22 @@ public:
     void tryFillFromString(const QString& input);
     void clear();
 
+    auto selectCurrentAddress(uint32_t address) -> Row*;
+
     int rowCount(const QModelIndex& parent = QModelIndex{}) const override;
     int columnCount(const QModelIndex& parent = QModelIndex{}) const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
+
+signals:
+    void breakpointAdded(uint32_t address);
+    void breakpointRemoved(uint32_t address);
 
 private:
+    uint32_t m_currentAddress = 0;
+
     std::vector<Row> m_rows;
+    std::unordered_map<uint32_t, Row*> m_rowsMap;
 };
 
 }  // namespace app

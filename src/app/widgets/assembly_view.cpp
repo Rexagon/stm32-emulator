@@ -5,6 +5,8 @@
 
 #include <QFontDatabase>
 #include <QHeaderView>
+#include <QTableWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "../models/assembly_view_model.hpp"
@@ -15,35 +17,68 @@ AssemblyView::AssemblyView(QWidget* parent)
     : QTableView{parent}
 {
     init();
+    registerEvents();
 }
 
 void AssemblyView::init()
 {
+    QFont font{QFontDatabase::systemFont(QFontDatabase::SystemFont::FixedFont)};
+    setFont(font);
+
     setMinimumWidth(200);
     horizontalHeader()->setStretchLastSection(true);
+    horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Fixed);
+    horizontalHeader()->setVisible(false);
     verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Fixed);
     verticalHeader()->setVisible(false);
 
-    QFont font{QFontDatabase::systemFont(QFontDatabase::SystemFont::FixedFont)};
+    setSelectionBehavior(QAbstractItemView::SelectRows);
+    setShowGrid(false);
+
+    setItemDelegate(new SelectionControlDelegate{this});
+}
+
+void AssemblyView::registerEvents()
+{
+    connect(this, &AssemblyView::doubleClicked, [this](const QModelIndex& index) {
+        if (auto model = this->model(); model != nullptr) {
+            model->setData(index, {}, Qt::CheckStateRole);
+        }
+    });
 }
 
 void AssemblyView::setModel(QAbstractItemModel* model)
 {
     QTableView::setModel(model);
 
-    connect(model, &QAbstractItemModel::dataChanged, this, &AssemblyView::updateRows);
+    setColumnWidth(0, 20);
+    setColumnWidth(1, fontMetrics().maxWidth() * 10);
+
+    updateRows();
+    connect(model, &QAbstractItemModel::dataChanged, [this]() { QTimer::singleShot(0, this, &AssemblyView::updateRows); });
 }
 
 void AssemblyView::updateRows()
 {
     auto* model = this->model();
+    if (model == nullptr) {
+        return;
+    }
+
+    const auto rowHeight = fontMetrics().height();
 
     for (int i = 0; i < model->rowCount(); ++i) {
         const auto rowType = model->data(model->index(i, 0), Qt::UserRole);
         if (rowType.value<AssemblyViewModel::RowType>() == AssemblyViewModel::RowType::Label) {
-            setSpan(i, 0, 1, 3);
+            setSpan(i, 2, 1, 2);
+            setRowHeight(i, rowHeight * 2);
+        }
+        else {
+            setRowHeight(i, rowHeight);
         }
     }
+
+    viewport()->update();
 }
 
 }  // namespace app
