@@ -422,7 +422,7 @@ inline void loadStoreDualOrExclusive(uint32_t opCode, Cpu& cpu)
         // see: A7-436
         return opcodes::cmdStoreRegisterDual(opCode, cpu);
     }
-    if ((op2 == 0b11u && isBitClear<1>(op1)) || (isBitSet<1>(op2) && isBitSet<1>(op1))) {
+    if ((op2 == 0b11u && isBitClear<1>(op1)) || (isBitSet<0>(op1) && isBitSet<1>(op1))) {
         // see: A7-266 / A7-268
         return opcodes::cmdLoadRegisterDual(opCode, cpu);
     }

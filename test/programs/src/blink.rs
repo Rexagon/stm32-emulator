@@ -1,64 +1,45 @@
-#![feature(alloc_error_handler)]
-#![no_main]
 #![no_std]
+#![no_main]
+#![feature(alloc_error_handler)]
 
 extern crate alloc;
-extern crate panic_halt;
 
 use alloc::vec::Vec;
-use core::alloc::{GlobalAlloc, Layout};
-use core::ptr;
-
-use cortex_m::interrupt;
-use cortex_m::asm;
+use alloc_cortex_m::CortexMHeap;
+use core::alloc::Layout;
+use core::panic::PanicInfo;
 use cortex_m_rt::entry;
-use core::cell::UnsafeCell;
+
+#[global_allocator]
+static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 #[entry]
 fn main() -> ! {
-    let mut xs = Vec::new();
+    // Initialize the allocator BEFORE you use it
+    let start = cortex_m_rt::heap_start() as usize;
+    let size = 1024; // in bytes
+    unsafe { ALLOCATOR.init(start, size) }
 
-    xs.push(42);
+    let mut xs = Vec::<u32>::new();
+    xs.push(1);
 
+    let mut t = false;
+
+    loop {
+        if t {
+            xs.push(0x00000000);
+        } else {
+            xs.push(0xffffffff);
+        }
+    }
+}
+
+#[alloc_error_handler]
+fn oom(_: Layout) -> ! {
     loop {}
 }
 
-struct BumpPointerAlloc {
-    head: UnsafeCell<usize>,
-    end: usize,
-}
-
-unsafe impl Sync for BumpPointerAlloc {}
-
-unsafe impl GlobalAlloc for BumpPointerAlloc {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        interrupt::free(|_| {
-            let head = self.head.get();
-
-            let align = layout.align();
-            let res = *head % align;
-            let start = if res == 0 { *head } else { *head + align - res };
-            if start + align > self.end {
-                ptr::null_mut()
-            } else {
-                *head = start + align;
-                start as *mut u8
-            }
-        })
-    }
-
-    unsafe fn dealloc(&self, _: *mut u8, _: Layout) {}
-}
-
-#[global_allocator]
-static HEAP: BumpPointerAlloc = BumpPointerAlloc {
-    head: UnsafeCell::new(0x2000_0100),
-    end: 0x2000_0200,
-};
-
-#[alloc_error_handler]
-fn on_oom(_: Layout) -> ! {
-    asm::bkpt();
-
+#[panic_handler]
+fn panic(_: &PanicInfo) -> ! {
     loop {}
 }

@@ -19,7 +19,7 @@ Application::Application(AssemblyViewModel& assemblyViewModel, Settings& setting
 void Application::loadFile(const QString& path)
 {
     QProcess objdump{};
-    objdump.start(m_settings.objdumpPath(), QStringList{"-disassemble", "--full-leading-addr", "--triple=thumb", "--demangle", path});
+    objdump.start(m_settings.objdumpPath(), QStringList{"-disassemble", "--full-leading-addr", "--triple=thumb", path});
     objdump.waitForFinished();
     if (objdump.exitCode() != 0) {
         QMessageBox::critical(nullptr, tr("Failed to objdump file"), "");
