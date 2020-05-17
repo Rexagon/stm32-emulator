@@ -48,6 +48,7 @@ void MainWindow::init()
     // Top left container
     auto* topLeftContainer = new QWidget{this};
     horizontalSplitter->addWidget(topLeftContainer);
+    horizontalSplitter->setStretchFactor(0, 1);
     auto* topLeftContainerLayout = new QVBoxLayout{topLeftContainer};
     topLeftContainerLayout->setContentsMargins(0, 0, 0, 0);
 

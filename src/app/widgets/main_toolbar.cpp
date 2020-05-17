@@ -15,7 +15,6 @@ void MainToolBar::init()
 {
     loadActions();
 
-    addAction(m_startExecutionAction);
     addAction(m_stopExecutionAction);
     addAction(m_pauseExecutionAction);
 
@@ -27,10 +26,6 @@ void MainToolBar::init()
 
 void MainToolBar::loadActions()
 {
-    m_startExecutionAction = new QAction{QIcon{":/icons/play.png"}, tr("&Start"), this};
-    m_startExecutionAction->setStatusTip(tr("Start execution"));
-    connect(m_startExecutionAction, &QAction::triggered, this, &MainToolBar::startExecution);
-
     m_stopExecutionAction = new QAction{QIcon{":/icons/stop.png"}, tr("Sto&p"), this};
     m_stopExecutionAction->setStatusTip(tr("Stop execution"));
     connect(m_stopExecutionAction, &QAction::triggered, this, &MainToolBar::stopExecution);

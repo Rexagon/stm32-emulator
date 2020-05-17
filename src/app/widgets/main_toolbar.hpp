@@ -17,7 +17,6 @@ public:
     RESTRICT_COPY(MainToolBar);
 
 signals:
-    void startExecution();
     void stopExecution();
     void pauseExecution();
     void nextInstruction();
@@ -28,7 +27,6 @@ private:
 
     void loadActions();
 
-    QAction* m_startExecutionAction = nullptr;
     QAction* m_pauseExecutionAction = nullptr;
     QAction* m_stopExecutionAction = nullptr;
     QAction* m_nextInstructionAction = nullptr;
