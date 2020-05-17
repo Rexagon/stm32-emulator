@@ -40,6 +40,7 @@ void AssemblyViewModel::tryFillFromString(const QString& input)
             continue;
         }
 
+        int index = static_cast<int>(m_rows.size());
         Row* row;
 
         if (line.startsWith(' ')) {
@@ -57,7 +58,7 @@ void AssemblyViewModel::tryFillFromString(const QString& input)
             row = &m_rows.emplace_back(Row{.type = RowType::Label, .address = address, .assembly = assembly.toString()});
         }
 
-        m_rowsMap.insert({row->address, row});
+        m_rowsMap.insert({row->address, {index, row}});
     }
 
     emit dataChanged(index(0, 0), index(rowCount(), columnCount()));
@@ -71,12 +72,16 @@ void AssemblyViewModel::clear()
     m_rows.clear();
 }
 
-auto AssemblyViewModel::selectCurrentAddress(uint32_t address) -> AssemblyViewModel::Row*
+void AssemblyViewModel::setCurrentAddress(uint32_t address)
 {
     m_currentAddress = address;
+}
+
+auto AssemblyViewModel::getRowByAddress(uint32_t address) -> std::pair<int, Row*>
+{
     auto it = m_rowsMap.find(address);
     if (it == m_rowsMap.end()) {
-        return nullptr;
+        return {-1, nullptr};
     }
     return it->second;
 }

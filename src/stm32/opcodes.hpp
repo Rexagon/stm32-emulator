@@ -1324,6 +1324,7 @@ void cmdBranchAndExecuteRegister(uint16_t opCode, Cpu& cpu)
         cpu.blxWritePC(cpu.R(m));
     }
     else {
+        printf("Branch and execute: %08x\n", cpu.R(m));
         cpu.bxWritePC(cpu.R(m));
     }
 }
@@ -1367,7 +1368,7 @@ void cmdBranch(T opCode, Cpu& cpu)
         UNPREDICTABLE_IF(cpu.isInItBlock() && !cpu.isLastInItBlock());
     }
 
-    cpu.branchWritePC(cpu.currentInstructionAddress() + imm32);
+    cpu.branchWritePC(cpu.currentInstructionAddress() + 4u + imm32);
 }
 
 inline void cmdBranchWithLinkImmediate(uint32_t opCode, Cpu& cpu)
@@ -1384,8 +1385,9 @@ inline void cmdBranchWithLinkImmediate(uint32_t opCode, Cpu& cpu)
         utils::combine<uint32_t>(_<1, 11, uint16_t>{imm11}, _<12, 10, uint16_t>{imm10}, _<22>{I2}, _<23>{I1}, _<24>{S}));
 
     const auto nextInstructionAddress = cpu.currentInstructionAddress() + 4u;
+    printf("Next instruction address: %08x\n", nextInstructionAddress);
     cpu.registers().LR() = nextInstructionAddress | utils::ONES<1u, uint32_t>;
-    cpu.branchWritePC(cpu.currentInstructionAddress() + imm32);
+    cpu.branchWritePC(nextInstructionAddress + imm32);
 }
 
 inline void cmdCompareAndBranchOnZero(uint16_t opCode, Cpu& cpu)

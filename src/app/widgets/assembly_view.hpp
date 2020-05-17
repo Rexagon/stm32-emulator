@@ -16,6 +16,8 @@ public:
 
     void setModel(QAbstractItemModel* model) override;
 
+    void scrollToAddress(uint32_t address);
+
 public:
     RESTRICT_COPY(AssemblyView);
 

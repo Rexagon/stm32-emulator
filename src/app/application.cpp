@@ -5,19 +5,21 @@
 
 #include <QMessageBox>
 #include <QProcess>
+#include <iostream>  // TODO: remove
 
 namespace app
 {
-Application::Application(Settings& settings)
-    : m_settings{settings}
-    , m_assemblyViewModel{}
+Application::Application(AssemblyViewModel& assemblyViewModel, Settings& settings)
+    : m_assemblyViewModel{assemblyViewModel}
+    , m_settings{settings}
 {
+    registerEvents();
 }
 
 void Application::loadFile(const QString& path)
 {
     QProcess objdump{};
-    objdump.start(m_settings.objdumpPath(), QStringList{"-disassemble", "--full-leading-addr", "--triple=thumb", path});
+    objdump.start(m_settings.objdumpPath(), QStringList{"-disassemble", "--full-leading-addr", "--triple=thumb", "--demangle", path});
     objdump.waitForFinished();
     if (objdump.exitCode() != 0) {
         QMessageBox::critical(nullptr, tr("Failed to objdump file"), "");
@@ -27,40 +29,125 @@ void Application::loadFile(const QString& path)
     m_assemblyViewModel.tryFillFromString(objdump.readAllStandardOutput());
 
     QProcess objcopy{};
-    objcopy.start(m_settings.objcopyDirectory(), QStringList{"-O", "binary", "--only-section=.text", path, "-"});
+    objcopy.start(m_settings.objcopyDirectory(),
+                  QStringList{"-O", "binary", "--only-section=.vector_table", "--only-section=.text", "--only-section=.rodata", path, "-"});
     objcopy.waitForFinished();
     if (objcopy.exitCode() != 0) {
         QMessageBox::critical(nullptr, tr("Failed to objcopy file"), "");
         return;
     }
 
-    initCpu(objcopy.readAllStandardOutput());
+    auto objcopyOutput = objcopy.readAllStandardOutput();
+
+    initCpu(std::make_unique<std::vector<uint8_t>>(objcopyOutput.begin(), objcopyOutput.end()));
 }
 
-void Application::initCpu(QByteArray flash)
+void Application::stop()
 {
-    m_state.emplace(ApplicationState{.flash = flash,
-                                     .cpu = stm32::Cpu{stm32::Memory::Config{
-                                         .flashMemoryStart = 0x08000000u,
-                                         .flashMemoryEnd = 0x0801ffffu,
+    if (!m_state.has_value()) {
+        return;
+    }
 
-                                         .systemMemoryStart = 0x1ffff000u,
-                                         .systemMemoryEnd = 0x1ffff800u,
+    initCpu(std::move(m_state->flash));
+}
 
-                                         .optionBytesStart = 0x1ffff800u,
-                                         .optionBytesEnd = 0x1ffff80Fu,
+void Application::executeNextInstruction()
+{
+    step();
+}
 
-                                         .sramStart = 0x20000000u,
-                                         .sramEnd = 0x20001fffu,
+void Application::executeUntilBreakpoint()
+{
+}
 
-                                         .bootMode = stm32::BootMode::FlashMemory,
-                                         .flash = stm32::utils::ArrayView<uint8_t, uint32_t>{reinterpret_cast<uint8_t*>(flash.data()),
-                                                                                             static_cast<uint32_t>(flash.size())},
-                                     }}});
+void Application::addBreakpoint(uint32_t address)
+{
+    if (!m_state.has_value()) {
+        return;
+    }
 
-    auto& SRAM = m_state->cpu.memory().SRAM();
+    m_state->breakpoints.insert(address);
+}
 
-    emit memoryLoaded(QByteArray::fromRawData(reinterpret_cast<char*>(SRAM.data()), static_cast<int>(SRAM.size())));
+void Application::removeBreakpoint(uint32_t address)
+{
+    if (!m_state.has_value()) {
+        return;
+    }
+
+    m_state->breakpoints.erase(address);
+}
+
+void Application::registerEvents()
+{
+    connect(&m_assemblyViewModel, &AssemblyViewModel::breakpointAdded, this, &Application::addBreakpoint);
+    connect(&m_assemblyViewModel, &AssemblyViewModel::breakpointRemoved, this, &Application::removeBreakpoint);
+}
+
+void Application::initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash)
+{
+    emit stateChanged();
+
+    auto flashView = stm32::utils::ArrayView<uint8_t, uint32_t>{flash->data(), static_cast<uint32_t>(flash->size())};
+
+    printf("%ld\n", reinterpret_cast<int64_t>(flashView.begin()));
+
+    m_state.emplace(std::move(flash),
+                    stm32::Memory::Config{
+                        .flashMemoryStart = 0x08000000u,
+                        .flashMemoryEnd = 0x08020000u,
+
+                        .systemMemoryStart = 0x1ffff000u,
+                        .systemMemoryEnd = 0x1ffff800u,
+
+                        .optionBytesStart = 0x1ffff800u,
+                        .optionBytesEnd = 0x1ffff80Fu,
+
+                        .sramStart = 0x20000000u,
+                        .sramEnd = 0x20005000u,
+
+                        .bootMode = stm32::BootMode::FlashMemory,
+                        .flash = flashView,
+                    });
+
+    m_state->cpu.reset();
+
+    emit memoryLoaded(m_state->cpu.memory());
+    emit registersLoaded(m_state->cpu.registers());
+}
+
+void Application::step()
+{
+    if (!m_state.has_value()) {
+        return;
+    }
+
+    try {
+        printf("PC: %08x\t", m_state->cpu.registers().PC());
+        printf("IT: %s\t", m_state->cpu.isInItBlock() ? "1" : "_");
+        printf("L: %s\t", m_state->cpu.isLastInItBlock() ? "1" : "_");
+        printf("\n");
+
+        if (m_state->cpu.isInItBlock()) {
+            m_state->cpu.advanceCondition();
+        }
+
+        const auto instructionAddress = m_state->cpu.registers().PC() & ~uint32_t{0b1};
+        printf("------PC: %08x\n", instructionAddress);
+        m_assemblyViewModel.setCurrentAddress(instructionAddress);
+        emit instructionSelected(instructionAddress);
+
+        m_state->cpu.step();
+    }
+    catch (const stm32::utils::CpuException& e) {
+        std::cerr << e.what() << std::endl;
+    }
+    catch (const stm32::utils::UnpredictableException& e) {
+        std::cerr << e.what() << std::endl;
+    }
+    catch (...) {
+        std::cerr << "unknown exception" << std::endl;
+    }
 }
 
 }  // namespace app

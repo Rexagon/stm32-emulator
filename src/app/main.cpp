@@ -4,6 +4,7 @@
 #include <QApplication>
 
 #include "application.hpp"
+#include "models/assembly_view_model.hpp"
 #include "models/settings.hpp"
 #include "windows/main_window.hpp"
 
@@ -12,18 +13,30 @@ auto main(int argc, char** argv) -> int
     QApplication gui{argc, argv};
     QApplication::setApplicationName("stm32 emulator");
 
+    //
+    app::AssemblyViewModel assemblyViewModel;
+
     app::Settings settings;
 
-    app::Application application{settings};
+    app::Application application{assemblyViewModel, settings};
 
     app::MainWindow mainWindow{settings};
+    mainWindow.assemblyView()->setModel(&assemblyViewModel);
+
+    //
     QWidget::connect(&mainWindow, &app::MainWindow::fileSelected, &application, &app::Application::loadFile);
     QWidget::connect(&mainWindow, &app::MainWindow::exitRequested, &mainWindow, &app::MainWindow::close);
 
-    QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setData);
+    QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::stopExecution, &application, &app::Application::stop);
+    QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextInstruction, &application, &app::Application::executeNextInstruction);
+    QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextBreakpoint, &application, &app::Application::executeUntilBreakpoint);
 
-    mainWindow.assemblyView()->setModel(application.assemblyViewModel());
+    QWidget::connect(&application, &app::Application::stateChanged, mainWindow.memoryView(), &app::MemoryView::reset);
+    QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setMemory);
+    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.memoryView(), &app::MemoryView::updateContents);
+    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.assemblyView(), &app::AssemblyView::scrollToAddress);
 
+    //
     mainWindow.show();
 
     return QApplication::exec();

@@ -65,8 +65,8 @@ public:
 
     inline auto size() const noexcept { return m_size; }
 
-    inline auto begin() noexcept { return m_ptr; }
-    inline auto end() noexcept { return m_ptr + m_size; }
+    inline auto begin() const noexcept { return m_ptr; }
+    inline auto end() const noexcept { return m_ptr + m_size; }
 
 private:
     T* m_ptr;

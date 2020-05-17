@@ -1,56 +1,31 @@
 #pragma once
 
-#include <QTextEdit>
+#include <stm32/memory.hpp>
 
-#include "../utils/general.hpp"
+#include "hex_view.hpp"
 
 namespace app
 {
-class MemoryView final : public QAbstractScrollArea {
+class MemoryView final : public QWidget {
     Q_OBJECT
 public:
     explicit MemoryView(QWidget* parent);
     ~MemoryView() override = default;
 
-    void setData(QByteArray newData);
-    void clearData();
-
-    void updateViewport();
+    void setMemory(stm32::Memory& memory);
+    void updateContents();
+    void reset();
 
 public:
     RESTRICT_COPY(MemoryView);
 
-protected:
-    void paintEvent(QPaintEvent* event) override;
-    void keyPressEvent(QKeyEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mousePressEvent(QMouseEvent* event) override;
-
 private:
     void init();
 
-    auto fullSize() const -> QSize;
-    void resetSelection(int position);
-    void setSelection(int position);
-    void ensureVisible();
-    void setCursorPosition(int position);
-    auto cursorPosition(const QPoint& position) -> int;
+    std::optional<std::reference_wrapper<stm32::Memory>> m_memory{};
 
-    std::optional<QByteArray> m_data{};
-
-    int m_bytesPerLine = 16;
-    int m_addressByteCount = 10;
-
-    int m_positionAddress = 0;
-    int m_positionHex = 0;
-    int m_positionAscii = 0;
-    int m_characterWidth = 0;
-    int m_characterHeight = 0;
-
-    int m_selectionBegin = 0;
-    int m_selectionEnd = 0;
-    int m_selectionInit = 0;
-    int m_cursorPosition = 0;
+    HexView* m_flashHexView = nullptr;
+    HexView* m_sramHexView = nullptr;
 };
 
 }  // namespace app

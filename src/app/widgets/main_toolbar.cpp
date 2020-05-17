@@ -40,8 +40,8 @@ void MainToolBar::loadActions()
     connect(m_pauseExecutionAction, &QAction::triggered, this, &MainToolBar::pauseExecution);
 
     m_nextInstructionAction = new QAction{QIcon{":/icons/next.png"}, tr("&Next"), this};
-    m_pauseExecutionAction->setStatusTip(tr("Go to next instruction"));
-    connect(m_pauseExecutionAction, &QAction::triggered, this, &MainToolBar::nextInstruction);
+    m_nextInstructionAction->setStatusTip(tr("Go to next instruction"));
+    connect(m_nextInstructionAction, &QAction::triggered, this, &MainToolBar::nextInstruction);
 
     m_nextBreakpointAction = new QAction{QIcon{":/icons/last.png"}, tr("&Breakpoint"), this};
     m_nextBreakpointAction->setStatusTip(tr("Go to next breakpoint"));

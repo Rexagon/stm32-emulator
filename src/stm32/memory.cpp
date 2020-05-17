@@ -46,6 +46,11 @@ Memory::Memory(const Config& config)
 {
 }
 
+Memory::~Memory()
+{
+    printf("DESTRUCTEDDDDDDDDDDDDDD!!!!\n");
+}
+
 void Memory::attachRegion(MemoryRegion& region)
 {
     auto it = m_memoryRegions.begin();

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <memory>
+#include <set>
 #include <stm32/stm32.hpp>
 
 #include "models/assembly_view_model.hpp"
@@ -13,28 +14,44 @@ class Application final : public QObject {
     Q_OBJECT
 
     struct ApplicationState {
-        QByteArray flash;
+        explicit ApplicationState(std::unique_ptr<std::vector<uint8_t>>&& data, stm32::Memory::Config config)
+            : flash{std::move(data)}
+            , cpu{config}
+        {
+        }
+
+        std::unique_ptr<std::vector<uint8_t>> flash;
         stm32::Cpu cpu;
+        std::set<uint32_t> breakpoints{};
     };
 
 public:
-    explicit Application(Settings& settings);
+    explicit Application(AssemblyViewModel& assemblyViewModel, Settings& settings);
 
     void loadFile(const QString& path);
-
-    inline auto assemblyViewModel() -> AssemblyViewModel* { return &m_assemblyViewModel; }
+    void stop();
+    void executeNextInstruction();
+    void executeUntilBreakpoint();
 
 signals:
-    void memoryLoaded(QByteArray data);
+    void stateChanged();
+    void memoryLoaded(stm32::Memory& memory);
+    void registersLoaded(stm32::rg::CpuRegistersSet& cpuRegisters);
+    void instructionSelected(uint32_t address);
 
 private:
-    void initCpu(QByteArray flash);
+    void registerEvents();
 
+    void initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash);
+    void addBreakpoint(uint32_t address);
+    void removeBreakpoint(uint32_t address);
+
+    void step();
+
+    AssemblyViewModel& m_assemblyViewModel;
     Settings& m_settings;
 
     std::optional<ApplicationState> m_state{};
-
-    AssemblyViewModel m_assemblyViewModel;
 };
 
 }  // namespace app

@@ -28,7 +28,8 @@ public:
     void tryFillFromString(const QString& input);
     void clear();
 
-    auto selectCurrentAddress(uint32_t address) -> Row*;
+    void setCurrentAddress(uint32_t address);
+    auto getRowByAddress(uint32_t address) -> std::pair<int, Row*>;
 
     int rowCount(const QModelIndex& parent = QModelIndex{}) const override;
     int columnCount(const QModelIndex& parent = QModelIndex{}) const override;
@@ -43,7 +44,7 @@ private:
     uint32_t m_currentAddress = 0;
 
     std::vector<Row> m_rows;
-    std::unordered_map<uint32_t, Row*> m_rowsMap;
+    std::unordered_map<uint32_t, std::pair<int, Row*>> m_rowsMap;
 };
 
 }  // namespace app

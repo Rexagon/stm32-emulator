@@ -20,6 +20,20 @@ AssemblyView::AssemblyView(QWidget* parent)
     registerEvents();
 }
 
+void AssemblyView::scrollToAddress(uint32_t address)
+{
+    auto* model = dynamic_cast<AssemblyViewModel*>(this->model());
+    if (model == nullptr) {
+        return;
+    }
+
+    const auto row = model->getRowByAddress(address).first;
+
+    scrollTo(model->index(row, 0));
+
+    viewport()->update();
+}
+
 void AssemblyView::init()
 {
     QFont font{QFontDatabase::systemFont(QFontDatabase::SystemFont::FixedFont)};

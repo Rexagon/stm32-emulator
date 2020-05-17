@@ -1200,6 +1200,7 @@ void Cpu::step()
 {
     auto& PC = m_registers.PC();
     m_currentInstructionAddress = PC;
+    m_skipIncrementingPC = false;
 
     const auto opCodeHw1 = m_memory.read<uint16_t>(PC & ZEROS<1, uint32_t>);
 
@@ -1249,7 +1250,9 @@ void Cpu::step()
                 UNDEFINED;
         }
 
-        PC += 2u;
+        if (!m_skipIncrementingPC) {
+            PC += 2u;
+        }
     }
     else {
         const auto opCodeHw2 = m_memory.read<uint16_t>((PC & ZEROS<1, uint32_t>)+2u);
@@ -1337,7 +1340,9 @@ void Cpu::step()
                 UNDEFINED;
         }
 
-        PC += 4u;
+        if (!m_skipIncrementingPC) {
+            PC += 4u;
+        }
     }
 }  // namespace wo
 
