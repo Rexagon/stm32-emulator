@@ -23,6 +23,8 @@ class Application final : public QObject {
         std::unique_ptr<std::vector<uint8_t>> flash;
         stm32::Cpu cpu;
         std::set<uint32_t> breakpoints{};
+        uint32_t nextInstructionAddress{};
+        bool shouldPause = true;
     };
 
 public:
@@ -30,6 +32,7 @@ public:
 
     void loadFile(const QString& path);
     void resetCpu();
+    void pauseExecution();
     void executeNextInstruction();
     void executeUntilBreakpoint();
 
@@ -47,6 +50,8 @@ private:
     void removeBreakpoint(uint32_t address);
 
     void step();
+
+    void updateNextInstructionAddress();
 
     AssemblyViewModel& m_assemblyViewModel;
     Settings& m_settings;

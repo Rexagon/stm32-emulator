@@ -6,7 +6,6 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QTimer>
-#include <iostream>  // TODO: remove
 
 namespace app
 {
@@ -51,19 +50,35 @@ void Application::resetCpu()
 
     m_assemblyViewModel.setCurrentAddress(0);
     m_state->cpu.reset();
+    m_state->shouldPause = true;
 
+    emit stateChanged();
     emit memoryLoaded(m_state->cpu.memory());
     emit registersLoaded(m_state->cpu.registers());
-    emit instructionSelected(0);
+    updateNextInstructionAddress();
+}
+
+void Application::pauseExecution()
+{
+    if (m_state.has_value()) {
+        m_state->shouldPause = true;
+    }
 }
 
 void Application::executeNextInstruction()
 {
+    if (m_state.has_value()) {
+        m_state->shouldPause = true;
+    }
     step();
 }
 
 void Application::executeUntilBreakpoint()
 {
+    if (m_state.has_value()) {
+        m_state->shouldPause = false;
+    }
+    step();
 }
 
 void Application::addBreakpoint(uint32_t address)
@@ -124,31 +139,38 @@ void Application::step()
     }
 
     try {
-        printf("PC: %08x\t", m_state->cpu.registers().PC());
-        printf("IT: %s\t", m_state->cpu.isInItBlock() ? "1" : "_");
-        printf("L: %s\t", m_state->cpu.isLastInItBlock() ? "1" : "_");
-        printf("\n");
-
         if (m_state->cpu.isInItBlock()) {
             m_state->cpu.advanceCondition();
         }
 
-        const auto instructionAddress = m_state->cpu.registers().PC() & ~uint32_t{0b1};
-        printf("------PC: %08x\n", instructionAddress);
-        m_assemblyViewModel.setCurrentAddress(instructionAddress);
-        emit instructionSelected(instructionAddress);
-
         m_state->cpu.step();
     }
     catch (const stm32::utils::CpuException& e) {
-        std::cerr << e.what() << std::endl;
+        printf("ERROR: %s\n", e.what());
     }
     catch (const stm32::utils::UnpredictableException& e) {
-        std::cerr << e.what() << std::endl;
+        printf("ERROR: %s\n", e.what());
     }
     catch (...) {
-        std::cerr << "unknown exception" << std::endl;
+        printf("UNKNOWN ERROR\n");
     }
+
+    updateNextInstructionAddress();
+
+    if (!m_state->shouldPause && !m_state->breakpoints.contains(m_state->nextInstructionAddress)) {
+        QTimer::singleShot(0, this, &Application::step);
+    }
+}
+
+void Application::updateNextInstructionAddress()
+{
+    if (!m_state.has_value()) {
+        return;
+    }
+
+    m_state->nextInstructionAddress = m_state->cpu.registers().PC() & ~uint32_t{0b1};
+    m_assemblyViewModel.setCurrentAddress(m_state->nextInstructionAddress);
+    emit instructionSelected(m_state->nextInstructionAddress);
 }
 
 }  // namespace app

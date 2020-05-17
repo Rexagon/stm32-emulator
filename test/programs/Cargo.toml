@@ -13,9 +13,9 @@ panic-halt = "0.2"
 [dependencies.alloc-cortex-m]
 git = "https://github.com/Rexagon/alloc-cortex-m.git"
 
-[dependencies.stm32f1]
-version = "0.11.0"
-features = ["stm32f103", "rt"]
+#[dependencies.stm32f1]
+#version = "0.11.0"
+#features = ["stm32f103", "rt"]
 
 [[bin]]
 name = "blink"

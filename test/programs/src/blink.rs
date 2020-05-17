@@ -5,41 +5,59 @@
 extern crate alloc;
 extern crate panic_halt;
 
-use self::alloc::vec;
-use core::alloc::Layout;
-use alloc_cortex_m::CortexMHeap;
+use alloc::vec::Vec;
+use core::alloc::{GlobalAlloc, Layout};
+use core::ptr;
+
+use cortex_m::interrupt;
 use cortex_m::asm;
 use cortex_m_rt::entry;
-use stm32f1::stm32f103::{interrupt, Interrupt, NVIC};
-
-#[global_allocator]
-static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
-
-const HEAP_SIZE: usize = 1024;
+use core::cell::UnsafeCell;
 
 #[entry]
 fn main() -> ! {
-    unsafe { ALLOCATOR.init(cortex_m_rt::heap_start() as usize, HEAP_SIZE) }
+    let mut xs = Vec::new();
 
-    let mut xs = vec![0, 1, 2];
+    xs.push(42);
 
-    let mut t = true;
-
-    loop {
-        if t {
-            xs.push(1);
-        }
-        else {
-            xs.pop();
-        }
-
-        t = !t;
-    }
+    loop {}
 }
 
-// define what happens in an Out Of Memory (OOM) condition
+struct BumpPointerAlloc {
+    head: UnsafeCell<usize>,
+    end: usize,
+}
+
+unsafe impl Sync for BumpPointerAlloc {}
+
+unsafe impl GlobalAlloc for BumpPointerAlloc {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        interrupt::free(|_| {
+            let head = self.head.get();
+
+            let align = layout.align();
+            let res = *head % align;
+            let start = if res == 0 { *head } else { *head + align - res };
+            if start + align > self.end {
+                ptr::null_mut()
+            } else {
+                *head = start + align;
+                start as *mut u8
+            }
+        })
+    }
+
+    unsafe fn dealloc(&self, _: *mut u8, _: Layout) {}
+}
+
+#[global_allocator]
+static HEAP: BumpPointerAlloc = BumpPointerAlloc {
+    head: UnsafeCell::new(0x2000_0100),
+    end: 0x2000_0200,
+};
+
 #[alloc_error_handler]
-fn alloc_error(_layout: Layout) -> ! {
+fn on_oom(_: Layout) -> ! {
     asm::bkpt();
 
     loop {}
