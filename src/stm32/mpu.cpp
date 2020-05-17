@@ -20,8 +20,6 @@ inline auto alignedMemoryRead(Cpu& cpu, Mpu& mpu, uint32_t address, AccessType a
         throw utils::CpuException(ExceptionType::UsageFault);
     }
 
-    printf("address: %x\n", address);
-
     const auto descriptor = mpu.validateAddress(address, accessType, false);
     auto value = cpu.memory().read<T>(descriptor.physicalAddress);
 

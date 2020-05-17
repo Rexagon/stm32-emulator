@@ -145,7 +145,6 @@ public:
     };
 
     explicit Memory(const Config& config);
-    ~Memory();
 
     void attachRegion(MemoryRegion& region);
 

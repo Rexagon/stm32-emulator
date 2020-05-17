@@ -40,7 +40,6 @@ void Cpu::reset()
     m_registers.LR() = std::numeric_limits<uint32_t>::max();
 
     const auto resetVector = m_mpu.alignedMemoryRead<uint32_t>(vectorTable + 4u, AccessType::VecTable);
-    printf("reset vector: %x\n", resetVector);
 
     m_registers.IPSR().exceptionNumber = 0u;
     m_registers.EPSR().T = utils::isBitSet<0>(resetVector);
@@ -51,7 +50,6 @@ void Cpu::reset()
 
 void Cpu::branchWritePC(uint32_t address, bool skipIncrementingPC)
 {
-    printf("%0x\n", address);
     m_registers.PC() = address & ZEROS<1, uint32_t>;
     m_skipIncrementingPC = skipIncrementingPC;
 }
