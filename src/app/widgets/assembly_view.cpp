@@ -47,6 +47,7 @@ void AssemblyView::init()
     verticalHeader()->setVisible(false);
 
     setSelectionBehavior(QAbstractItemView::SelectRows);
+    setFrameStyle(QFrame::NoFrame);
     setShowGrid(false);
 
     setItemDelegate(new SelectionControlDelegate{this});

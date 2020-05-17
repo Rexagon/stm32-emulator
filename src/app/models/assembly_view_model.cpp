@@ -157,7 +157,7 @@ QVariant AssemblyViewModel::data(const QModelIndex& index, int role) const
                     color = 2;
                 }
             }
-            if (item.withBreakpoint) {
+            else if (item.withBreakpoint) {
                 color = 1;
             }
             return PALETTE[color][std::min(2, column)];

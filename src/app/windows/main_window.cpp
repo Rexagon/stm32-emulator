@@ -58,6 +58,7 @@ void MainWindow::init()
     auto* topRightContainer = new QWidget{this};
     horizontalSplitter->addWidget(topRightContainer);
     auto* topRightContainerLayout = new QVBoxLayout{topRightContainer};
+    topRightContainerLayout->setContentsMargins(0, 0, 0, 0);
 
     m_registersView = new RegistersView{this};
     topRightContainerLayout->addWidget(m_registersView);
@@ -66,6 +67,7 @@ void MainWindow::init()
     auto* bottomContainer = new QWidget{this};
     verticalSplitter->addWidget(bottomContainer);
     auto bottomContainerLayout = new QHBoxLayout{bottomContainer};
+    bottomContainerLayout->setContentsMargins(0, 0, 0, 0);
 
     m_memoryView = new MemoryView{this};
     bottomContainerLayout->addWidget(m_memoryView);

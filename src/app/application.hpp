@@ -29,7 +29,7 @@ public:
     explicit Application(AssemblyViewModel& assemblyViewModel, Settings& settings);
 
     void loadFile(const QString& path);
-    void stop();
+    void resetCpu();
     void executeNextInstruction();
     void executeUntilBreakpoint();
 

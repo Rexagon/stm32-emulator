@@ -5,6 +5,7 @@
 
 #include <QMessageBox>
 #include <QProcess>
+#include <QTimer>
 #include <iostream>  // TODO: remove
 
 namespace app
@@ -42,13 +43,18 @@ void Application::loadFile(const QString& path)
     initCpu(std::make_unique<std::vector<uint8_t>>(objcopyOutput.begin(), objcopyOutput.end()));
 }
 
-void Application::stop()
+void Application::resetCpu()
 {
     if (!m_state.has_value()) {
         return;
     }
 
-    initCpu(std::move(m_state->flash));
+    m_assemblyViewModel.setCurrentAddress(0);
+    m_state->cpu.reset();
+
+    emit memoryLoaded(m_state->cpu.memory());
+    emit registersLoaded(m_state->cpu.registers());
+    emit instructionSelected(0);
 }
 
 void Application::executeNextInstruction()
@@ -90,8 +96,6 @@ void Application::initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash)
 
     auto flashView = stm32::utils::ArrayView<uint8_t, uint32_t>{flash->data(), static_cast<uint32_t>(flash->size())};
 
-    printf("%ld\n", reinterpret_cast<int64_t>(flashView.begin()));
-
     m_state.emplace(std::move(flash),
                     stm32::Memory::Config{
                         .flashMemoryStart = 0x08000000u,
@@ -110,10 +114,7 @@ void Application::initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash)
                         .flash = flashView,
                     });
 
-    m_state->cpu.reset();
-
-    emit memoryLoaded(m_state->cpu.memory());
-    emit registersLoaded(m_state->cpu.registers());
+    resetCpu();
 }
 
 void Application::step()

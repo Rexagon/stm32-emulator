@@ -82,7 +82,7 @@ public:
     void setITSTATE(uint8_t value);
 
 private:
-    std::array<uint32_t, 12> m_generalPurposeRegisters{};
+    std::array<uint32_t, 13> m_generalPurposeRegisters{};
     std::array<uint32_t, 2> m_stackPointers{};
     uint32_t m_linkRegister{};
     uint32_t m_programCounter{};

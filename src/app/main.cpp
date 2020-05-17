@@ -27,13 +27,18 @@ auto main(int argc, char** argv) -> int
     QWidget::connect(&mainWindow, &app::MainWindow::fileSelected, &application, &app::Application::loadFile);
     QWidget::connect(&mainWindow, &app::MainWindow::exitRequested, &mainWindow, &app::MainWindow::close);
 
-    QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::stopExecution, &application, &app::Application::stop);
+    QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::stopExecution, &application, &app::Application::resetCpu);
     QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextInstruction, &application, &app::Application::executeNextInstruction);
     QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextBreakpoint, &application, &app::Application::executeUntilBreakpoint);
 
     QWidget::connect(&application, &app::Application::stateChanged, mainWindow.memoryView(), &app::MemoryView::reset);
+    QWidget::connect(&application, &app::Application::stateChanged, mainWindow.registersView(), &app::RegistersView::reset);
+
     QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setMemory);
+    QWidget::connect(&application, &app::Application::registersLoaded, mainWindow.registersView(), &app::RegistersView::setRegisters);
+
     QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.memoryView(), &app::MemoryView::updateContents);
+    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.registersView(), &app::RegistersView::updateContents);
     QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.assemblyView(), &app::AssemblyView::scrollToAddress);
 
     //

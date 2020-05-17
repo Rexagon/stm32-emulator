@@ -13,17 +13,6 @@ MemoryView::MemoryView(QWidget* parent)
     init();
 }
 
-void MemoryView::init()
-{
-    auto* layout = new QHBoxLayout{this};
-
-    m_flashHexView = new HexView{this};
-    layout->addWidget(m_flashHexView);
-
-    m_sramHexView = new HexView{this};
-    layout->addWidget(m_sramHexView);
-}
-
 void MemoryView::setMemory(stm32::Memory& memory)
 {
     m_flashHexView->setData(
@@ -47,6 +36,17 @@ void MemoryView::reset()
     m_sramHexView->reset();
 
     m_memory.reset();
+}
+
+void MemoryView::init()
+{
+    auto* layout = new QHBoxLayout{this};
+
+    m_flashHexView = new HexView{this};
+    layout->addWidget(m_flashHexView);
+
+    m_sramHexView = new HexView{this};
+    layout->addWidget(m_sramHexView);
 }
 
 }  // namespace app
