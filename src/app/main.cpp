@@ -18,7 +18,7 @@ auto main(int argc, char** argv) -> int
 
     app::Settings settings;
 
-    app::Application application{assemblyViewModel, settings};
+    app::Application application{settings};
 
     app::MainWindow mainWindow{settings};
     mainWindow.assemblyView()->setModel(&assemblyViewModel);
@@ -32,12 +32,17 @@ auto main(int argc, char** argv) -> int
     QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextInstruction, &application, &app::Application::executeNextInstruction);
     QWidget::connect(mainWindow.toolBar(), &app::MainToolBar::nextBreakpoint, &application, &app::Application::executeUntilBreakpoint);
 
+    QWidget::connect(&assemblyViewModel, &app::AssemblyViewModel::breakpointAdded, &application, &app::Application::addBreakpoint);
+    QWidget::connect(&assemblyViewModel, &app::AssemblyViewModel::breakpointRemoved, &application, &app::Application::removeBreakpoint);
+
     QWidget::connect(&application, &app::Application::stateChanged, mainWindow.memoryView(), &app::MemoryView::reset);
     QWidget::connect(&application, &app::Application::stateChanged, mainWindow.registersView(), &app::RegistersView::reset);
 
+    QWidget::connect(&application, &app::Application::assemblyLoaded, &assemblyViewModel, &app::AssemblyViewModel::tryFillFromString);
     QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setMemory);
     QWidget::connect(&application, &app::Application::registersLoaded, mainWindow.registersView(), &app::RegistersView::setRegisters);
 
+    QWidget::connect(&application, &app::Application::instructionSelected, &assemblyViewModel, &app::AssemblyViewModel::setCurrentAddress);
     QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.memoryView(), &app::MemoryView::updateContents);
     QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.registersView(), &app::RegistersView::updateContents);
     QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.assemblyView(), &app::AssemblyView::scrollToAddress);

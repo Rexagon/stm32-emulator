@@ -9,11 +9,9 @@
 
 namespace app
 {
-Application::Application(AssemblyViewModel& assemblyViewModel, Settings& settings)
-    : m_assemblyViewModel{assemblyViewModel}
-    , m_settings{settings}
+Application::Application(Settings& settings)
+    : m_settings{settings}
 {
-    registerEvents();
 }
 
 void Application::loadFile(const QString& path)
@@ -26,7 +24,7 @@ void Application::loadFile(const QString& path)
         return;
     }
 
-    m_assemblyViewModel.tryFillFromString(objdump.readAllStandardOutput());
+    emit assemblyLoaded(objdump.readAllStandardOutput());
 
     QProcess objcopy{};
     objcopy.start(m_settings.objcopyDirectory(),
@@ -48,7 +46,6 @@ void Application::resetCpu()
         return;
     }
 
-    m_assemblyViewModel.setCurrentAddress(0);
     m_state->cpu.reset();
     m_state->shouldPause = true;
 
@@ -97,12 +94,6 @@ void Application::removeBreakpoint(uint32_t address)
     }
 
     m_state->breakpoints.erase(address);
-}
-
-void Application::registerEvents()
-{
-    connect(&m_assemblyViewModel, &AssemblyViewModel::breakpointAdded, this, &Application::addBreakpoint);
-    connect(&m_assemblyViewModel, &AssemblyViewModel::breakpointRemoved, this, &Application::removeBreakpoint);
 }
 
 void Application::initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash)
@@ -165,7 +156,6 @@ void Application::updateNextInstructionAddress()
     }
 
     m_state->nextInstructionAddress = m_state->cpu.registers().PC() & ~uint32_t{0b1};
-    m_assemblyViewModel.setCurrentAddress(m_state->nextInstructionAddress);
     emit instructionSelected(m_state->nextInstructionAddress);
 }
 

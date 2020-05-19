@@ -28,7 +28,7 @@ class Application final : public QObject {
     };
 
 public:
-    explicit Application(AssemblyViewModel& assemblyViewModel, Settings& settings);
+    explicit Application(Settings& settings);
 
     void loadFile(const QString& path);
     void resetCpu();
@@ -36,24 +36,23 @@ public:
     void executeNextInstruction();
     void executeUntilBreakpoint();
 
+    void addBreakpoint(uint32_t address);
+    void removeBreakpoint(uint32_t address);
+
 signals:
     void stateChanged();
+    void assemblyLoaded(const QString& assembly);
     void memoryLoaded(stm32::Memory& memory);
     void registersLoaded(stm32::rg::CpuRegistersSet& cpuRegisters);
     void instructionSelected(uint32_t address);
 
 private:
-    void registerEvents();
-
     void initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash);
-    void addBreakpoint(uint32_t address);
-    void removeBreakpoint(uint32_t address);
 
     void step();
 
     void updateNextInstructionAddress();
 
-    AssemblyViewModel& m_assemblyViewModel;
     Settings& m_settings;
 
     std::optional<ApplicationState> m_state{};
