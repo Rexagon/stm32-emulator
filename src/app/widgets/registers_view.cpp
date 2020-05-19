@@ -106,6 +106,8 @@ void RegistersView::updateContents()
         m_epsrTCheckbox->setChecked(m_cpuRegisters->get().EPSR().T);
         m_isInItStateCheckbox->setChecked(m_cpuRegisters->get().ITSTATE() & 0b1111u);
         m_isLastInItStateCheckbox->setChecked((m_cpuRegisters->get().ITSTATE() & 0b1111u) == 0b1000u);
+
+        m_itstateField->setText(toBinary(m_cpuRegisters->get().ITSTATE()));
     }
     else {
         m_linkRegisterField->setText(UNINITIALIZED_REG);
@@ -127,6 +129,8 @@ void RegistersView::updateContents()
         m_epsrTCheckbox->setChecked(false);
         m_isInItStateCheckbox->setChecked(false);
         m_isLastInItStateCheckbox->setChecked(false);
+
+        m_itstateField->setText(UNINITIALIZED_REG);
     }
 }
 
@@ -269,6 +273,13 @@ auto RegistersView::initCpuSpecialRegisterFields() -> QWidget*
     layout->addWidget(m_isInItStateCheckbox, row, 2, 1, 3);
     m_isLastInItStateCheckbox = new ReadOnlyCheckbox{"last", this};
     layout->addWidget(m_isLastInItStateCheckbox, row++, 4, 1, 2);
+
+    //
+    layout->addWidget(new QLabel{"ITSTATE", this}, row, 0);
+    m_itstateField = new QLineEdit{this};
+    m_itstateField->setReadOnly(true);
+    m_itstateField->setMaximumWidth(characterWidth * 9);
+    layout->addWidget(m_itstateField, row++, 1, 1, 5);
 
     //
     layout->setRowStretch(row, 1);

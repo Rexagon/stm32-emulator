@@ -139,10 +139,6 @@ void Application::step()
     }
 
     try {
-        if (m_state->cpu.isInItBlock()) {
-            m_state->cpu.advanceCondition();
-        }
-
         m_state->cpu.step();
     }
     catch (const stm32::utils::CpuException& e) {

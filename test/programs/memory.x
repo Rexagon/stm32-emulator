@@ -4,6 +4,5 @@ MEMORY
   RAM : ORIGIN = 0x20000000, LENGTH = 20K
 }
 
-/* _stack_start = ORIGIN(RAM) + LENGTH(RAM); */
+_stack_start = ORIGIN(RAM) + LENGTH(RAM);
 
-/* _stext = ORIGIN(FLASH) + 0x400; */

@@ -1009,7 +1009,7 @@ inline void loadWord(uint32_t opCode, Cpu& cpu)
                 // see: A7-252
                 return opcodes::cmdLoadImmediate<opcodes::Encoding::T3, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
             case 0b00u:
-                if (op2 & 0b100100u || getPart<2, 4>(op2) == 0b1100u) {
+                if ((op2 & 0b100100u) == 0b100100u || getPart<2, 4>(op2) == 0b1100u) {
                     // see: A7-252
                     return opcodes::cmdLoadImmediate<opcodes::Encoding::T4, uint32_t, /*isSignExtended*/ false>(opCode, cpu);
                 }
@@ -1344,6 +1344,11 @@ void Cpu::step()
             PC += 4u;
         }
     }
+
+    if (isInItBlock() && !m_skipAdvancingIT) {
+        advanceCondition();
+    }
+    m_skipAdvancingIT = false;
 }  // namespace wo
 
 }  // namespace stm32

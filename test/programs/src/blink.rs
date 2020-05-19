@@ -18,7 +18,7 @@ use cortex_m_semihosting::hprintln;
 #[global_allocator]
 static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
-const HEAP_SIZE: usize = 128; // in bytes
+const HEAP_SIZE: usize = 256; // in bytes
 
 #[entry]
 fn main() -> ! {
@@ -26,9 +26,8 @@ fn main() -> ! {
     unsafe { ALLOCATOR.init(cortex_m_rt::heap_start() as usize, HEAP_SIZE) }
 
     // Growable array allocated on the heap
-    let xs = vec![0, 1, 2];
-
-    hprintln!("{:?}", xs).unwrap();
+    let mut xs = vec![0, 1, 2];
+    xs.push(123);
 
     loop {}
 }

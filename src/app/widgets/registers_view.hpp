@@ -53,6 +53,7 @@ private:
     QCheckBox* m_epsrTCheckbox = nullptr;
     QCheckBox* m_isInItStateCheckbox = nullptr;
     QCheckBox* m_isLastInItStateCheckbox = nullptr;
+    QLineEdit* m_itstateField = nullptr;
 };
 
 class ReadOnlyCheckbox final : public QCheckBox {

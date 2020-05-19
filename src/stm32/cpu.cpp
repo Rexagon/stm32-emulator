@@ -79,7 +79,7 @@ auto Cpu::currentCondition() const -> uint8_t
     const auto ITSTATE = m_registers.ITSTATE();
 
     if (ITSTATE & 0x0fu) {
-        return static_cast<uint8_t>(ITSTATE >> 4u);
+        return getPart<4, 4>(ITSTATE);
     }
     else if (ITSTATE == 0x00u) {
         return 0b1110u;
@@ -87,13 +87,12 @@ auto Cpu::currentCondition() const -> uint8_t
     UNPREDICTABLE;
 }
 
-auto Cpu::conditionPassed() const -> bool
+auto Cpu::conditionPassed(uint8_t condition) const -> bool
 {
-    const auto condition = currentCondition() & 0x0fu;
     const auto APSR = m_registers.APSR();
 
     bool result;
-    switch (condition >> 1u) {
+    switch (getPart<1, 3>(condition)) {
         case 0b000u:
             result = APSR.Z;
             break;
@@ -113,7 +112,7 @@ auto Cpu::conditionPassed() const -> bool
             result = APSR.N == APSR.V;
             break;
         case 0b110u:
-            result = APSR.N == APSR.V && !APSR.Z;
+            result = (APSR.N == APSR.V) && !APSR.Z;
             break;
         case 0b111u:
             result = true;
@@ -122,11 +121,18 @@ auto Cpu::conditionPassed() const -> bool
             UNDEFINED;
     }
 
-    if ((condition & 0b1u) && (condition != 0x0fu)) {
+    if (isBitSet<0>(condition) && (getPart<0, 4>(condition) != 0x0fu)) {
         result = !result;
     }
 
     return result;
+}
+
+void Cpu::setItState(uint8_t mask, uint8_t condition)
+{
+    const auto ITSTATE = utils::combine<uint8_t>(_<0, 4>{mask}, _<4, 4>{condition});
+    m_registers.setITSTATE(ITSTATE);
+    m_skipAdvancingIT = true;
 }
 
 auto Cpu::isInItBlock() const -> bool

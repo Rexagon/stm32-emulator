@@ -554,7 +554,7 @@ constexpr auto getAlignmentBitCount() -> uint32_t
         return 1u;
     }
     else if constexpr (std::is_same_v<T, uint8_t>) {
-        return 2u;
+        return 0u;
     }
 }
 

@@ -1342,16 +1342,20 @@ void cmdBranch(T opCode, Cpu& cpu)
 {
     static_assert(isIn(encoding, Encoding::T1, Encoding::T2, Encoding::T3, Encoding::T4));
 
-    CHECK_CONDITION;
-
     uint32_t imm32;
     if constexpr (is_valid_opcode_encoding<Encoding::T1, encoding, uint16_t, T>) {
         const auto [imm8, cond] = utils::split<_<0, 8, uint32_t>, _<8, 4>>(opCode);
+        UNPREDICTABLE_IF((cond & 0b1110u) == 0b1110u);
+        if (!cpu.conditionPassed(cond)) {
+            return;
+        }
 
         imm32 = utils::signExtend<9>(imm8 << 1u);
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T2, encoding, uint16_t, T>) {
+        CHECK_CONDITION;
+
         const auto imm11 = utils::getPart<0, 11, uint32_t>(opCode);
 
         imm32 = utils::signExtend<12>(imm11 << 1u);
@@ -1359,12 +1363,18 @@ void cmdBranch(T opCode, Cpu& cpu)
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T3, encoding, uint32_t, T>) {
         const auto [imm11, J2, J1, imm6, cond, S] = utils::split<_<0, 11, uint16_t>, _<11>, _<13>, _<16, 6>, _<22, 4>, _<26>>(opCode);
+        UNPREDICTABLE_IF((cond & 0b1110u) == 0b1110u);
+        if (!cpu.conditionPassed(cond)) {
+            return;
+        }
 
         imm32 = utils::signExtend<21>(utils::combine<T>(_<1, 11, uint16_t>{imm11}, _<12, 6>{imm6}, _<18>{J1}, _<19>{J2}, _<20>{S}));
 
         UNPREDICTABLE_IF(cpu.isInItBlock());
     }
     else if constexpr (is_valid_opcode_encoding<Encoding::T4, encoding, uint32_t, T>) {
+        CHECK_CONDITION;
+
         const auto [imm11, J2, J1, imm10, S] = utils::split<_<0, 11, uint16_t>, _<11>, _<13>, _<16, 10, uint16_t>, _<26>>(opCode);
 
         const auto I1 = static_cast<uint8_t>(~(J1 ^ S));
@@ -1443,8 +1453,7 @@ inline void cmdIfThen(uint16_t opCode, Cpu& cpu)
     UNPREDICTABLE_IF(firstCond == 0b1111u || (firstCond == 0b1110u && utils::bitCount(mask) != 1u));
     UNPREDICTABLE_IF(cpu.isInItBlock());
 
-    const auto ITSTATE = utils::combine<uint8_t>(_<0, 4>{mask}, _<4, 4>{firstCond});
-    cpu.registers().setITSTATE(ITSTATE);
+    cpu.setItState(mask, firstCond);
 }
 
 inline void cmdMsr(uint32_t opCode, Cpu& cpu)
@@ -2189,7 +2198,7 @@ void cmdStoreImmediate(T opCode, Cpu& cpu)
 
         t = Rt;
         n = Rn;
-        imm32 = static_cast<uint32_t>(opCode << utils::getAlignmentBitCount<Type>());
+        imm32 = static_cast<uint32_t>(imm5 << utils::getAlignmentBitCount<Type>());
         index = true;
         add = true;
         writeBack = false;

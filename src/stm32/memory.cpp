@@ -108,17 +108,17 @@ void Memory::write<uint8_t>(uint32_t address, uint8_t data)
 template <>
 void Memory::write<uint16_t>(uint32_t address, uint16_t value)
 {
-    write(address, getPart<0, 8>(value));
-    write(address + 1u, getPart<8, 8>(value));
+    write<uint8_t>(address, getPart<0, 8>(value));
+    write<uint8_t>(address + 1u, getPart<8, 8>(value));
 }
 
 template <>
 void Memory::write<uint32_t>(uint32_t address, uint32_t value)
 {
-    write(address, getPart<0, 8>(value));
-    write(address + 1u, getPart<8, 8>(value));
-    write(address + 2u, getPart<16, 8>(value));
-    write(address + 3u, getPart<24, 8>(value));
+    write<uint8_t>(address, getPart<0, 8>(value));
+    write<uint8_t>(address + 1u, getPart<8, 8>(value));
+    write<uint8_t>(address + 2u, getPart<16, 8>(value));
+    write<uint8_t>(address + 3u, getPart<24, 8>(value));
 }
 
 template <>

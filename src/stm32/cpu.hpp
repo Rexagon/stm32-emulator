@@ -36,7 +36,8 @@ public:
     inline auto currentMode() -> ExecutionMode& { return m_currentMode; }
 
     auto currentCondition() const -> uint8_t;
-    auto conditionPassed() const -> bool;
+    auto conditionPassed(uint8_t condition) const -> bool;
+    void setItState(uint8_t mask, uint8_t condition);
     auto isInItBlock() const -> bool;
     auto isLastInItBlock() const -> bool;
     void advanceCondition();
@@ -92,6 +93,8 @@ private:
     bool m_skipIncrementingPC = false;
     uint32_t m_currentInstructionAddress = 0u;
     uint32_t m_nextInstructionAddress = 0u;
+
+    bool m_skipAdvancingIT = false;
 };
 
 }  // namespace stm32

@@ -74,7 +74,9 @@ inline void unalignedMemoryWrite(Cpu& cpu, Mpu& mpu, uint32_t address, T value, 
 {
     if (isAddressAligned<T>(address)) {
         alignedMemoryWrite<T>(cpu, mpu, address, value, accessType);
+        return;
     }
+
     else if (cpu.systemRegisters().CCR().UNALIGN_TRP) {
         cpu.systemRegisters().CFSR().usageFault.UNALIGNED_ = true;
         throw utils::CpuException(ExceptionType::UsageFault);
