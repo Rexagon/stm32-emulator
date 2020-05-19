@@ -12,7 +12,7 @@ public:
     explicit HexView(QWidget* parent);
     ~HexView() override = default;
 
-    void setData(QByteArray newData);
+    void setData(uint32_t addressOffset, QByteArray newData);
     void reset();
 
     void updateViewport();
@@ -36,10 +36,11 @@ private:
     void setCursorPosition(int position);
     auto cursorPosition(const QPoint& position) -> int;
 
+    uint32_t m_addressOffset = 0;
     std::optional<QByteArray> m_data{};
 
     int m_bytesPerLine = 16;
-    int m_addressByteCount = 10;
+    int m_addressCharacterCount = 8;
 
     int m_positionAddress = 0;
     int m_positionHex = 0;

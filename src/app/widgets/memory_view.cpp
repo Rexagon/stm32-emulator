@@ -16,8 +16,10 @@ MemoryView::MemoryView(QWidget* parent)
 void MemoryView::setMemory(stm32::Memory& memory)
 {
     m_flashHexView->setData(
+        0u,
         QByteArray::fromRawData(reinterpret_cast<char*>(memory.config().flash.begin()), static_cast<int>(memory.config().flash.size())));
-    m_sramHexView->setData(QByteArray::fromRawData(reinterpret_cast<char*>(memory.SRAM().data()), static_cast<int>(memory.SRAM().size())));
+    m_sramHexView->setData(memory.config().sramStart,
+                           QByteArray::fromRawData(reinterpret_cast<char*>(memory.SRAM().data()), static_cast<int>(memory.SRAM().size())));
 
     m_memory.emplace(memory);
 }

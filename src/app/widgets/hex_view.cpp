@@ -34,16 +34,17 @@ void HexView::init()
     m_characterHeight = fontMetrics().height();
 
     m_positionAddress = ADDRESS_LEFT_OFFSET;
-    m_positionHex = m_positionAddress + m_addressByteCount * m_characterWidth + HEX_LEFT_OFFSET;
+    m_positionHex = m_positionAddress + m_addressCharacterCount * m_characterWidth + HEX_LEFT_OFFSET;
     m_positionAscii = m_positionHex + (m_bytesPerLine * 3 - 1) * m_characterWidth + ASCII_LEFT_OFFSET;
 
     setMinimumWidth(m_positionAscii + (m_bytesPerLine * m_characterWidth));
 }
 
-void HexView::setData(QByteArray newData)
+void HexView::setData(uint32_t addressOffset, QByteArray newData)
 {
     verticalScrollBar()->setValue(0);
 
+    m_addressOffset = addressOffset;
     m_data = newData;
     m_cursorPosition = 0;
     resetSelection(0);
@@ -101,7 +102,7 @@ void HexView::paintEvent(QPaintEvent* event)
     auto dataView = m_data->mid(firstLineNumber * m_bytesPerLine, (lastLineNumber - firstLineNumber) * m_bytesPerLine);
 
     for (int lineIndex = firstLineNumber, yPos = yPosStart; lineIndex < lastLineNumber; lineIndex += 1, yPos += m_characterHeight) {
-        QString address = QString("%1").arg(lineIndex * 16, 10, 16, QChar('0'));
+        QString address = QString("%1").arg(static_cast<int>(m_addressOffset) + lineIndex * 16, m_addressCharacterCount, 16, QChar('0'));
         painter.drawText(m_positionAddress, yPos, address);
 
         for (int xPos = m_positionHex, i = 0; i < m_bytesPerLine && ((lineIndex - firstLineNumber) * m_bytesPerLine + i) < dataView.size();
