@@ -1202,7 +1202,7 @@ void Cpu::step()
     m_currentInstructionAddress = PC;
     m_skipIncrementingPC = false;
 
-    const auto opCodeHw1 = m_memory.read<uint16_t>(PC & ZEROS<1, uint32_t>);
+    const auto opCodeHw1 = m_mpu.alignedMemoryRead<uint16_t>(PC & ZEROS<1, uint32_t>, AccessType::InstructionFetch);
 
     const auto op1 = getPart<11, 2>(opCodeHw1);
 
