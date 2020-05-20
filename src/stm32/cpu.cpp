@@ -174,17 +174,16 @@ auto Cpu::executionPriority() const -> int32_t
     auto subGroupShift = m_systemRegisters.AIRCR().PRIGROUP;
     auto groupValue = lsl(std::uint32_t{0b10}, subGroupShift);
 
-    for (size_t i = 2; i < 512; ++i) {
+    for (size_t i = 2; i < m_exceptionActive.size(); ++i) {
         if (!m_exceptionActive.test(i)) {
             continue;
         }
 
-        // if ExceptionActive[i] == '1' then
-        //      if ExceptionPriority[i] < highestpri then
-        //          highestpri = ExceptionPriority[i];
-        //          // Include the PRIGROUP effect
-        //          subgroupvalue = highestpri MOD groupvalue;
-        //          highestpri = highestpri - subgroupvalue;
+        // if ExceptionPriority[i] < highestpri then
+        //      highestpri = ExceptionPriority[i];
+        //      // Include the PRIGROUP effect
+        //      subgroupvalue = highestpri MOD groupvalue;
+        //      highestpri = highestpri - subgroupvalue;
     }
 
     if (m_registers.BASEPRI().level != 0) {

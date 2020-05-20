@@ -87,7 +87,7 @@ private:
     Mpu m_mpu;
 
     ExecutionMode m_currentMode;
-    std::bitset<512> m_exceptionActive;
+    std::bitset<256> m_exceptionActive;
     bool m_wasEventRegistered = false;
 
     bool m_skipIncrementingPC = false;

@@ -144,7 +144,12 @@ void Application::step()
 
     updateNextInstructionAddress();
 
-    if (!m_state->shouldPause && !m_state->breakpoints.contains(m_state->nextInstructionAddress)) {
+    if (m_state->shouldPause) {
+        return;
+    }
+
+    const auto it = m_state->breakpoints.find(m_state->nextInstructionAddress);
+    if (it == m_state->breakpoints.end()) {
         QTimer::singleShot(0, this, &Application::step);
     }
 }
