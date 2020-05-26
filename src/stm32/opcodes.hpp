@@ -1627,14 +1627,14 @@ void cmdPermanentlyUndefined(T /*opCode*/, Cpu& cpu)
 
     CHECK_CONDITION;
 
-    // TODO: raise UNDEFINED
+    throw utils::CpuException(utils::ExceptionType::UsageFault);
 }
 
 inline void cmdCallSupervisor(uint16_t /*opCode*/, Cpu& cpu)
 {
     CHECK_CONDITION;
 
-    // TODO: call supervisor
+    throw utils::CpuException(utils::ExceptionType::SVCall);
 }
 
 template <Encoding encoding, typename T>

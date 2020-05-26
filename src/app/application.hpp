@@ -44,7 +44,7 @@ signals:
     void assemblyLoaded(const QString& assembly);
     void memoryLoaded(stm32::Memory& memory);
     void registersLoaded(stm32::rg::CpuRegistersSet& cpuRegisters);
-    void instructionSelected(uint32_t address);
+    void instructionChanged(uint32_t address);
 
 private:
     void initCpu(std::unique_ptr<std::vector<uint8_t>>&& flash);

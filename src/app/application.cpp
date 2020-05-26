@@ -161,7 +161,7 @@ void Application::updateNextInstructionAddress()
     }
 
     m_state->nextInstructionAddress = m_state->cpu.registers().PC() & ~uint32_t{0b1};
-    emit instructionSelected(m_state->nextInstructionAddress);
+    emit instructionChanged(m_state->nextInstructionAddress);
 }
 
 }  // namespace app

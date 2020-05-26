@@ -42,10 +42,10 @@ auto main(int argc, char** argv) -> int
     QWidget::connect(&application, &app::Application::memoryLoaded, mainWindow.memoryView(), &app::MemoryView::setMemory);
     QWidget::connect(&application, &app::Application::registersLoaded, mainWindow.registersView(), &app::RegistersView::setRegisters);
 
-    QWidget::connect(&application, &app::Application::instructionSelected, &assemblyViewModel, &app::AssemblyViewModel::setCurrentAddress);
-    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.memoryView(), &app::MemoryView::updateContents);
-    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.registersView(), &app::RegistersView::updateContents);
-    QWidget::connect(&application, &app::Application::instructionSelected, mainWindow.assemblyView(), &app::AssemblyView::scrollToAddress);
+    QWidget::connect(&application, &app::Application::instructionChanged, &assemblyViewModel, &app::AssemblyViewModel::setCurrentAddress);
+    QWidget::connect(&application, &app::Application::instructionChanged, mainWindow.memoryView(), &app::MemoryView::updateContents);
+    QWidget::connect(&application, &app::Application::instructionChanged, mainWindow.registersView(), &app::RegistersView::updateContents);
+    QWidget::connect(&application, &app::Application::instructionChanged, mainWindow.assemblyView(), &app::AssemblyView::scrollToAddress);
 
     //
     mainWindow.show();

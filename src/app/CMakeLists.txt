@@ -62,8 +62,15 @@ set(
 # Create target for build ####################################### #
 # ############################################################### #
 
+if (WIN32)
+    if(CMAKE_BUILD_TYPE MATCHES Release)
+        set(ADDITIONAL_EXECUTABLE_OPTIONS WIN32)
+    endif()
+endif()
+
 add_executable(
         ${SUBPROJ_NAME}
+        ${ADDITIONAL_EXECUTABLE_OPTIONS}
         ${${SUBPROJ_NAME}_ALL_SRCS}
         ${RESOURCES})
 

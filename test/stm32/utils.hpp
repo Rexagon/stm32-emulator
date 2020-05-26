@@ -21,6 +21,7 @@ auto createMemory() -> Memory
         .sramEnd = 0x20005000u,
 
         .bootMode = BootMode::FlashMemory,
+        .flash = utils::ArrayView<uint8_t, uint32_t>{nullptr, 0}
     }};
 }
 
