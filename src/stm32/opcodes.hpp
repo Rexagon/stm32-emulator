@@ -7,7 +7,7 @@
 namespace stm32::opcodes
 {
 #define CHECK_CONDITION         \
-    if (!cpu.conditionPassed()) \
+    if (!cpu.conditionPassed(cpu.currentCondition() & 0x0fu)) \
     return
 
 template <uint8_t offset, uint8_t bitCount = 1u, typename T = uint8_t>
